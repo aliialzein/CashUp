@@ -44,6 +44,7 @@ enum PaymentMethod {
 enum RequestType {
   DELETE_SALE
   VOID_CASHUP
+  Amendment
 }
 
 enum RequestStatus {
@@ -442,10 +443,6 @@ model AmendmentChange {
   @@index([amendmentId])
   @@map("amendment_changes")
 }
-
-// ============================================================
-// AUDIT LOG (append-only)
-// ============================================================
 
 // Never updated or deleted. Enforce with a DB trigger / revoked privileges (see bottom of file).
 model AuditLog {
