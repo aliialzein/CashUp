@@ -34,3 +34,14 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Persistence
+
+Set `DATABASE_URL` to the pooled PostgreSQL connection for the application and `DIRECT_URL`
+to the direct connection on port 5432 for Prisma migrations. Copy `.env.example` to `.env`
+and replace its placeholders; do not use a production URL for tests.
+
+Run `npm run prisma:generate` to generate the Prisma client and `npm run db:migrate:deploy`
+to apply committed migrations. Integration tests require `TEST_DATABASE_URL` to point to a
+disposable database whose name contains `test`. If it is unset, the integration test setup
+starts the PostgreSQL 16 service in `docker-compose.test.yml`.
