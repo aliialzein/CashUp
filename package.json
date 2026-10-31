@@ -8,16 +8,20 @@
     "start": "next start",
     "lint": "eslint",
     "test": "jest",
-    "postinstall": "prisma generate"
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate --config prisma7.config.ts",
+    "db:migrate:deploy": "prisma migrate deploy --config prisma7.config.ts",
+    "test:integration": "jest --config jest.integration.config.ts",
+    "postinstall": "prisma generate --config prisma7.config.ts"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.10.1",
-    "@prisma/client": "^7.10.1",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
     "next": "16.4.3",
     "pg": "^8.23.1",
-    "prisma": "^7.10.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "server-only": "0.0.1",
     "winston": "^3.19.0"
   },
   "devDependencies": {
@@ -29,6 +33,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "jest": "^30.5.2",
+    "prisma": "7.10.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

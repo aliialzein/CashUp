@@ -12,8 +12,10 @@ enum AuthProvider {
   GOOGLE
 }
 
+// OWNER = owns the business, oversight only | MANAGER = runs operations | STAFF = cashiers/drivers
 enum MembershipRole {
   OWNER
+  MANAGER
   STAFF
 }
 
@@ -44,7 +46,6 @@ enum PaymentMethod {
 enum RequestType {
   DELETE_SALE
   VOID_CASHUP
-  Amendment
 }
 
 enum RequestStatus {
@@ -152,7 +153,7 @@ model PasswordResetToken {
 model Business {
   id        String   @id @default(uuid()) @db.Uuid
   name      String
-  isSolo    Boolean  @default(false) // "I work alone"
+  isSolo    Boolean  @default(false) // "I work alone": the Owner also acts as Manager and Staff
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   memberships Membership[]
@@ -198,6 +199,7 @@ model JoinCode {
   id          String    @id @default(uuid()) @db.Uuid
   businessId  String    @db.Uuid
   codeHash    String    @unique
+  role        MembershipRole @default(STAFF) // role granted on join (MANAGER or STAFF only; a code can never create an OWNER)
   label       String // label given by the owner when created
   expiresAt   DateTime  @db.Timestamptz(3)
   usedAt      DateTime? @db.Timestamptz(3)
@@ -238,6 +240,7 @@ model CashUp {
   selfApproved Boolean  @default(false)
   returnReason String? // reason given on the last return to OPEN
   voidReason   String?
+  lastSaleNumber Int @default(0) // atomic counter used to hand out Sale.saleNumber without races
 
   // Snapshot computed by the server on submit (per-currency, no combined total)
   expectedUsd Decimal? @db.Decimal(18, 2)
@@ -267,7 +270,7 @@ model Sale {
   id         String @id @default(uuid()) @db.Uuid
   businessId String @db.Uuid
   cashUpId   String @db.Uuid
-  saleNumber Int // sequential per cash-up, assigned by server
+  saleNumber Int // sequential per cash-up, allocated atomically via CashUp.lastSaleNumber
 
   status SaleStatus @default(DELIVERED)
 

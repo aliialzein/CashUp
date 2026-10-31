@@ -15,6 +15,23 @@ const eslintConfig = defineConfig([
     "src/generated/prisma/**",
     "next-env.d.ts",
   ]),
+  {
+    files: ["src/**/*.{js,jsx,ts,tsx}"],
+    ignores: ["src/persistence/**", "src/lib/prisma.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/generated/prisma/**", "**/generated/prisma/**"],
+              message: "Import Prisma generated client code only through src/persistence or src/lib/prisma.ts.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
