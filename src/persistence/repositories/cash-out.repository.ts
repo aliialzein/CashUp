@@ -30,7 +30,11 @@ export class CashOutRepository extends TenantRepository {
 
     if (input.idempotencyKey) {
       const existing = await this.db.cashOut.findFirst({
-        where: { cashUpId: input.cashUpId, idempotencyKey: input.idempotencyKey },
+        where: {
+          cashUpId: input.cashUpId,
+          idempotencyKey: input.idempotencyKey,
+          cashUp: { businessId: this.businessId },
+        },
       });
       if (existing) return { cashOut: existing, created: false };
     }

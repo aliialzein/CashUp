@@ -1,7 +1,13 @@
 import { Prisma } from '../../generated/prisma/client';
 import { CashUpStatus } from '../../generated/prisma/enums';
 import { TenantRepository } from '../base.repository';
-import { DuplicateError, StaleStateError, isRecordNotFound, isUniqueViolation } from '../errors';
+import {
+  DuplicateError,
+  NotFoundError,
+  StaleStateError,
+  isRecordNotFound,
+  isUniqueViolation,
+} from '../errors';
 import type { Money } from '../types';
 
 export interface OpenCashUpInput {
@@ -29,6 +35,12 @@ export class CashUpRepository extends TenantRepository {
    * (one_open_cashup_per_member) is the real guard; this turns its error into a DuplicateError.
    */
   async open(input: OpenCashUpInput) {
+    const membership = await this.db.membership.findFirst({
+      where: { id: input.membershipId, businessId: this.businessId, isActive: true },
+      select: { id: true },
+    });
+    if (!membership) throw new NotFoundError('Membership');
+
     try {
       return await this.db.cashUp.create({
         data: {
