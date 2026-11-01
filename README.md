@@ -45,3 +45,20 @@ Run `npm run prisma:generate` to generate the Prisma client and `npm run db:migr
 to apply committed migrations. Integration tests require `TEST_DATABASE_URL` to point to a
 disposable database whose name contains `test`. If it is unset, the integration test setup
 starts the PostgreSQL 16 service in `docker-compose.test.yml`.
+
+## Concurrency rules
+
+Every cash-up write runs inside `uow.run` and locks that cash-up row before other row locks.
+The submit flow must be `uow.run` -> `cashUps.lockForUpdate(id)` -> read aggregates
+(`sales.totalsByCurrencyAndMethod`, `sales.changeGivenByCurrency`, `cashOuts.totalsByCurrency`,
+and `counts.countedTotals`) -> `cashUps.submit(id, snapshot)`. This keeps the snapshot and
+the submitted cash-up consistent with concurrent sale, cash-out, and count writes.
+
+## Validation and money rules
+
+Pure money calculations live in `src/domain/money`; reusable strict request schemas and
+sanitized validation errors live in `src/validation`. Money is parsed and calculated with
+decimal arithmetic, never rounded, and every amount retains its currency—USD and LBP are
+never added together. Request schemas reject unknown keys and return normalized two-decimal
+money strings. To change currency, denomination, or amount limits, edit
+`src/domain/money/config.ts`.
