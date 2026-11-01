@@ -12,6 +12,12 @@ const config: Config = {
   coverageProvider: "v8",
   collectCoverage: true,
   coverageDirectory: "coverage",
+  collectCoverageFrom: ["src/domain/**/*.ts", "src/validation/**/*.ts"],
+  coverageThreshold: {
+    global: { lines: 0, branches: 0 },
+    "./src/domain": { lines: 95, branches: 95 },
+    "./src/validation": { lines: 95, branches: 95 },
+  },
 };
 
 export default createJestConfig(config);

@@ -32,6 +32,46 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  {
+    files: ["src/domain/**/*.{js,jsx,ts,tsx}", "src/validation/**/*.{js,jsx,ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "@/persistence",
+                "@/persistence/**",
+                "src/persistence",
+                "src/persistence/**",
+                "**/persistence",
+                "**/persistence/**",
+                "@/generated/prisma/**",
+                "**/generated/prisma/**",
+                "next",
+                "next/**",
+                "server-only",
+                "node:*",
+                "fs",
+                "fs/**",
+                "path",
+                "path/**",
+                "crypto",
+                "crypto/**",
+                "os",
+                "os/**",
+                "child_process",
+                "child_process/**",
+              ],
+              message:
+                "Domain and validation modules must remain portable and free of server-only dependencies.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
