@@ -1,3 +1,4 @@
+import { NotInTransactionError } from './errors';
 import type { Db, TenantScope } from './types';
 
 /**
@@ -11,6 +12,7 @@ export abstract class TenantRepository {
   constructor(
     protected readonly db: Db,
     protected readonly scope: TenantScope,
+    protected readonly options: { inTransaction?: boolean } = {},
   ) {
     if (!scope.businessId) {
       throw new Error('A repository cannot be created without a businessId');
@@ -19,5 +21,9 @@ export abstract class TenantRepository {
 
   protected get businessId(): string {
     return this.scope.businessId;
+  }
+
+  protected requireTransaction(): void {
+    if (!this.options.inTransaction) throw new NotInTransactionError();
   }
 }

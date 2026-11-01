@@ -88,12 +88,12 @@ describe("CashUp persistence against PostgreSQL", () => {
       uow.run({ businessId: businessA.id }, (repos) =>
         repos.cashUps.submit(cashUpB.id, snapshot),
       ),
-    ).rejects.toBeInstanceOf(StaleStateError);
+    ).rejects.toBeInstanceOf(NotFoundError);
     await expect(
       uow.run({ businessId: businessA.id }, (repos) =>
         repos.sales.create(makeSaleInput(cashUpB.id)),
       ),
-    ).rejects.toBeInstanceOf(StaleStateError);
+    ).rejects.toBeInstanceOf(NotFoundError);
     await expect(
       uow.run({ businessId: businessA.id }, (repos) =>
         repos.sales.edit(saleB.id, { note: "Cross-tenant edit" }, businessA.members.staff1.id),
@@ -108,7 +108,7 @@ describe("CashUp persistence against PostgreSQL", () => {
           reason: "Cross-tenant write",
         }),
       ),
-    ).rejects.toBeInstanceOf(StaleStateError);
+    ).rejects.toBeInstanceOf(NotFoundError);
     await expect(
       uow.run({ businessId: businessA.id }, (repos) =>
         repos.cashOuts.update(cashOutB.id, { reason: "Cross-tenant edit" }),
@@ -120,7 +120,7 @@ describe("CashUp persistence against PostgreSQL", () => {
           { currency: Currency.USD, denomination: "1.00", quantity: 1 },
         ]),
       ),
-    ).rejects.toBeInstanceOf(StaleStateError);
+    ).rejects.toBeInstanceOf(NotFoundError);
 
     const tenantAEntry = await uow.run({ businessId: businessA.id }, (repos) =>
       repos.audit.append({

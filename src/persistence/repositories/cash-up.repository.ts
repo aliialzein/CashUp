@@ -28,6 +28,9 @@ export interface CashUpSnapshot {
 }
 
 export class CashUpRepository extends TenantRepository {
+  // Lock the cash-up row before any other row in a transaction; transactions take only one
+  // cash-up lock, so all writes serialize with lifecycle transitions without lock-order cycles.
+
   // ---------------------------------------------------------------- create
 
   /**
@@ -143,8 +146,12 @@ export class CashUpRepository extends TenantRepository {
   // Every transition is `updateMany ... where status = <expected>`; zero rows means somebody
   // else got there first (NFR16), reported as StaleStateError.
 
-  /** OPEN -> SUBMITTED. Freezes staff editing and stores the server-computed snapshot. */
+  /**
+   * OPEN -> SUBMITTED. The caller must compute the snapshot only after acquiring this same
+   * transaction's cash-up lock: uow.run -> lockForUpdate -> read aggregates -> submit.
+   */
   async submit(id: string, snapshot: CashUpSnapshot) {
+    await this.lockForUpdate(id);
     await this.transition(id, [CashUpStatus.OPEN], {
       status: CashUpStatus.SUBMITTED,
       closedAt: new Date(),
@@ -155,6 +162,7 @@ export class CashUpRepository extends TenantRepository {
 
   /** SUBMITTED -> APPROVED (final and locked). `selfApproved` is always recorded. */
   async approve(id: string, approvedById: string, selfApproved: boolean) {
+    await this.lockForUpdate(id);
     await this.transition(id, [CashUpStatus.SUBMITTED], {
       status: CashUpStatus.APPROVED,
       approvedAt: new Date(),
@@ -166,6 +174,7 @@ export class CashUpRepository extends TenantRepository {
 
   /** SUBMITTED -> OPEN with a required reason. Clears the snapshot; it is recomputed on re-submit. */
   async returnToOpen(id: string, reason: string) {
+    await this.lockForUpdate(id);
     await this.transition(id, [CashUpStatus.SUBMITTED], {
       status: CashUpStatus.OPEN,
       returnReason: reason,
@@ -182,6 +191,7 @@ export class CashUpRepository extends TenantRepository {
 
   /** OPEN -> VOID. Kept in history with its reason, never deleted. */
   async voidCashUp(id: string, reason: string) {
+    await this.lockForUpdate(id);
     await this.transition(id, [CashUpStatus.OPEN], {
       status: CashUpStatus.VOID,
       voidedAt: new Date(),
@@ -192,6 +202,7 @@ export class CashUpRepository extends TenantRepository {
 
   /** Records when counting started, once (pilot metric, FR29). No error if already set. */
   async markCountStarted(id: string): Promise<void> {
+    await this.lockOpenForUpdate(id);
     await this.db.cashUp.updateMany({
       where: { id, businessId: this.businessId, status: CashUpStatus.OPEN, countStartedAt: null },
       data: { countStartedAt: new Date() },
@@ -203,6 +214,7 @@ export class CashUpRepository extends TenantRepository {
    * Safe under concurrent requests: the increment happens in a single UPDATE.
    */
   async nextSaleNumber(id: string): Promise<number> {
+    await this.lockOpenForUpdate(id);
     try {
       const row = await this.db.cashUp.update({
         where: { id, businessId: this.businessId, status: CashUpStatus.OPEN },
@@ -217,6 +229,26 @@ export class CashUpRepository extends TenantRepository {
   }
 
   // --------------------------------------------------------------- helpers
+
+  async lockForUpdate(id: string): Promise<{ id: string; status: CashUpStatus }> {
+    this.requireTransaction();
+    const rows = await this.db.$queryRaw<Array<{ id: string; status: CashUpStatus }>>(Prisma.sql`
+      SELECT "id", "status"
+      FROM "cash_ups"
+      WHERE "id" = ${id}::uuid
+        AND "businessId" = ${this.businessId}::uuid
+      FOR UPDATE
+    `);
+    const cashUp = rows[0];
+    if (!cashUp) throw new NotFoundError('Cash-up');
+    return cashUp;
+  }
+
+  async lockOpenForUpdate(id: string): Promise<{ id: string; status: CashUpStatus }> {
+    const cashUp = await this.lockForUpdate(id);
+    if (cashUp.status !== CashUpStatus.OPEN) throw new StaleStateError('Cash-up');
+    return cashUp;
+  }
 
   private async transition(
     id: string,

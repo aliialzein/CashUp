@@ -8,6 +8,10 @@ import { SaleRepository } from './repositories/sale.repository';
 import type { Db, TenantScope } from './types';
 
 /** All repositories for one business, sharing one connection or transaction. */
+export interface RepositoryOptions {
+  inTransaction?: boolean;
+}
+
 export interface Repositories {
   memberships: MembershipRepository;
   cashUps: CashUpRepository;
@@ -17,14 +21,18 @@ export interface Repositories {
   audit: AuditRepository;
 }
 
-export function createRepositories(db: Db, scope: TenantScope): Repositories {
+export function createRepositories(
+  db: Db,
+  scope: TenantScope,
+  options?: RepositoryOptions,
+): Repositories {
   return {
-    memberships: new MembershipRepository(db, scope),
-    cashUps: new CashUpRepository(db, scope),
-    sales: new SaleRepository(db, scope),
-    cashOuts: new CashOutRepository(db, scope),
-    counts: new CountEntryRepository(db, scope),
-    audit: new AuditRepository(db, scope),
+    memberships: new MembershipRepository(db, scope, options),
+    cashUps: new CashUpRepository(db, scope, options),
+    sales: new SaleRepository(db, scope, options),
+    cashOuts: new CashOutRepository(db, scope, options),
+    counts: new CountEntryRepository(db, scope, options),
+    audit: new AuditRepository(db, scope, options),
   };
 }
 
@@ -46,10 +54,13 @@ export class UnitOfWork {
 
   /** Everything inside commits together or not at all. */
   run<T>(scope: TenantScope, fn: (repos: Repositories) => Promise<T>): Promise<T> {
-    return this.prisma.$transaction((tx) => fn(createRepositories(tx, scope)), {
-      maxWait: 5_000,
-      timeout: 15_000,
-    });
+    return this.prisma.$transaction(
+      (tx) => fn(createRepositories(tx, scope, { inTransaction: true })),
+      {
+        maxWait: 5_000,
+        timeout: 15_000,
+      },
+    );
   }
 }
 

@@ -106,12 +106,15 @@ export class SaleRepository extends TenantRepository {
    * with `findByIdempotencyKey` outside the transaction.
    */
   async create(input: CreateSaleInput): Promise<{ sale: Sale; created: boolean }> {
-    if (input.idempotencyKey) {
-      const existing = await this.findByIdempotencyKey(input.idempotencyKey);
-      if (existing) return { sale: existing, created: false };
-    }
+     const cashUps = new CashUpRepository(this.db, this.scope, this.options);
+     await cashUps.lockOpenForUpdate(input.cashUpId);
 
-    const saleNumber = await new CashUpRepository(this.db, this.scope).nextSaleNumber(input.cashUpId);
+     if (input.idempotencyKey) {
+       const existing = await this.findByIdempotencyKey(input.idempotencyKey);
+       if (existing) return { sale: existing, created: false };
+     }
+
+     const saleNumber = await cashUps.nextSaleNumber(input.cashUpId);
     const delivered = input.status === SaleStatus.DELIVERED;
 
     try {
@@ -180,8 +183,10 @@ export class SaleRepository extends TenantRepository {
    * Sales that are deleted or locked for deletion cannot be edited.
    */
   async edit(id: string, changes: SaleChanges, editedById: string): Promise<Sale> {
-    const current = await this.findById(id);
-    if (!current) throw new NotFoundError('Sale');
+    const current = await this.lockSaleForUpdate(id);
+    if (current.status === SaleStatus.DELETED || current.deletionAwaiting) {
+      throw new StaleStateError('Sale');
+    }
 
     const data: Prisma.SaleUncheckedUpdateManyInput = {};
     const logs: Prisma.SaleEditCreateManyInput[] = [];
@@ -225,6 +230,7 @@ export class SaleRepository extends TenantRepository {
 
   /** FR8: TO_DELIVER -> DELIVERED, confirming amount, currency and method. */
   async markDelivered(id: string, confirm: ConfirmDeliveryInput): Promise<Sale> {
+    await this.lockSaleForUpdate(id);
     const { count } = await this.db.sale.updateMany({
       where: {
         id,
@@ -250,6 +256,7 @@ export class SaleRepository extends TenantRepository {
 
   /** FR10: cancel a TO_DELIVER sale with a reason, no approval needed. Final. */
   async cancelToDeliver(id: string, reason: string): Promise<Sale> {
+    await this.lockSaleForUpdate(id);
     const { count } = await this.db.sale.updateMany({
       where: {
         id,
@@ -265,6 +272,7 @@ export class SaleRepository extends TenantRepository {
 
   /** FR16: lock a DELIVERED sale ("deletion awaiting owner") while its delete request is open. */
   async lockForDeletion(id: string): Promise<Sale> {
+    await this.lockSaleForUpdate(id);
     const { count } = await this.db.sale.updateMany({
       where: {
         id,
@@ -281,6 +289,7 @@ export class SaleRepository extends TenantRepository {
 
   /** Request withdrawn or rejected: the sale becomes editable again. */
   async releaseDeletionLock(id: string): Promise<Sale> {
+    await this.lockSaleForUpdate(id);
     const { count } = await this.db.sale.updateMany({
       where: {
         id,
@@ -296,6 +305,7 @@ export class SaleRepository extends TenantRepository {
 
   /** Request approved: DELIVERED (locked) -> DELETED. The row stays; nothing is removed. */
   async markDeleted(id: string): Promise<Sale> {
+    await this.lockSaleForUpdate(id);
     const { count } = await this.db.sale.updateMany({
       where: {
         id,
@@ -397,6 +407,19 @@ export class SaleRepository extends TenantRepository {
   }
 
   // --------------------------------------------------------------- helpers
+
+  private async lockSaleForUpdate(id: string): Promise<Sale> {
+    const beforeLock = await this.findById(id);
+    if (!beforeLock) throw new NotFoundError('Sale');
+
+    await new CashUpRepository(this.db, this.scope, this.options).lockOpenForUpdate(
+      beforeLock.cashUpId,
+    );
+
+    const sale = await this.findById(id);
+    if (!sale) throw new NotFoundError('Sale');
+    return sale;
+  }
 
   private listWhere(cashUpId: string, filter: SaleListFilter): Prisma.SaleWhereInput {
     return {

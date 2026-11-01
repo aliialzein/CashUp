@@ -5,6 +5,7 @@ import type { Currency } from '../../generated/prisma/enums';
 import { TenantRepository } from '../base.repository';
 import { DuplicateError, NotFoundError, StaleStateError, isUniqueViolation } from '../errors';
 import type { Money } from '../types';
+import { CashUpRepository } from './cash-up.repository';
 
 const ZERO = new Prisma.Decimal(0);
 
@@ -26,7 +27,7 @@ export interface CashOutChanges {
 export class CashOutRepository extends TenantRepository {
   /** Records money taken from the drawer. Only while the cash-up is OPEN. Call in a transaction. */
   async create(input: CreateCashOutInput): Promise<{ cashOut: CashOut; created: boolean }> {
-    await this.requireOpenCashUp(input.cashUpId);
+    await new CashUpRepository(this.db, this.scope, this.options).lockOpenForUpdate(input.cashUpId);
 
     if (input.idempotencyKey) {
       const existing = await this.db.cashOut.findFirst({
@@ -61,6 +62,13 @@ export class CashOutRepository extends TenantRepository {
    * write the CASHOUT_EDITED audit entry with both values (FR28).
    */
   async update(id: string, changes: CashOutChanges): Promise<{ before: CashOut; after: CashOut }> {
+    const beforeLock = await this.findById(id);
+    if (!beforeLock) throw new NotFoundError('Cash-out');
+
+    await new CashUpRepository(this.db, this.scope, this.options).lockOpenForUpdate(
+      beforeLock.cashUpId,
+    );
+
     const before = await this.findById(id);
     if (!before) throw new NotFoundError('Cash-out');
 
@@ -102,11 +110,4 @@ export class CashOutRepository extends TenantRepository {
     return rows.map((r) => ({ currency: r.currency, total: r._sum.amount ?? ZERO }));
   }
 
-  private async requireOpenCashUp(cashUpId: string): Promise<void> {
-    const open = await this.db.cashUp.findFirst({
-      where: { id: cashUpId, businessId: this.businessId, status: CashUpStatus.OPEN },
-      select: { id: true },
-    });
-    if (!open) throw new StaleStateError('Cash-up');
-  }
 }

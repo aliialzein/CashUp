@@ -18,6 +18,13 @@ export class NotFoundError extends PersistenceError {
   }
 }
 
+/** A row lock was requested from repositories not backed by a UnitOfWork transaction. */
+export class NotInTransactionError extends PersistenceError {
+  constructor() {
+    super('NOT_IN_TRANSACTION', 'This operation requires a UnitOfWork transaction');
+  }
+}
+
 /**
  * A guarded write matched no row: the record was no longer in the expected state
  * (NFR16 — "a status change succeeds only if the record is still in the expected status").

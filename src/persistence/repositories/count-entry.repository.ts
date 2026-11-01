@@ -1,10 +1,9 @@
 import { Prisma } from '../../generated/prisma/client';
 import type { CountEntry } from '../../generated/prisma/client';
-import { CashUpStatus } from '../../generated/prisma/enums';
 import type { Currency } from '../../generated/prisma/enums';
 import { TenantRepository } from '../base.repository';
-import { StaleStateError } from '../errors';
 import type { Money } from '../types';
+import { CashUpRepository } from './cash-up.repository';
 
 export interface CountLine {
   currency: Currency;
@@ -21,15 +20,7 @@ export class CountEntryRepository extends TenantRepository {
    * Call inside a transaction.
    */
   async saveLines(cashUpId: string, lines: CountLine[]): Promise<CountEntry[]> {
-    const open = await this.db.$queryRaw<Array<{ id: string }>>(Prisma.sql`
-      SELECT "id"
-      FROM "cash_ups"
-      WHERE "id" = ${cashUpId}::uuid
-        AND "businessId" = ${this.businessId}::uuid
-        AND "status" = 'OPEN'
-      FOR UPDATE
-    `);
-    if (open.length === 0) throw new StaleStateError('Cash-up');
+    await new CashUpRepository(this.db, this.scope, this.options).lockOpenForUpdate(cashUpId);
 
     const saved: CountEntry[] = [];
     for (const line of lines) {
@@ -54,7 +45,12 @@ export class CountEntryRepository extends TenantRepository {
     }
 
     await this.db.cashUp.updateMany({
-      where: { id: cashUpId, businessId: this.businessId, status: CashUpStatus.OPEN, countStartedAt: null },
+      where: {
+        id: cashUpId,
+        businessId: this.businessId,
+        countStartedAt: null,
+        status: 'OPEN',
+      },
       data: { countStartedAt: new Date() },
     });
 

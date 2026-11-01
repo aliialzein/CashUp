@@ -167,8 +167,7 @@ model Business {
   @@map("businesses")
 }
 
-// The role belongs to the membership, not the person.
-// NOTE: "one Owner per business" needs a partial unique index.
+// One ACTIVE Manager per business (partial unique index one_active_manager_per_business). One Owner per business (one_owner_per_business).
 model Membership {
   id            String         @id @default(uuid()) @db.Uuid
   userId        String         @db.Uuid
@@ -236,7 +235,7 @@ model CashUp {
   updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
 
   // Owner decision
-  approvedById String?  @db.Uuid
+  approvedById String?  @db.Uuid // Staff cash-ups are approved by the Manager. A Manager's own cash-up is approved by the Owner. A solo business self-approves.
   selfApproved Boolean  @default(false)
   returnReason String? // reason given on the last return to OPEN
   voidReason   String?
