@@ -54,6 +54,18 @@ The submit flow must be `uow.run` -> `cashUps.lockForUpdate(id)` -> read aggrega
 and `counts.countedTotals`) -> `cashUps.submit(id, snapshot)`. This keeps the snapshot and
 the submitted cash-up consistent with concurrent sale, cash-out, and count writes.
 
+## Services
+
+`src/services` contains the business use cases, authorization policy, DTO mappers, and audit
+recording. Resolve an active membership with `ActorResolver`, then call services created by
+`createServices(uow)`. Lifecycle mutations, row locks, and their audit records run in the same
+unit-of-work transaction; callers receive serializable DTOs rather than Prisma records.
+
+`CashUpQueryService.getOwn` and `getReviewDetail` include all sales ordered by sale number.
+Each line distinguishes money already collected from a delivery amount still expected at the
+door. Reviewers cannot use the detail query to inspect an OPEN cash-up; open summaries omit
+amounts and sale details.
+
 ## Validation and money rules
 
 Pure money calculations live in `src/domain/money`; reusable strict request schemas and
