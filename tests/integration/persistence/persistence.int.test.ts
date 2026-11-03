@@ -68,6 +68,7 @@ describe("CashUp persistence against PostgreSQL", () => {
         entityType: AuditEntityType.CASH_UP,
         entityId: cashUpB.id,
       });
+
     });
 
     const businessA = fixtures.businessA;
@@ -133,6 +134,114 @@ describe("CashUp persistence against PostgreSQL", () => {
     expect(tenantAEntry.businessId).toBe(businessA.id);
     expect(await uow.repos({ businessId: businessB.id }).audit.list({ entityId: cashUpB.id }))
       .toHaveLength(1);
+  });
+
+  it("isolates business settings and counts awaiting requests by tenant and cash-up", async () => {
+    const businessA = fixtures.businessA;
+    const businessB = fixtures.businessB;
+    const reposA = uow.repos({ businessId: businessA.id });
+    const reposB = uow.repos({ businessId: businessB.id });
+
+    expect(await reposA.businesses.findSettings()).toEqual({
+      id: businessA.id,
+      name: businessA.name,
+      isSolo: false,
+    });
+    expect(await reposA.businesses.findSettings()).not.toEqual(
+      await reposB.businesses.findSettings(),
+    );
+
+    const cashUpA = await uow.run({ businessId: businessA.id }, (repos) =>
+      repos.cashUps.open({ membershipId: businessA.members.staff1.id }),
+    );
+    const cashUpB = await uow.run({ businessId: businessB.id }, (repos) =>
+      repos.cashUps.open({ membershipId: businessB.members.staff1.id }),
+    );
+    expect(await reposA.requests.countAwaitingByCashUp(cashUpA.id)).toBe(0);
+
+    await prisma.request.create({
+      data: {
+        businessId: businessA.id,
+        type: "VOID_CASHUP",
+        reason: "Awaiting review",
+        requestedById: businessA.members.staff1.id,
+        cashUpId: cashUpA.id,
+      },
+    });
+    await prisma.request.create({
+      data: {
+        businessId: businessA.id,
+        type: "DELETE_SALE",
+        reason: "Completed review",
+        requestedById: businessA.members.staff1.id,
+        cashUpId: cashUpA.id,
+        status: "APPROVED",
+      },
+    });
+    await prisma.request.create({
+      data: {
+        businessId: businessB.id,
+        type: "VOID_CASHUP",
+        reason: "Other business",
+        requestedById: businessB.members.staff1.id,
+        cashUpId: cashUpB.id,
+      },
+    });
+
+    expect(await reposA.requests.countAwaitingByCashUp(cashUpA.id)).toBe(1);
+    expect(await reposA.requests.countAwaitingByCashUp(cashUpB.id)).toBe(0);
+    expect(await reposB.requests.countAwaitingByCashUp(cashUpB.id)).toBe(1);
+    expect(await reposA.businesses.findSettings()).toEqual({
+      id: businessA.id,
+      name: businessA.name,
+      isSolo: false,
+    });
+  });
+
+  it("counts every sale status by cash-up within the tenant", async () => {
+    const businessA = fixtures.businessA;
+    const businessB = fixtures.businessB;
+    const cashUpA = await uow.run({ businessId: businessA.id }, (repos) =>
+      repos.cashUps.open({ membershipId: businessA.members.staff1.id }),
+    );
+    const cashUpB = await uow.run({ businessId: businessB.id }, (repos) =>
+      repos.cashUps.open({ membershipId: businessB.members.staff1.id }),
+    );
+    const reposA = uow.repos({ businessId: businessA.id });
+    const reposB = uow.repos({ businessId: businessB.id });
+
+    await uow.run({ businessId: businessA.id }, async (repos) => {
+      await repos.sales.create(makeSaleInput(cashUpA.id));
+      await repos.sales.create(
+        makeSaleInput(cashUpA.id, { status: SaleStatus.TO_DELIVER }),
+      );
+      const { sale } = await repos.sales.create(
+        makeSaleInput(cashUpA.id, { status: SaleStatus.TO_DELIVER }),
+      );
+      await repos.sales.cancelToDeliver(sale.id, "Customer cancelled");
+    });
+    await uow.run({ businessId: businessB.id }, (repos) =>
+      repos.sales.create(makeSaleInput(cashUpB.id)),
+    );
+
+    expect(await reposA.sales.countByStatus(cashUpA.id)).toEqual({
+      total: 3,
+      delivered: 1,
+      toDeliver: 1,
+      deleted: 1,
+    });
+    expect(await reposA.sales.countByStatus(cashUpB.id)).toEqual({
+      total: 0,
+      delivered: 0,
+      toDeliver: 0,
+      deleted: 0,
+    });
+    expect(await reposB.sales.countByStatus(cashUpB.id)).toEqual({
+      total: 1,
+      delivered: 1,
+      toDeliver: 0,
+      deleted: 0,
+    });
   });
 
   it("rolls back audit entries together with their business change", async () => {

@@ -1,6 +1,18 @@
 import {
+  AuditAction as PersistenceAuditAction,
+  AuditEntityType as PersistenceAuditEntityType,
+  CashUpStatus as PersistenceCashUpStatus,
+  Currency as PersistenceCurrency,
+  MembershipRole as PersistenceMembershipRole,
+  PaymentMethod as PersistencePaymentMethod,
+  SaleStatus as PersistenceSaleStatus,
+} from '../../../src/persistence';
+import {
+  AuditAction,
   AuditEntityType,
+  CashUpStatus,
   Currency,
+  MembershipRole,
   PaymentMethod,
   SaleStatus,
 } from '../../../src/generated/prisma/enums';
@@ -13,6 +25,16 @@ import {
 import { AUDIT_ENTITY_TYPES } from '../../../src/validation';
 
 describe('domain enum tuples stay aligned with Prisma', () => {
+  it('re-exports the generated Prisma enum values from persistence', () => {
+    expect(PersistenceAuditAction).toEqual(AuditAction);
+    expect(PersistenceAuditEntityType).toEqual(AuditEntityType);
+    expect(PersistenceCashUpStatus).toEqual(CashUpStatus);
+    expect(PersistenceCurrency).toEqual(Currency);
+    expect(PersistenceMembershipRole).toEqual(MembershipRole);
+    expect(PersistencePaymentMethod).toEqual(PaymentMethod);
+    expect(PersistenceSaleStatus).toEqual(SaleStatus);
+  });
+
   it('matches currency, payment method, and sale status enums', () => {
     expect([...CURRENCIES]).toEqual(Object.values(Currency));
     expect([...PAYMENT_METHODS]).toEqual(Object.values(PaymentMethod));

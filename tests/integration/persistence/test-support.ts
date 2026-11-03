@@ -42,6 +42,7 @@ export interface BusinessFixture {
 export interface Fixtures {
   businessA: BusinessFixture;
   businessB: BusinessFixture;
+  soloBusiness: BusinessFixture;
 }
 
 export async function resetDatabase(): Promise<void> {
@@ -90,6 +91,20 @@ async function createMembers(businessId: string, prefix: string): Promise<Member
 export async function seedBusinesses(): Promise<Fixtures> {
   const businessA = await prisma.business.create({ data: { name: "Business A" } });
   const businessB = await prisma.business.create({ data: { name: "Business B" } });
+  const soloBusiness = await prisma.business.create({
+    data: { name: "Solo Business", isSolo: true },
+  });
+  const soloOwnerUser = await prisma.user.create({
+    data: { email: "solo-owner@example.test", fullName: "Solo Owner" },
+  });
+  const soloOwnerMembership = await prisma.membership.create({
+    data: {
+      businessId: soloBusiness.id,
+      userId: soloOwnerUser.id,
+      role: MembershipRole.OWNER,
+    },
+  });
+  const soloOwner = { id: soloOwnerMembership.id, userId: soloOwnerUser.id };
 
   return {
     businessA: {
@@ -101,6 +116,16 @@ export async function seedBusinesses(): Promise<Fixtures> {
       id: businessB.id,
       name: businessB.name,
       members: await createMembers(businessB.id, "business-b"),
+    },
+    soloBusiness: {
+      id: soloBusiness.id,
+      name: soloBusiness.name,
+      members: {
+        owner: soloOwner,
+        manager: soloOwner,
+        staff1: soloOwner,
+        staff2: soloOwner,
+      },
     },
   };
 }
