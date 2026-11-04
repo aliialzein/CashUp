@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { submitCashUp } from "@/lib/cash-up/actions";
 
 type SubmitCashUpProps = {
     /** Sales that are not deleted. A cash-up with none cannot be submitted: cancel it instead. */
@@ -39,5 +40,9 @@ export function SubmitCashUp({ salesCount, waitingCount, isCounted, isReturned =
 
     if (!isCounted) return <BlockedSubmit>{verb} · count your cash first</BlockedSubmit>;
 
-    return <Button>{isReturned ? "Submit again" : "Submit cash-up"}</Button>;
+    return (
+        <form action={submitCashUp}>
+            <Button type="submit">{isReturned ? "Submit again" : "Submit cash-up"}</Button>
+        </form>
+    );
 }

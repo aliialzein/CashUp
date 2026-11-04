@@ -4,8 +4,8 @@ import type { CashUp } from "@/types/cash-up";
 export type MockScenario = "normal" | "empty-cash-up" | "no-open-cash-up" | "first-day";
 
 // TODO(backend): delete with the mocks. Change this one value to preview a scenario.
-// export const MOCK_SCENARIO = "normal" as MockScenario;
-export const MOCK_SCENARIO = "empty-cash-up" as MockScenario;
+export const MOCK_SCENARIO = "normal" as MockScenario;
+// export const MOCK_SCENARIO = "empty-cash-up" as MockScenario;
 // export const MOCK_SCENARIO = "no-open-cash-up" as MockScenario;
 // export const MOCK_SCENARIO = "first-day" as MockScenario;
 
