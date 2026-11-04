@@ -1,4 +1,5 @@
 import type { Amounts } from "@/lib/format/money";
+import type { CashOutReason } from "@/lib/cash-out/reasons";
 
 export type CashUpStatus = "OPEN" | "SUBMITTED" | "RETURNED" | "APPROVED";
 
@@ -29,18 +30,88 @@ export type Ledger = {
     expected: Amounts;
 };
 
+export type CashOut = {
+    id: string;
+    reason: CashOutReason;
+    /** Time only (HH:mm). */
+    time: string;
+    /** Optional free text. The database has no note column yet, so the team has to decide. */
+    note?: string;
+    /** Positive amounts in USD and LBP, like the cash-up lines. Shown as money leaving the drawer. */
+    amount: Amounts;
+};
+
 export type CashUp = {
     id: string;
     number: number;
     status: CashUpStatus;
+    /** Why the owner returned it. `null` unless the status is RETURNED. */
+    returned: ReturnNote | null;
     /** Display text, e.g. "27 Oct, 08:30". */
     startedAt: string;
     ledger: Ledger;
     /** Count and total of all sales that are not deleted. The server calculates it. */
     salesCount: number;
     salesTotal: Amounts;
+    /** What the driver counted in the drawer. `null` until the first count is saved. */
+    counted: Amounts | null;
     /** Totals of delivered sales and of sales still waiting. The server calculates them. */
     deliveredTotal: Amounts;
     waitingTotal: Amounts;
     sales: Sale[];
+    cashOuts: CashOut[];
+};
+
+/** One row of the History list. */
+export type CashUpSummary = {
+    id: string;
+    number: number;
+    status: CashUpStatus;
+    /** Display text, e.g. "28 Oct". */
+    date: string;
+    salesCount: number;
+    /** Counted minus expected, frozen when the cash-up was submitted. `null` while open or returned. */
+    gap: Amounts | null;
+};
+
+/** Who reviewed a cash-up, and when. */
+export type CashUpReview = {
+    by: string;
+    /** Display text, e.g. "26 Oct, 09:10". */
+    at: string;
+};
+
+/** A cash-up that was submitted: locked, with its frozen count and gap. */
+export type CashUpDetail = {
+    id: string;
+    number: number;
+    /** SUBMITTED or APPROVED. Open and returned cash-ups continue on Today. */
+    status: Extract<CashUpStatus, "SUBMITTED" | "APPROVED">;
+    submittedAt: string;
+    ledger: Ledger;
+    /** What the driver counted when submitting. */
+    counted: Amounts;
+    /** Counted minus expected, frozen at submit. */
+    gap: Amounts;
+    /** All sales of this cash-up. */
+    sales: Sale[];
+    /** All cash-outs of this cash-up. */
+    cashOuts: CashOut[];
+    /** Total of the delivered sales. The server calculates it. */
+    deliveredTotal: Amounts;
+    /** `null` until the owner approves. */
+    review: CashUpReview | null;
+};
+
+/** The owner's reason for sending a cash-up back. */
+export type ReturnNote = {
+    by: string;
+    text: string;
+};
+
+/** The opening float the server suggests, taken from the last cash-up the driver counted. */
+export type FloatSuggestion = {
+    /** Number of the cash-up it comes from, e.g. 42. */
+    fromNumber: number;
+    float: Amounts;
 };

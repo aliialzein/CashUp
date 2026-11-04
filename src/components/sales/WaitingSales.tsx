@@ -3,6 +3,7 @@ import { SectionLabel } from "@/components/ui/SectionLabel";
 import { formatMoney } from "@/lib/format/money";
 import { routes } from "@/lib/routes";
 import type { Sale } from "@/types/cash-up";
+import { withOrigin } from "@/lib/navigation/origin";
 
 /** Sales the driver has taken but not yet delivered. Nothing shows when there are none. */
 export function WaitingSales({ sales }: { sales: Sale[] }) {
@@ -26,7 +27,8 @@ export function WaitingSales({ sales }: { sales: Sale[] }) {
                             <p>{formatMoney(sale.amount.lbp, "LBP")}</p>
                         </div>
                         <div className="w-44 shrink-0">
-                            <ButtonLink href={routes.driver.completeDelivery(sale.id)} variant="secondary">
+                            {/* <ButtonLink href={routes.driver.completeDelivery(sale.id)} variant="secondary"> */}
+                            <ButtonLink href={withOrigin(routes.driver.completeDelivery(sale.id), "today")} variant="secondary">
                                 Complete delivery
                             </ButtonLink>
                         </div>

@@ -1,37 +1,73 @@
+import { CancelCashUp } from "@/components/cash-up/CancelCashUp";
 import { CashUpActions } from "@/components/cash-up/CashUpActions";
 import { CashUpLedger } from "@/components/cash-up/CashUpLedger";
+import { NoOpenCashUp } from "@/components/cash-up/NoOpenCashUp";
+import { ReturnedBanner } from "@/components/cash-up/ReturnedBanner";
+import { SubmitCashUp } from "@/components/cash-up/SubmitCashUp";
 import { SalesSummaryCard } from "@/components/sales/SalesSummaryCard";
 import { WaitingSales } from "@/components/sales/WaitingSales";
-import { SubmitCashUp } from "@/components/cash-up/SubmitCashUp";
 import { Badge } from "@/components/ui/Badge";
-import { mockOpenCashUp } from "@/lib/mock/cash-up";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { canCancelCashUp } from "@/lib/cash-up/canCancelCashUp";
+import { lastClosedCashUp } from "@/lib/history/lastClosedCashUp";
+import { mockHistory } from "@/lib/mock/history";
+import { getOpenCashUp } from "@/lib/mock/today";
 
 export default function TodayPage() {
-  const cashUp = mockOpenCashUp;
-  const waitingSales = cashUp.sales.filter((sale) => sale.status === "TO_DELIVER");
+	const cashUp = getOpenCashUp();
+	if (!cashUp) return <NoOpenCashUp last={lastClosedCashUp(mockHistory)} />;
 
-  return (
-    <>
-      <div className="mb-5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="font-heading text-2xl font-bold tracking-tight">Cash-up #{cashUp.number}</h1>
-          <Badge>Open</Badge>
-        </div>
-        <span className="text-sm text-muted">Started {cashUp.startedAt}</span>
-      </div>
+	const waitingSales = cashUp.sales.filter((sale) => sale.status === "TO_DELIVER");
 
-      <div className="grid grid-cols-2 items-start gap-6">
-        <div className="space-y-4">
-          <CashUpLedger ledger={cashUp.ledger} />
-          <SubmitCashUp waitingCount={waitingSales.length} />
-        </div>
+	return (
+		<>
+			<div className="mb-5 flex items-center justify-between">
+				<div className="flex items-center gap-3">
+					<h1 className="font-heading text-2xl font-bold tracking-tight">Cash-up #{cashUp.number}</h1>
+					<Badge>Open</Badge>
+				</div>
+				<span className="text-sm text-muted">Started {cashUp.startedAt}</span>
+			</div>
 
-        <div className="space-y-4">
-          <CashUpActions />
-          <SalesSummaryCard count={cashUp.salesCount} total={cashUp.salesTotal} />
-          <WaitingSales sales={waitingSales} />
-        </div>
-      </div>
-    </>
-  );
+			{cashUp.returned && (
+				<div className="mb-5">
+					<ReturnedBanner {...cashUp.returned} />
+				</div>
+			)}
+
+			<div className="grid grid-cols-2 items-start gap-6">
+				<div className="space-y-4">
+					<CashUpLedger ledger={cashUp.ledger} />
+					<SubmitCashUp
+						salesCount={cashUp.salesCount}
+						waitingCount={waitingSales.length}
+						isCounted={cashUp.counted !== null}
+						isReturned={cashUp.status === "RETURNED"}
+					/>
+					{canCancelCashUp(cashUp) && <CancelCashUp />}
+				</div>
+
+				<div className="space-y-4">
+					<CashUpActions counted={cashUp.counted} expected={cashUp.ledger.expected} />
+					{cashUp.salesCount === 0 ? (
+						<>
+							{/* <SalesSummaryCard count={cashUp.salesCount} total={cashUp.salesTotal} />
+							<WaitingSales sales={waitingSales} /> */}
+							<EmptyState
+								compact
+								icon="tag"
+								title="No sales yet"
+								text="To-Deliver sales you add today will appear here."
+							/>
+						</>
+					) : (
+						<>
+							<SalesSummaryCard count={cashUp.salesCount} total={cashUp.salesTotal} />
+							<WaitingSales sales={waitingSales} />
+						</>
+					)}
+				</div>
+			</div>
+		</>
+	);
 }

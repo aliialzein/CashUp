@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { FilterChips } from "@/components/ui/FilterChips";
+import { Icon } from "@/components/ui/Icon";
+import { routes } from "@/lib/routes";
 import type { Sale, SaleStatus } from "@/types/cash-up";
 import { SalesTable } from "./SalesTable";
+import { withOrigin } from "@/lib/navigation/origin";
 
 type Filter = "ALL" | SaleStatus;
 
@@ -22,8 +28,7 @@ function matchesFilter(sale: Sale, filter: Filter): boolean {
 /** Finds a sale by number ("105" or "#105") or by phone, ignoring spaces. */
 function matchesSearch(sale: Sale, query: string): boolean {
     const text = query.trim().toLowerCase().replace(/^#/, "").replace(/\s/g, "");
-    if (text === "")
-        return true;
+    if (text === "") return true;
     const phone = sale.clientPhone.toLowerCase().replace(/\s/g, "");
     return phone.includes(text) || String(sale.number).includes(text);
 }
@@ -32,31 +37,34 @@ export function SalesList({ sales }: { sales: Sale[] }) {
     const [filter, setFilter] = useState<Filter>("ALL");
     const [query, setQuery] = useState("");
 
+    const options = FILTERS.map(({ value, label }) => ({
+        value,
+        label,
+        count: sales.filter((sale) => matchesFilter(sale, value)).length,
+    }));
     const visibleSales = sales.filter((sale) => matchesFilter(sale, filter) && matchesSearch(sale, query));
+
+    if (sales.length === 0) {
+        return (
+            <div className="space-y-5">
+                <FilterChips label="Filter sales" options={options} value={filter} onChange={setFilter} disabled />
+                <EmptyState icon="tag" title="No sales yet" text="Add your first sale of the day. It shows here with its status.">
+                    <div className="w-48">
+                        {/* <ButtonLink href={routes.driver.addSale} className="gap-2"> */}
+                        <ButtonLink href={withOrigin(routes.driver.addSale, "sales")} className="gap-2">
+                            <Icon name="plus" size={16} />
+                            Add first sale
+                        </ButtonLink>
+                    </div>
+                </EmptyState>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-5">
             <div className="flex items-center justify-between gap-4">
-                <div className="flex gap-2">
-                    {FILTERS.map(({ value, label }) => {
-                        const count = sales.filter((sale) => matchesFilter(sale, value)).length;
-                        const active = filter === value;
-                        return (
-                            <button
-                                key={value}
-                                type="button"
-                                aria-pressed={active}
-                                onClick={() => setFilter(value)}
-                                className={`inline-flex min-h-9 items-center rounded-full border px-3.5 text-[13px] font-medium ${active
-                                    ? "border-ink bg-ink text-white"
-                                    : "border-line-strong bg-surface text-ink hover:bg-subtle"
-                                    }`}
-                            >
-                                {label} {count}
-                            </button>
-                        );
-                    })}
-                </div>
+                <FilterChips label="Filter sales" options={options} value={filter} onChange={setFilter} />
 
                 <input
                     type="search"

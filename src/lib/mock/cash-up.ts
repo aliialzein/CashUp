@@ -1,13 +1,17 @@
 import type { CashUp, Sale } from "@/types/cash-up";
+import { withScenario } from "./scenarios";
 
 /**
  * Fake data so the screens can be built before the API exists.
  * Later, replace the import of this file with the real fetch; the components stay the same.
  */
-export const mockOpenCashUp: CashUp = {
+const fullOpenCashUp: CashUp = {
     id: "cu-042",
     number: 42,
     status: "OPEN",
+    returned: null,
+    // status: "RETURNED",
+    // returned: { by: "Ali", text: "Please recount the LBP notes" },
     startedAt: "27 Oct, 08:30",
     ledger: {
         float: { usd: "50", lbp: "1000000" },
@@ -18,6 +22,7 @@ export const mockOpenCashUp: CashUp = {
     },
     salesCount: 3,
     salesTotal: { usd: "35", lbp: "620000" },
+    counted: null,
     deliveredTotal: { usd: "15", lbp: "500000" },
     waitingTotal: { usd: "20", lbp: "120000" },
     sales: [
@@ -47,7 +52,14 @@ export const mockOpenCashUp: CashUp = {
             amount: { usd: "0", lbp: "500000" },
         },
     ],
+    cashOuts: [
+        { id: "co-2", reason: "Fuel", time: "10:20", note: "Filled the motorbike", amount: { usd: "0", lbp: "200000" } },
+        { id: "co-1", reason: "Supplier", time: "09:40", note: "Water bottles", amount: { usd: "5", lbp: "0" } },
+    ],
 };
+
+/** The open cash-up as the chosen scenario shows it (see `scenarios.ts`). */
+export const mockOpenCashUp: CashUp = withScenario(fullOpenCashUp);
 
 export function findMockSale(id: string): Sale | undefined {
     return mockOpenCashUp.sales.find((sale) => sale.id === id);

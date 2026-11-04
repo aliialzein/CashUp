@@ -3,9 +3,10 @@ import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { formatNumber } from "@/lib/format/money";
 import { routes } from "@/lib/routes";
+import type { Amounts } from "@/lib/format/money";
 import type { Ledger } from "@/types/cash-up";
 
-const ROW = "grid grid-cols-[6.5rem_1fr_1.3fr] items-center gap-2 px-5";
+const ROW = "grid grid-cols-[8rem_1fr_1.3fr] items-center gap-2 px-5";
 const NUM = "text-right font-mono text-sm tabular-nums";
 
 type LineProps = {
@@ -28,8 +29,27 @@ function Line({ label, usd, lbp, tone }: LineProps) {
     );
 }
 
+/** The Cash-outs row opens the list of cash-outs behind this number. */
+function CashOutsRow({ cashOuts, href }: { cashOuts: Amounts; href: string }) {
+    return (
+        <Link href={href} className={`${ROW} min-h-11 border-b border-line text-[15px] hover:bg-canvas`}>
+            <span className="flex items-center gap-1">
+                Cash-outs <Icon name="chevronRight" size={14} className="text-muted" />
+            </span>
+            <span className={`${NUM} text-danger`}>{formatNumber(cashOuts.usd, "USD", { signed: true })}</span>
+            <span className={`${NUM} text-danger`}>{formatNumber(cashOuts.lbp, "LBP", { signed: true })}</span>
+        </Link>
+    );
+}
+
+type CashUpLedgerProps = {
+    ledger: Ledger;
+    /** Where the Cash-outs row goes. Today's cash-up uses the live Cash-outs page. */
+    cashOutsHref?: string;
+};
+
 /** Where the cash in the drawer comes from. One column per currency, never mixed. */
-export function CashUpLedger({ ledger }: { ledger: Ledger }) {
+export function CashUpLedger({ ledger, cashOutsHref = routes.driver.cashOuts }: CashUpLedgerProps) {
     return (
         <Card as="section" aria-label="Cash in your drawer" className="overflow-hidden">
             <div className={`${ROW} min-h-10 border-b border-line text-xs font-medium tracking-wider text-muted uppercase`}>
@@ -48,17 +68,7 @@ export function CashUpLedger({ ledger }: { ledger: Ledger }) {
                 <Line label="Change given" usd={ledger.changeGiven.usd} lbp={ledger.changeGiven.lbp} />
             </div>
 
-            {/* Cash-outs have their own page, so this whole row is a link. */}
-            <Link
-                href={routes.driver.cashOuts}
-                className={`${ROW} min-h-11 border-b border-line text-[15px] hover:bg-canvas`}
-            >
-                <span className="flex items-center gap-1">
-                    Cash-outs <Icon name="chevronRight" size={14} className="text-muted" />
-                </span>
-                <span className={`${NUM} text-danger`}>{formatNumber(ledger.cashOuts.usd, "USD", { signed: true })}</span>
-                <span className={`${NUM} text-danger`}>{formatNumber(ledger.cashOuts.lbp, "LBP", { signed: true })}</span>
-            </Link>
+            <CashOutsRow cashOuts={ledger.cashOuts} href={cashOutsHref} />
 
             <div className={`${ROW} min-h-14 bg-canvas`}>
                 <span className="font-heading font-bold">Expected cash</span>

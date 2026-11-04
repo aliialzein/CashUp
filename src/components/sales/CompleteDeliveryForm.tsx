@@ -2,28 +2,35 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { AmountField } from "@/components/ui/AmountField";
+import { AmountPairField } from "@/components/ui/AmountPairField";
 import { Button } from "@/components/ui/Button";
-import { ButtonLink } from "@/components/ui/ButtonLink";
 import { Card } from "@/components/ui/Card";
+import { FormActions } from "@/components/ui/FormActions";
 import { summarizeDelivery } from "@/lib/delivery/summarizeDelivery";
 import { hasAmount } from "@/lib/format/amountInput";
 import { formatAmounts, type Amounts } from "@/lib/format/money";
+import { useResetOnHide } from "@/lib/hooks/useResetOnHide";
 import { addAmounts, isZeroAmounts } from "@/lib/money/amounts";
-import { routes } from "@/lib/routes";
 import type { Sale } from "@/types/cash-up";
 import { DeliverySummaryPanel } from "./DeliverySummaryPanel";
 import { WALLET_LABELS, WalletProviderPicker, type WalletProvider } from "./WalletProviderPicker";
 
+const EMPTY_AMOUNT: Amounts = { usd: "", lbp: "" };
+
 /** Unfinished typing such as "." counts as empty. */
-function toAmounts(usd: string, lbp: string): Amounts {
+function cleaned({ usd, lbp }: Amounts): Amounts {
     const clean = (value: string) => (/\d/.test(value) ? value : "");
     return { usd: clean(usd), lbp: clean(lbp) };
 }
 
-/** Pre-filled fee from Add sale. A zero fee shows as an empty field. */
-function initialAmount(value: string | undefined): string {
+/** A zero amount shows as an empty field. */
+function toField(value: string | undefined): string {
     return value !== undefined && hasAmount(value) ? value : "";
+}
+
+/** Pre-filled fee from Add sale. */
+function initialFee(fee: Amounts | undefined): Amounts {
+    return { usd: toField(fee?.usd), lbp: toField(fee?.lbp) };
 }
 
 function FillRestButton({ disabled, onClick }: { disabled: boolean; onClick: () => void }) {
@@ -45,24 +52,23 @@ type CompleteDeliveryFormProps = {
     sale: Sale;
     /** Drivers must enter a fee. Cashiers may leave it empty. */
     feeRequired: boolean;
+    /** Where Cancel and Confirm go: the page the driver came from. */
+    returnHref: string;
 };
 
-export function CompleteDeliveryForm({ sale, feeRequired }: CompleteDeliveryFormProps) {
+export function CompleteDeliveryForm({ sale, feeRequired, returnHref }: CompleteDeliveryFormProps) {
     const router = useRouter();
-    const [feeUsd, setFeeUsd] = useState(initialAmount(sale.deliveryFee?.usd));
-    const [feeLbp, setFeeLbp] = useState(initialAmount(sale.deliveryFee?.lbp));
-    const [cashUsd, setCashUsd] = useState("");
-    const [cashLbp, setCashLbp] = useState("");
-    const [walletUsd, setWalletUsd] = useState("");
-    const [walletLbp, setWalletLbp] = useState("");
+    const [feeInput, setFeeInput] = useState<Amounts>(initialFee(sale.deliveryFee));
+    const [cashInput, setCashInput] = useState<Amounts>(EMPTY_AMOUNT);
+    const [walletInput, setWalletInput] = useState<Amounts>(EMPTY_AMOUNT);
     const [provider, setProvider] = useState<WalletProvider>("WHISH");
     const [confirmingGap, setConfirmingGap] = useState(false);
 
-    const fee = toAmounts(feeUsd, feeLbp);
-    const cash = toAmounts(cashUsd, cashLbp);
-    const wallet = toAmounts(walletUsd, walletLbp);
+    const fee = cleaned(feeInput);
+    const cash = cleaned(cashInput);
+    const wallet = cleaned(walletInput);
     const summary = summarizeDelivery({ order: sale.amount, fee, cash, wallet });
-    const feeMissing = feeRequired && !hasAmount(feeUsd) && !hasAmount(feeLbp);
+    const feeMissing = feeRequired && !hasAmount(feeInput.usd) && !hasAmount(feeInput.lbp);
 
     // Only missing money needs a second confirmation. Extra money is fine.
     const missingMoney = !isZeroAmounts(summary.remaining);
@@ -71,31 +77,25 @@ export function CompleteDeliveryForm({ sale, feeRequired }: CompleteDeliveryForm
     /** Puts what is still missing into the cash or the wallet fields, on top of what is already there. */
     function fillRest(target: "cash" | "wallet") {
         const filled = addAmounts(target === "cash" ? cash : wallet, summary.remaining);
-        const toField = (value: string) => (hasAmount(value) ? value : "");
-        if (target === "cash") {
-            setCashUsd(toField(filled.usd));
-            setCashLbp(toField(filled.lbp));
-        } else {
-            setWalletUsd(toField(filled.usd));
-            setWalletLbp(toField(filled.lbp));
-        }
+        const next: Amounts = { usd: toField(filled.usd), lbp: toField(filled.lbp) };
+        if (target === "cash") setCashInput(next);
+        else setWalletInput(next);
     }
 
     function reset() {
-        setFeeUsd(initialAmount(sale.deliveryFee?.usd));
-        setFeeLbp(initialAmount(sale.deliveryFee?.lbp));
-        setCashUsd("");
-        setCashLbp("");
-        setWalletUsd("");
-        setWalletLbp("");
+        setFeeInput(initialFee(sale.deliveryFee));
+        setCashInput(EMPTY_AMOUNT);
+        setWalletInput(EMPTY_AMOUNT);
         setProvider("WHISH");
         setConfirmingGap(false);
     }
 
+    useResetOnHide(reset);
+
     function save() {
-        // TODO: send { fee, cash, wallet, provider } to the API. For now we only go back to the list.
+        // TODO: send { fee, cash, wallet, provider } to the API.
         reset();
-        router.push(routes.driver.sales);
+        router.push(returnHref);
     }
 
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -118,10 +118,7 @@ export function CompleteDeliveryForm({ sale, feeRequired }: CompleteDeliveryForm
                         <h2 className={HEADING}>Delivery fee {feeRequired ? "(required)" : "(optional)"}</h2>
                         <p className="text-[13px] leading-snug text-muted">Pre-filled from the sale. You can change it.</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <AmountField currency="USD" value={feeUsd} onChange={setFeeUsd} label="Delivery fee USD" />
-                        <AmountField currency="LBP" value={feeLbp} onChange={setFeeLbp} label="Delivery fee LBP" />
-                    </div>
+                    <AmountPairField label="Delivery fee" value={feeInput} onChange={setFeeInput} />
                 </Card>
 
                 <Card className="space-y-4 p-6">
@@ -140,10 +137,7 @@ export function CompleteDeliveryForm({ sale, feeRequired }: CompleteDeliveryForm
                             </div>
                             <FillRestButton disabled={nothingToFill} onClick={() => fillRest("cash")} />
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <AmountField currency="USD" value={cashUsd} onChange={setCashUsd} label="Cash USD" />
-                            <AmountField currency="LBP" value={cashLbp} onChange={setCashLbp} label="Cash LBP" />
-                        </div>
+                        <AmountPairField label="Cash" value={cashInput} onChange={setCashInput} />
                     </div>
 
                     <div className="space-y-3 rounded-xl border border-line p-4">
@@ -155,10 +149,7 @@ export function CompleteDeliveryForm({ sale, feeRequired }: CompleteDeliveryForm
                             <FillRestButton disabled={nothingToFill} onClick={() => fillRest("wallet")} />
                         </div>
                         <WalletProviderPicker value={provider} onChange={setProvider} />
-                        <div className="grid grid-cols-2 gap-3">
-                            <AmountField currency="USD" value={walletUsd} onChange={setWalletUsd} label="Wallet USD" />
-                            <AmountField currency="LBP" value={walletLbp} onChange={setWalletLbp} label="Wallet LBP" />
-                        </div>
+                        <AmountPairField label="Wallet" value={walletInput} onChange={setWalletInput} />
                     </div>
                 </Card>
             </fieldset>
@@ -194,14 +185,12 @@ export function CompleteDeliveryForm({ sale, feeRequired }: CompleteDeliveryForm
                 ) : (
                     <>
                         {feeMissing && <p className="text-sm text-warning">Enter the delivery fee to confirm.</p>}
-                        <div className="grid grid-cols-2 gap-3">
-                            <ButtonLink href={routes.driver.today} variant="secondary" onClick={reset}>
-                                Cancel
-                            </ButtonLink>
-                            <Button type="submit" disabled={feeMissing}>
-                                Confirm delivery
-                            </Button>
-                        </div>
+                        <FormActions
+                            cancelHref={returnHref}
+                            submitLabel="Confirm delivery"
+                            submitDisabled={feeMissing}
+                            onCancel={reset}
+                        />
                     </>
                 )}
             </div>

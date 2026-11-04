@@ -68,7 +68,7 @@ export function DeliverySummaryPanel({ order, fee, cash, wallet, walletLabel, su
                 <Row label="Order" value={formatAmounts(order)} />
                 <Row label="Delivery fee" value={formatAmounts(fee)} />
                 <div className="space-y-2.5 border-t border-line pt-2.5">
-                    <Row label="Into your drawer" value={formatAmounts(cash)} className="text-success" />
+                    <Row label="Cash" value={formatAmounts(cash)} className="text-success" />
                     <Row label={`Through ${walletLabel}`} value={formatAmounts(wallet)} />
                 </div>
             </div>

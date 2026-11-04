@@ -1,5 +1,26 @@
 @import "tailwindcss";
 
+@layer base {
+
+  a[href],
+  button,
+  summary,
+  select,
+  [role="button"],
+  [role="radio"],
+  [role="tab"],
+  input[type="submit"],
+  input[type="checkbox"],
+  input[type="radio"],
+  label:has(input[type="checkbox"], input[type="radio"]) {
+    cursor: pointer;
+  }
+
+  :is(button, input, select, a[href], [role="button"], [role="radio"]):is(:disabled, [aria-disabled="true"]) {
+    cursor: not-allowed;
+  }
+}
+
 /* Design tokens (slate look). Use these names in components, never raw hex. */
 @theme inline {
   --color-ink: #0f172a;

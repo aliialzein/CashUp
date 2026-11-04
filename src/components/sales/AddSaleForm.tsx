@@ -2,58 +2,59 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { AmountField } from "@/components/ui/AmountField";
-import { Button } from "@/components/ui/Button";
-import { ButtonLink } from "@/components/ui/ButtonLink";
+import { AmountPairField } from "@/components/ui/AmountPairField";
 import { Card } from "@/components/ui/Card";
+import { FormActions } from "@/components/ui/FormActions";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { TextField } from "@/components/ui/TextField";
-import { routes } from "@/lib/routes";
 import { hasAmount } from "@/lib/format/amountInput";
+import type { Amounts } from "@/lib/format/money";
+import { useResetOnHide } from "@/lib/hooks/useResetOnHide";
 
-export function AddSaleForm() {
+const EMPTY_AMOUNT: Amounts = { usd: "", lbp: "" };
+
+type AddSaleFormProps = {
+    /** Where Cancel and Save go: the page the driver came from. */
+    returnHref: string;
+};
+
+export function AddSaleForm({ returnHref }: AddSaleFormProps) {
     const router = useRouter();
-    const [usd, setUsd] = useState("");
-    const [lbp, setLbp] = useState("");
+    const [amount, setAmount] = useState<Amounts>(EMPTY_AMOUNT);
+    const [fee, setFee] = useState<Amounts>(EMPTY_AMOUNT);
     const [phone, setPhone] = useState("");
     const [note, setNote] = useState("");
-    const [feeUsd, setFeeUsd] = useState("");
-    const [feeLbp, setFeeLbp] = useState("");
 
-    const canSave = hasAmount(usd) || hasAmount(lbp);
+    const canSave = hasAmount(amount.usd) || hasAmount(amount.lbp);
+
+    function reset() {
+        setAmount(EMPTY_AMOUNT);
+        setFee(EMPTY_AMOUNT);
+        setPhone("");
+        setNote("");
+    }
+
+    useResetOnHide(reset);
 
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        // TODO: send { usd, lbp, feeUsd, feeLbp, phone, note } to the API. For now we only go back to the list.
+        if (!canSave) return;
+        // TODO: send { amount, fee, phone, note } to the API.
         reset();
-        router.push(routes.driver.sales);
-    }
-
-    function reset() {
-        setUsd("");
-        setLbp("");
-        setPhone("");
-        setNote("");
-        setFeeUsd("");
-        setFeeLbp("");
+        router.push(returnHref);
     }
 
     return (
         <Card className="mx-auto w-full max-w-[640px] p-7">
             <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                    <p className="text-xs font-medium tracking-wider text-muted uppercase">Amount to collect</p>
-                    <div className="grid grid-cols-2 gap-3">
-                        <AmountField currency="USD" value={usd} onChange={setUsd} />
-                        <AmountField currency="LBP" value={lbp} onChange={setLbp} />
-                    </div>
+                    <SectionLabel>Amount to collect</SectionLabel>
+                    <AmountPairField label="Amount to collect" value={amount} onChange={setAmount} />
                 </div>
 
                 <div className="space-y-2">
-                    <p className="text-xs font-medium tracking-wider text-muted uppercase">Delivery fee (optional)</p>
-                    <div className="grid grid-cols-2 gap-3">
-                        <AmountField currency="USD" value={feeUsd} onChange={setFeeUsd} label="Delivery fee USD" />
-                        <AmountField currency="LBP" value={feeLbp} onChange={setFeeLbp} label="Delivery fee LBP" />
-                    </div>
+                    <SectionLabel>Delivery fee (optional)</SectionLabel>
+                    <AmountPairField label="Delivery fee" value={fee} onChange={setFee} />
                 </div>
 
                 <TextField label="Client number" placeholder="+961 …" value={phone} onChange={(e) => setPhone(e.target.value)} />
@@ -68,18 +69,7 @@ export function AddSaleForm() {
                     Payment method and what the client paid are added when you complete the delivery.
                 </p>
 
-                <div className="flex justify-end gap-3">
-                    <div className="w-28">
-                        <ButtonLink href={routes.driver.sales} variant="secondary" onClick={reset}>
-                            Cancel
-                        </ButtonLink>
-                    </div>
-                    <div className="w-36">
-                        <Button type="submit" disabled={!canSave}>
-                            Save sale
-                        </Button>
-                    </div>
-                </div>
+                <FormActions cancelHref={returnHref} submitLabel="Save sale" submitDisabled={!canSave} onCancel={reset} />
             </form>
         </Card>
     );

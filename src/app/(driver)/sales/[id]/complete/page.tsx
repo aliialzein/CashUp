@@ -1,20 +1,29 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { CompleteDeliveryForm } from "@/components/sales/CompleteDeliveryForm";
 import { BackLink } from "@/components/ui/BackLink";
 import { findMockSale } from "@/lib/mock/cash-up";
 import { mockSession } from "@/lib/mock/session";
-import { routes } from "@/lib/routes";
+import { resolveOrigin } from "@/lib/navigation/origin";
 
-export default async function CompleteDeliveryPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = await params;
+type CompleteDeliveryPageProps = {
+    params: Promise<{ id: string }>;
+    searchParams: Promise<{ from?: string | string[] }>;
+};
+
+/** Reads the sale and where the driver came from. It lives inside Suspense because both are runtime data. */
+async function CompleteDelivery({ params, searchParams }: CompleteDeliveryPageProps) {
+    const [{ id }, { from }] = await Promise.all([params, searchParams]);
     const sale = findMockSale(id);
 
     // Only a sale that is still waiting for delivery can be completed.
     if (!sale || sale.status !== "TO_DELIVER") notFound();
 
+    const origin = resolveOrigin(from, "sales");
+
     return (
-        <div className="space-y-5">
-            <BackLink href={routes.driver.sales}>Sales</BackLink>
+        <>
+            <BackLink href={origin.href}>{origin.label}</BackLink>
 
             <div>
                 <h1 className="font-heading text-2xl font-bold tracking-tight">Complete delivery</h1>
@@ -23,7 +32,17 @@ export default async function CompleteDeliveryPage({ params }: { params: Promise
                 </p>
             </div>
 
-            <CompleteDeliveryForm sale={sale} feeRequired={mockSession.role === "DRIVER"} />
+            <CompleteDeliveryForm sale={sale} feeRequired={mockSession.role === "DRIVER"} returnHref={origin.href} />
+        </>
+    );
+}
+
+export default function CompleteDeliveryPage(props: CompleteDeliveryPageProps) {
+    return (
+        <div className="space-y-5">
+            <Suspense fallback={<div aria-hidden className="h-96 animate-pulse rounded-xl bg-subtle" />}>
+                <CompleteDelivery {...props} />
+            </Suspense>
         </div>
     );
 }
