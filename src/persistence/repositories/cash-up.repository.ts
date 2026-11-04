@@ -128,7 +128,15 @@ export class CashUpRepository extends TenantRepository {
   }
 
   /** Reviewer history of finished cash-ups (approved / void), newest first. */
-  listReviewed(opts: { from?: Date; to?: Date; membershipId?: string; take?: number } = {}) {
+  listReviewed(
+    opts: {
+      from?: Date;
+      to?: Date;
+      membershipId?: string;
+      take?: number;
+      cursorId?: string;
+    } = {},
+  ) {
     return this.db.cashUp.findMany({
       where: {
         businessId: this.businessId,
@@ -136,8 +144,9 @@ export class CashUpRepository extends TenantRepository {
         ...(opts.membershipId ? { membershipId: opts.membershipId } : {}),
         ...(opts.from || opts.to ? { openedAt: { gte: opts.from, lte: opts.to } } : {}),
       },
-      orderBy: { openedAt: 'desc' },
+      orderBy: [{ openedAt: 'desc' }, { id: 'desc' }],
       take: opts.take ?? 50,
+      ...(opts.cursorId ? { cursor: { id: opts.cursorId }, skip: 1 } : {}),
     });
   }
 

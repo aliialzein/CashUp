@@ -13,6 +13,7 @@ import {
   StaleStateError,
   type Repositories,
 } from "../../../src/persistence";
+import { buildSubmitSnapshot } from "../../../src/domain/money";
 import {
   makeSaleInput,
   prisma,
@@ -68,30 +69,24 @@ async function snapshotForSubmit(
   const [sales, changes, cashOuts, counts] = await Promise.all([
     repos.sales.totalsByCurrencyAndMethod(cashUpId),
     repos.sales.changeGivenByCurrency(cashUpId),
-    repos.cashOuts.totalsByCurrency(cashUpId),
+    repos.cashOuts.listByCashUp(cashUpId),
     repos.counts.countedTotals(cashUpId),
   ]);
-  const expected = {
-    USD: new Prisma.Decimal(0),
-    LBP: new Prisma.Decimal(0),
-  };
-  for (const row of sales) {
-    expected[row.currency] = expected[row.currency].plus(row.totalCollected);
-  }
-  for (const row of changes) {
-    expected[row.currency] = expected[row.currency].minus(row.total);
-  }
-  for (const row of cashOuts) {
-    expected[row.currency] = expected[row.currency].minus(row.total);
-  }
-  return {
-    expectedUsd: expected.USD.toFixed(2),
-    expectedLbp: expected.LBP.toFixed(2),
-    countedUsd: counts.USD.toFixed(2),
-    countedLbp: counts.LBP.toFixed(2),
-    gapUsd: counts.USD.minus(expected.USD).toFixed(2),
-    gapLbp: counts.LBP.minus(expected.LBP).toFixed(2),
-  };
+  return buildSubmitSnapshot({
+    floatUsd: '0',
+    floatLbp: '0',
+    sales,
+    change: changes,
+    cashOuts: cashOuts.map(({ currency, amount, status }) => ({
+      currency,
+      total: amount.toString(),
+      status,
+    })),
+    counted: {
+      USD: counts.USD.toString(),
+      LBP: counts.LBP.toString(),
+    },
+  });
 }
 
 async function runSubmitAgainstWrite(

@@ -15,7 +15,6 @@ import {
   addStableIssue,
   clientNumber,
   currency,
-  idempotencyKey,
   moneyString,
   note,
   pageQuery,
@@ -128,7 +127,6 @@ export const createSaleSchema = z
     deliveryFee: moneyString.default('0.00'),
     clientNumber: clientNumber.optional(),
     note: note.optional(),
-    idempotencyKey,
   })
   .strict()
   .superRefine((value, context) => {
@@ -252,6 +250,7 @@ export const confirmDeliverySchema = z
 
 const reasonBody = z.object({ reason }).strict();
 export const cancelSaleSchema = reasonBody;
+export const cancelCashOutSchema = reasonBody;
 export const requestDeleteSaleSchema = reasonBody;
 export const requestVoidCashUpSchema = reasonBody;
 export const voidCashUpSchema = reasonBody;
@@ -262,7 +261,6 @@ export const createCashOutSchema = z
     amount: positiveMoneyString,
     currency,
     reason,
-    idempotencyKey,
   })
   .strict()
   .superRefine((value, context) => {
@@ -329,7 +327,7 @@ const countLineSchema = z
 
 export const saveCountLinesSchema = z
   .object({
-    lines: z.array(countLineSchema).min(1).max(MAX_COUNT_LINES),
+    lines: z.array(countLineSchema).max(MAX_COUNT_LINES),
   })
   .strict()
   .superRefine((value, context) => {
@@ -420,6 +418,8 @@ export type ConfirmDeliveryInput = z.input<typeof confirmDeliverySchema>;
 export type ConfirmDelivery = z.infer<typeof confirmDeliverySchema>;
 export type CancelSaleInput = z.input<typeof cancelSaleSchema>;
 export type CancelSale = z.infer<typeof cancelSaleSchema>;
+export type CancelCashOutInput = z.input<typeof cancelCashOutSchema>;
+export type CancelCashOut = z.infer<typeof cancelCashOutSchema>;
 export type RequestDeleteSaleInput = z.input<typeof requestDeleteSaleSchema>;
 export type RequestDeleteSale = z.infer<typeof requestDeleteSaleSchema>;
 export type RequestVoidCashUpInput = z.input<typeof requestVoidCashUpSchema>;

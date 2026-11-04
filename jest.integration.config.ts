@@ -8,11 +8,16 @@ const createJestConfig = nextJest({
 const config: Config = {
   clearMocks: true,
   testEnvironment: "node",
-  testMatch: ["**/*.int.test.ts"],
+  testMatch: ["**/*.int.test.ts", "<rootDir>/tests/unit/services/**/*.test.ts"],
   testPathIgnorePatterns: ["/node_modules/", "/.next/"],
   maxWorkers: 1,
   extensionsToTreatAsEsm: [".ts"],
-  collectCoverage: false,
+  collectCoverage: true,
+  collectCoverageFrom: ["src/services/**/*.ts"],
+  coverageThreshold: {
+    global: { lines: 0 },
+    "./src/services": { lines: 90 },
+  },
   globalSetup: "<rootDir>/tests/integration/persistence/global-setup.ts",
   setupFiles: ["<rootDir>/tests/integration/persistence/setup-env.ts"],
 };

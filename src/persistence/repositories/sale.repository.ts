@@ -93,6 +93,13 @@ export interface SaleFlagCounts {
   deletionAwaiting: number;
 }
 
+export interface SaleStatusCounts {
+  total: number;
+  delivered: number;
+  toDeliver: number;
+  deleted: number;
+}
+
 export class SaleRepository extends TenantRepository {
   // ---------------------------------------------------------------- create
 
@@ -326,6 +333,31 @@ export class SaleRepository extends TenantRepository {
     return this.db.sale.count({
       where: { cashUpId, businessId: this.businessId, status: SaleStatus.TO_DELIVER },
     });
+  }
+
+  async countByStatus(cashUpId: string): Promise<SaleStatusCounts> {
+    const rows = await this.db.sale.groupBy({
+      by: ['status'],
+      where: { cashUpId, businessId: this.businessId },
+      _count: { _all: true },
+    });
+    const counts: SaleStatusCounts = { total: 0, delivered: 0, toDeliver: 0, deleted: 0 };
+    for (const row of rows) {
+      const count = row._count._all;
+      counts.total += count;
+      switch (row.status) {
+        case SaleStatus.DELIVERED:
+          counts.delivered = count;
+          break;
+        case SaleStatus.TO_DELIVER:
+          counts.toDeliver = count;
+          break;
+        case SaleStatus.DELETED:
+          counts.deleted = count;
+          break;
+      }
+    }
+    return counts;
   }
 
   // ----------------------------------------------------------- aggregates

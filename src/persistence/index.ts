@@ -1,9 +1,11 @@
 import type { PrismaClient } from '../generated/prisma/client';
 import { AuditRepository } from './repositories/audit.repository';
+import { BusinessRepository } from './repositories/business.repository';
 import { CashOutRepository } from './repositories/cash-out.repository';
 import { CashUpRepository } from './repositories/cash-up.repository';
 import { CountEntryRepository } from './repositories/count-entry.repository';
 import { MembershipRepository } from './repositories/membership.repository';
+import { RequestRepository } from './repositories/request.repository';
 import { SaleRepository } from './repositories/sale.repository';
 import type { Db, TenantScope } from './types';
 
@@ -13,12 +15,14 @@ export interface RepositoryOptions {
 }
 
 export interface Repositories {
+  businesses: BusinessRepository;
   memberships: MembershipRepository;
   cashUps: CashUpRepository;
   sales: SaleRepository;
   cashOuts: CashOutRepository;
   counts: CountEntryRepository;
   audit: AuditRepository;
+  requests: RequestRepository;
 }
 
 export function createRepositories(
@@ -27,12 +31,14 @@ export function createRepositories(
   options?: RepositoryOptions,
 ): Repositories {
   return {
+    businesses: new BusinessRepository(db, scope, options),
     memberships: new MembershipRepository(db, scope, options),
     cashUps: new CashUpRepository(db, scope, options),
     sales: new SaleRepository(db, scope, options),
     cashOuts: new CashOutRepository(db, scope, options),
     counts: new CountEntryRepository(db, scope, options),
     audit: new AuditRepository(db, scope, options),
+    requests: new RequestRepository(db, scope, options),
   };
 }
 
@@ -66,6 +72,15 @@ export class UnitOfWork {
 
 export * from './errors';
 export * from './types';
+export {
+  AuditAction,
+  AuditEntityType,
+  CashUpStatus,
+  Currency,
+  MembershipRole,
+  PaymentMethod,
+  SaleStatus,
+} from '../generated/prisma/enums';
 export { createPrismaClient } from './prisma.client';
 export type { OpenCashUpInput, CashUpSnapshot } from './repositories/cash-up.repository';
 export type {
