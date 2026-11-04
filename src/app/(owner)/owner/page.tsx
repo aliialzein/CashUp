@@ -65,7 +65,7 @@ export default function OwnerDashboardPage() {
             </h2>
 
             <p className="mt-1 text-sm text-[#718077]">
-              Review and manage your team's cash handling periods.
+              {"Review and manage your team's cash handling periods."}
             </p>
           </div>
 

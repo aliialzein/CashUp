@@ -78,7 +78,7 @@ export default function CashUpsPage() {
           </h2>
 
           <p className="mt-2 text-sm text-[#718077]">
-            You will be able to review and manage your team's cash-ups.
+            {"You will be able to review and manage your team's cash-ups."}
           </p>
         </div>
       )}
