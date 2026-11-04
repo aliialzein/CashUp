@@ -27,9 +27,18 @@ export class AuthError extends Error {
 }
 
 export const defaultAuthMessages: Record<AuthErrorCode, string> = {
-  INVALID_CREDENTIALS: "Wrong email or password. Please check them and try again.",
-  ACCOUNT_DISABLED: "This account is deactivated. Please contact your business owner.",
-  TOO_MANY_ATTEMPTS: "Too many attempts. Please wait a few minutes and try again.",
+  INVALID_CREDENTIALS:
+    "Wrong email or password. Please check them and try again.",
+  ACCOUNT_DISABLED:
+    "This account is deactivated. Please contact your business owner.",
+  TOO_MANY_ATTEMPTS:
+    "Too many attempts. Please wait a few minutes and try again.",
   NETWORK: "Connection problem. Your details are kept, please try again.",
   UNKNOWN: "Something went wrong. Please try again.",
 };
+
+export interface SignupValues {
+  fullName: string;
+  email: string;
+  password: string;
+}
