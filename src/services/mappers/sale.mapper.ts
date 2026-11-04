@@ -25,10 +25,14 @@ export type SaleRow = Omit<
   cancelReason: string | null;
 };
 
-function money(value: { toString(): string } | null): string | null {
-  if (value === null) return null;
+function formatMoney(value: { toString(): string }): string {
   const [whole, fraction = ''] = value.toString().split('.');
   return `${whole}.${fraction.padEnd(2, '0')}`;
+}
+
+function money(value: { toString(): string } | null): string | null {
+  if (value === null) return null;
+  return formatMoney(value);
 }
 
 function date(value: Date | null): string | null {
@@ -41,11 +45,11 @@ export function mapSale(row: SaleRow): SaleDto {
     cashUpId: row.cashUpId,
     saleNumber: row.saleNumber,
     status: row.status,
-    businessAmount: money(row.businessAmount) ?? '0.00',
-    deliveryFee: money(row.deliveryFee) ?? '0.00',
+    businessAmount: formatMoney(row.businessAmount),
+    deliveryFee: formatMoney(row.deliveryFee),
     tip: money(row.tip),
     discount: money(row.discount),
-    totalCollected: money(row.totalCollected) ?? '0.00',
+    totalCollected: formatMoney(row.totalCollected),
     currency: row.currency,
     method: row.method,
     changeGiven: money(row.changeGiven),
@@ -81,6 +85,7 @@ export function mapSaleLine(row: SaleRow): SaleLineDto {
       break;
   }
   return {
+    id: row.id,
     saleNumber: row.saleNumber,
     status: row.status,
     moneyTaken,
@@ -90,8 +95,8 @@ export function mapSaleLine(row: SaleRow): SaleLineDto {
     method: row.method,
     changeGiven: money(row.changeGiven),
     changeCurrency: row.changeCurrency,
-    businessAmount: money(row.businessAmount) ?? '0.00',
-    deliveryFee: money(row.deliveryFee) ?? '0.00',
+    businessAmount: formatMoney(row.businessAmount),
+    deliveryFee: formatMoney(row.deliveryFee),
     tip: money(row.tip),
     discount: money(row.discount),
     clientNumber: row.clientNumber,

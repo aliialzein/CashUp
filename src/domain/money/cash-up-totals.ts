@@ -22,6 +22,7 @@ export interface ChangeTotalsRowInput {
 export interface CashOutTotalsRowInput {
   currency: Currency;
   total: MoneyLike;
+  status?: 'ACTIVE' | 'CANCELLED';
 }
 
 export interface CurrencySalesSummary {
@@ -130,6 +131,7 @@ export function computeExpectedAndGap(
     expected[row.currency] = expected[row.currency].minus(parseMoney(row.total));
   }
   for (const row of input.cashOuts) {
+    if (row.status === 'CANCELLED') continue;
     expected[row.currency] = expected[row.currency].minus(parseMoney(row.total));
   }
 

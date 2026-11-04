@@ -6,7 +6,7 @@ import type { Actor } from './actor';
 import { CashUpApprovalPolicy } from './cash-up-approval-policy';
 import type {
   CashUpDto,
-  CashUpWithSalesDto,
+  CashUpOwnDto,
   CashUpReviewDto,
   OpenCashUpSummaryDto,
 } from './dto';
@@ -28,20 +28,22 @@ export class CashUpQueryService {
     private readonly approvalPolicy: CashUpApprovalPolicy,
   ) {}
 
-  getOwn(actor: Actor, id: string): Promise<CashUpWithSalesDto> {
+  getOwn(actor: Actor, id: string): Promise<CashUpOwnDto> {
     return this.runner.run(this.scope(actor), async (repos) => {
       const settings = await this.requireBusiness(repos);
       this.permissions.assertCan(actor, 'cashUp.readOwn', settings.isSolo);
       const cashUp = await repos.cashUps.findOwn(id, actor.membershipId);
       if (!cashUp) throw new EntityNotFoundError();
-      const [sales, salesSummary] = await Promise.all([
+      const [sales, salesSummary, cashOuts] = await Promise.all([
         repos.sales.list(id, { statuses: Object.values(SaleStatus) }),
         repos.sales.countByStatus(id),
+        repos.cashOuts.listByCashUp(id),
       ]);
       return {
         ...mapCashUp(cashUp),
         sales: sales.map(mapSaleLine),
         salesSummary,
+        cashOuts: cashOuts.map(mapCashOut),
       };
     });
   }
@@ -137,7 +139,7 @@ export class CashUpQueryService {
         settings.isSolo,
       );
 
-      const [sales, salesSummary, cashOuts, countEntries, flags, saleTotals, changes, cashOutTotals, counted] =
+      const [sales, salesSummary, cashOuts, countEntries, flags, saleTotals, changes, counted] =
         await Promise.all([
           repos.sales.list(id, { statuses: Object.values(SaleStatus) }),
           repos.sales.countByStatus(id),
@@ -146,7 +148,6 @@ export class CashUpQueryService {
           repos.sales.flagCounts(id),
           repos.sales.totalsByCurrencyAndMethod(id),
           repos.sales.changeGivenByCurrency(id),
-          repos.cashOuts.totalsByCurrency(id),
           repos.counts.countedTotals(id),
         ]);
       return {
@@ -162,7 +163,11 @@ export class CashUpQueryService {
           floatLbp: cashUp.floatLbp.toString(),
           sales: saleTotals,
           change: changes,
-          cashOuts: cashOutTotals,
+          cashOuts: cashOuts.map(({ currency, amount, status }) => ({
+            currency,
+            total: amount.toString(),
+            status,
+          })),
           counted: {
             USD: counted.USD.toString(),
             LBP: counted.LBP.toString(),

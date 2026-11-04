@@ -14,32 +14,53 @@ export interface CountLine {
 
 export class CountEntryRepository extends TenantRepository {
   /**
-   * FR13: saves the counted notes as the user types. Each (currency, denomination) pair is
-   * upserted, so sending the same line twice is harmless. Only while the cash-up is OPEN.
-   * Also stamps `countStartedAt` the first time (server time, used by the pilot summary FR29).
-   * Call inside a transaction.
+   * Replaces the draft count working set atomically for this cash-up while OPEN.
+   * Omitted lines are reset to zero rather than deleted, matching the count contract.
    */
   async saveLines(cashUpId: string, lines: CountLine[]): Promise<CountEntry[]> {
     await new CashUpRepository(this.db, this.scope, this.options).lockOpenForUpdate(cashUpId);
 
-    const saved: CountEntry[] = [];
+    const current = await this.db.countEntry.findMany({
+      where: { cashUpId, cashUp: { businessId: this.businessId } },
+    });
+    const desired = new Map<string, CountLine>();
     for (const line of lines) {
+      desired.set(`${line.currency}:${line.denomination.toString()}`, line);
+    }
+
+    const saved: CountEntry[] = [];
+    for (const row of current) {
+      const key = `${row.currency}:${row.denomination.toString()}`;
+      const replacement = desired.get(key);
+      if (!replacement) {
+        saved.push(
+          await this.db.countEntry.update({
+            where: { id: row.id },
+            data: { quantity: 0 },
+          }),
+        );
+      } else if (replacement.quantity !== row.quantity) {
+        saved.push(
+          await this.db.countEntry.update({
+            where: { id: row.id },
+            data: { quantity: replacement.quantity },
+          }),
+        );
+      } else {
+        saved.push(row);
+      }
+      desired.delete(key);
+    }
+
+    for (const line of desired.values()) {
       saved.push(
-        await this.db.countEntry.upsert({
-          where: {
-            cashUpId_currency_denomination: {
-              cashUpId,
-              currency: line.currency,
-              denomination: line.denomination,
-            },
-          },
-          create: {
+        await this.db.countEntry.create({
+          data: {
             cashUpId,
             currency: line.currency,
             denomination: line.denomination,
             quantity: line.quantity,
           },
-          update: { quantity: line.quantity },
         }),
       );
     }

@@ -32,12 +32,12 @@ describe('validation output remains persistence-compatible', () => {
       totalCollected: '10',
       currency: 'USD',
       method: 'CASH',
-      idempotencyKey: '0399f1fb-cd14-40d0-9388-7024fcdd9579',
     });
     const saleInput = {
       ...sale,
       cashUpId: 'cash-up-id',
       mixedChange: false,
+      idempotencyKey: '0399f1fb-cd14-40d0-9388-7024fcdd9579',
     } satisfies PersistenceCreateSaleInput;
 
     const confirmation = confirmDeliverySchema.parse({
@@ -57,11 +57,11 @@ describe('validation output remains persistence-compatible', () => {
       amount: '1',
       currency: 'USD',
       reason: 'Valid reason',
-      idempotencyKey: '0399f1fb-cd14-40d0-9388-7024fcdd9579',
     });
     const cashOutInput = {
       ...cashOut,
       cashUpId: 'cash-up-id',
+      idempotencyKey: '0399f1fb-cd14-40d0-9388-7024fcdd9579',
     } satisfies PersistenceCreateCashOutInput;
 
     const countLine = saveCountLinesSchema.parse({

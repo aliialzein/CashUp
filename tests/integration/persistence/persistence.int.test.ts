@@ -773,11 +773,11 @@ describe("CashUp persistence against PostgreSQL", () => {
         reason: "LBP expense",
       }),
     );
-    const totals = await uow.repos({ businessId: business.id }).cashOuts.totalsByCurrency(
+    const listed = await uow.repos({ businessId: business.id }).cashOuts.listByCashUp(
       cashUp.id,
     );
-    expect(totals.find((row) => row.currency === Currency.USD)?.total.toString()).toBe("12.5");
-    expect(totals.find((row) => row.currency === Currency.LBP)?.total.toString()).toBe("2000");
+    expect(listed.find((row) => row.currency === Currency.USD)?.amount.toString()).toBe("12.5");
+    expect(listed.find((row) => row.currency === Currency.LBP)?.amount.toString()).toBe("2000");
   });
 
   it("limits reviewer reads of open cash-ups to non-monetary summaries", async () => {

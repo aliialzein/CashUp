@@ -115,6 +115,16 @@ describe('cash-up totals', () => {
       USD: { direction: 'SHORT', display: '-10.00' },
       LBP: { direction: 'OVER', display: '+10.00' },
     });
+    expect(
+      computeExpectedAndGap({
+        ...input,
+        cashOuts: [
+          { currency: 'USD' as const, total: '5.00', status: 'ACTIVE' },
+          { currency: 'USD' as const, total: '2.00', status: 'CANCELLED' },
+        ],
+        counted: { USD: '20.00', LBP: '17000.00' },
+      }).USD,
+    ).toMatchObject({ expected: '18.00', counted: '20.00', gap: '2.00', direction: 'OVER', display: '+2.00' });
   });
 
   it('formats all gap directions and builds only the persisted snapshot fields', () => {

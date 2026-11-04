@@ -2,9 +2,7 @@ import type { AuditAction, AuditEntityType } from '../persistence';
 import type { Actor } from './actor';
 import type { TransactionRepositories } from './ports';
 
-export type AuditMetadata =
-  | Readonly<{ gapUsd: string; gapLbp: string }>
-  | Readonly<{ reason: string }>;
+export type AuditMetadata = Readonly<Record<string, string | number | boolean | null | undefined>>;
 
 export interface AuditRecord {
   readonly action: AuditAction;
