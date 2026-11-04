@@ -12,7 +12,12 @@ const config: Config = {
   coverageProvider: "v8",
   collectCoverage: true,
   coverageDirectory: "coverage",
-  collectCoverageFrom: ["src/domain/**/*.ts", "src/validation/**/*.ts"],
+  collectCoverageFrom: [
+    "src/domain/**/*.ts",
+    "src/http/**/*.ts",
+    "src/services/**/*.ts",
+    "src/validation/**/*.ts",
+  ],
   coverageThreshold: {
     global: { lines: 0, branches: 0 },
     "./src/domain": { lines: 95, branches: 95 },

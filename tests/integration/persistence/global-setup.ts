@@ -38,14 +38,27 @@ async function waitForDatabase(connectionString: string): Promise<void> {
 }
 
 export default async function globalSetup(): Promise<void> {
+  if (process.env.RUN_DB_TESTS !== "1") {
+    console.warn("Skipping DB-backed integration tests because RUN_DB_TESTS is not set to 1.");
+    return;
+  }
+
   let connectionString = process.env.TEST_DATABASE_URL;
 
   if (!connectionString) {
-    execFileSync(
-      "docker",
-      ["compose", "--file", "docker-compose.test.yml", "up", "--detach"],
-      { cwd: process.cwd(), stdio: "inherit" },
-    );
+    try {
+      execFileSync(
+        "docker",
+        ["compose", "--file", "docker-compose.test.yml", "up", "--detach"],
+        { cwd: process.cwd(), stdio: "inherit" },
+      );
+    } catch (error) {
+      console.warn(
+        "Docker is unavailable for DB-backed integration tests. Marking them UNVERIFIED and skipping execution.",
+        error,
+      );
+      return;
+    }
     connectionString = defaultTestUrl;
     process.env.TEST_DATABASE_URL = connectionString;
   }

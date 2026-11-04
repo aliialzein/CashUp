@@ -29,9 +29,39 @@ describe('SubmitSnapshotBuilder', () => {
         },
       },
       cashOuts: {
-        totalsByCurrency: async (id) => {
+        listByCashUp: async (id) => {
           calls.push(`cashouts:${id}`);
-          return [];
+          const now = new Date('2026-11-03T10:00:00.000Z');
+          return [
+            {
+              id: 'active-cashout',
+              cashUpId: id,
+              amount: new Prisma.Decimal('2'),
+              currency: 'USD',
+              reason: 'Supplies',
+              status: 'ACTIVE',
+              cancelReason: null,
+              cancelledAt: null,
+              cancelledByMembershipId: null,
+              idempotencyKey: null,
+              createdAt: now,
+              updatedAt: now,
+            },
+            {
+              id: 'cancelled-cashout',
+              cashUpId: id,
+              amount: new Prisma.Decimal('5'),
+              currency: 'USD',
+              reason: 'Returned supplies',
+              status: 'CANCELLED',
+              cancelReason: 'No longer needed',
+              cancelledAt: now,
+              cancelledByMembershipId: 'staff-membership-id',
+              idempotencyKey: null,
+              createdAt: now,
+              updatedAt: now,
+            },
+          ];
         },
       },
       counts: {
@@ -60,11 +90,11 @@ describe('SubmitSnapshotBuilder', () => {
       'counts:cash-up-id',
     ]);
     expect(result).toEqual({
-      expectedUsd: '15.00',
+      expectedUsd: '13.00',
       expectedLbp: '0.00',
       countedUsd: '15.00',
       countedLbp: '0.00',
-      gapUsd: '0.00',
+      gapUsd: '2.00',
       gapLbp: '0.00',
     });
   });

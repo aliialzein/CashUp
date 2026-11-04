@@ -1,4 +1,3 @@
-import { Prisma } from '../../generated/prisma/client';
 import type { CashOut } from '../../generated/prisma/client';
 import { CashUpStatus } from '../../generated/prisma/enums';
 import type { Currency } from '../../generated/prisma/enums';
@@ -7,7 +6,7 @@ import { DuplicateError, NotFoundError, StaleStateError, isUniqueViolation } fro
 import type { Money } from '../types';
 import { CashUpRepository } from './cash-up.repository';
 
-const ZERO = new Prisma.Decimal(0);
+export type CashOutStatus = 'ACTIVE' | 'CANCELLED';
 
 export interface CreateCashOutInput {
   cashUpId: string;
@@ -16,6 +15,7 @@ export interface CreateCashOutInput {
   /** Required (FR28): the owner reviews every cash-out with its reason. */
   reason: string;
   idempotencyKey?: string | null;
+  status?: CashOutStatus;
 }
 
 export interface CashOutChanges {
@@ -47,8 +47,9 @@ export class CashOutRepository extends TenantRepository {
           amount: input.amount,
           currency: input.currency,
           reason: input.reason,
+          status: input.status ?? 'ACTIVE',
           idempotencyKey: input.idempotencyKey ?? null,
-        },
+        } as never,
       });
       return { cashOut, created: true };
     } catch (e) {
@@ -100,14 +101,27 @@ export class CashOutRepository extends TenantRepository {
     });
   }
 
-  /** Cash-outs per currency; they lower the expected cash (FR14). */
-  async totalsByCurrency(cashUpId: string): Promise<Array<{ currency: Currency; total: Prisma.Decimal }>> {
-    const rows = await this.db.cashOut.groupBy({
-      by: ['currency'],
-      where: { cashUpId, cashUp: { businessId: this.businessId } },
-      _sum: { amount: true },
+  async cancel(
+    id: string,
+    reason: string,
+    cancelledByMembershipId: string,
+  ): Promise<CashOut> {
+    const existing = await this.findById(id);
+    if (!existing) throw new NotFoundError('Cash-out');
+    if ((existing as { status?: CashOutStatus }).status === 'CANCELLED') {
+      throw new StaleStateError('Cash-out');
+    }
+
+    const updated = await this.db.cashOut.update({
+      where: { id, cashUp: { businessId: this.businessId } },
+      data: {
+        status: 'CANCELLED',
+        cancelReason: reason,
+        cancelledAt: new Date(),
+        cancelledByMembershipId,
+      } as never,
     });
-    return rows.map((r) => ({ currency: r.currency, total: r._sum.amount ?? ZERO }));
+    return updated;
   }
 
 }

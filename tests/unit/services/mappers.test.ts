@@ -19,26 +19,29 @@ describe('service DTO mappers', () => {
       status: 'OPEN',
       floatUsd: { toString: () => '10' },
       floatLbp: { toString: () => '2000.5' },
-      referenceRate: null,
+      referenceRate: { toString: () => '1.2' },
       openedAt: date,
-      countStartedAt: null,
-      closedAt: null,
-      approvedAt: null,
-      voidedAt: null,
+      countStartedAt: date,
+      closedAt: date,
+      approvedAt: date,
+      voidedAt: date,
       approvedById: null,
       selfApproved: false,
       returnReason: null,
       voidReason: null,
-      expectedUsd: null,
-      expectedLbp: null,
-      countedUsd: null,
-      countedLbp: null,
-      gapUsd: null,
-      gapLbp: null,
+      expectedUsd: { toString: () => '1.5' },
+      expectedLbp: { toString: () => '2' },
+      countedUsd: { toString: () => '3' },
+      countedLbp: { toString: () => '4' },
+      gapUsd: { toString: () => '-1.5' },
+      gapLbp: { toString: () => '2' },
     });
     expect(dto.floatUsd).toBe('10.00');
     expect(dto.floatLbp).toBe('2000.50');
+    expect(dto.referenceRate).toBe('1.20');
     expect(dto.openedAt).toBe(date.toISOString());
+    expect(dto.countStartedAt).toBe(date.toISOString());
+    expect(dto.expectedUsd).toBe('1.50');
     expect(JSON.parse(JSON.stringify(dto))).toEqual(dto);
   });
 
@@ -69,13 +72,13 @@ describe('service DTO mappers', () => {
       status: 'DELIVERED',
       businessAmount: { toString: () => '10' },
       deliveryFee: { toString: () => '0' },
-      tip: null,
-      discount: null,
+      tip: { toString: () => '1.5' },
+      discount: { toString: () => '0.5' },
       totalCollected: { toString: () => '10' },
       currency: 'USD',
       method: 'CASH',
-      changeGiven: null,
-      changeCurrency: null,
+      changeGiven: { toString: () => '0.5' },
+      changeCurrency: 'LBP',
       clientNumber: 'private-number',
       note: null,
       mixedChange: false,
@@ -84,11 +87,15 @@ describe('service DTO mappers', () => {
       deletionAwaiting: false,
       createdAt: date,
       deliveredAt: date,
-      deletedAt: null,
+      deletedAt: date,
       cancelReason: null,
     });
     expect(sale.businessAmount).toBe('10.00');
+    expect(sale.tip).toBe('1.50');
+    expect(sale.discount).toBe('0.50');
+    expect(sale.changeGiven).toBe('0.50');
     expect(sale.createdAt).toBe(date.toISOString());
+    expect(sale.deletedAt).toBe(date.toISOString());
 
     expect(
       mapCashOut({
@@ -145,6 +152,7 @@ describe('service DTO mappers', () => {
         deletedAt: status === 'DELETED' ? date : null,
         cancelReason: status === 'DELETED' ? 'Cancelled' : null,
       });
+      expect(sale.id).toBe('sale-id');
       const expected: Pick<
         SaleLineDto,
         'moneyTaken' | 'amountCollected' | 'amountExpected'

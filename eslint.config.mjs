@@ -146,6 +146,86 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  {
+    files: ["src/http/**/*.{js,jsx,ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "@/persistence",
+                "@/persistence/**",
+                "**/persistence",
+                "**/persistence/**",
+                "@/domain",
+                "@/domain/**",
+                "**/domain",
+                "**/domain/**",
+                "@/generated/prisma/**",
+                "**/generated/prisma/**",
+                "next",
+                "next/**",
+                "server-only",
+              ],
+              message:
+                "HTTP helpers must not import persistence, domain, generated Prisma, or Next.js modules.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/app/**/*.{js,jsx,ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "@/persistence",
+                "@/persistence/**",
+                "**/persistence",
+                "**/persistence/**",
+                "@/domain",
+                "@/domain/**",
+                "**/domain",
+                "**/domain/**",
+                "@/generated/prisma/**",
+                "**/generated/prisma/**",
+              ],
+              message: "App routes must use the HTTP and service layers, not lower-level modules.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/server/**/*.{js,jsx,ts,tsx}"],
+    ignores: ["src/server/composition.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "@/persistence",
+                "@/persistence/**",
+                "**/persistence",
+                "**/persistence/**",
+              ],
+              message: "Only src/server/composition.ts may import the persistence composition.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

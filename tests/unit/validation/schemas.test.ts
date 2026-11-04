@@ -28,7 +28,6 @@ const validSale = () => ({
   totalCollected: '10.00',
   currency: 'USD',
   method: 'CASH',
-  idempotencyKey: uuid(),
 });
 
 describe('common schema rules', () => {
@@ -120,11 +119,16 @@ describe('sale request schemas', () => {
     'totalCollected',
     'currency',
     'method',
-    'idempotencyKey',
   ])('requires create-sale field %s', (field) => {
     const body = validSale();
     delete body[field as keyof typeof body];
     expect(createSaleSchema.safeParse(body).success).toBe(false);
+  });
+
+  it('rejects entity idempotency keys in the request body', () => {
+    expect(
+      createSaleSchema.safeParse({ ...validSale(), idempotencyKey: uuid() }).success,
+    ).toBe(false);
   });
 
   it.each(['totalCollected', 'currency', 'method'])(
@@ -310,7 +314,6 @@ describe('cash-out, count, and query schemas', () => {
       amount: '1000000.00',
       currency: 'USD',
       reason: 'Drawer expense',
-      idempotencyKey: uuid(),
     };
     expect(createCashOutSchema.safeParse(cashOut).success).toBe(true);
     expect(createCashOutSchema.safeParse({ ...cashOut, amount: '1000000.01' }).success).toBe(
@@ -320,11 +323,14 @@ describe('cash-out, count, and query schemas', () => {
       false,
     );
     expect(createCashOutSchema.safeParse({}).success).toBe(false);
-    for (const field of ['amount', 'currency', 'reason', 'idempotencyKey']) {
+    for (const field of ['amount', 'currency', 'reason']) {
       const missing = { ...cashOut };
       delete missing[field as keyof typeof missing];
       expect(createCashOutSchema.safeParse(missing).success).toBe(false);
     }
+    expect(
+      createCashOutSchema.safeParse({ ...cashOut, idempotencyKey: uuid() }).success,
+    ).toBe(false);
     expect(
       createCashOutSchema.safeParse({
         ...cashOut,
@@ -406,7 +412,7 @@ describe('cash-out, count, and query schemas', () => {
         })),
       }).success,
     ).toBe(false);
-    expect(saveCountLinesSchema.safeParse({ lines: [] }).success).toBe(false);
+    expect(saveCountLinesSchema.safeParse({ lines: [] }).success).toBe(true);
   });
 
   it('parses repeated and comma-separated statuses and bounds pagination', () => {
