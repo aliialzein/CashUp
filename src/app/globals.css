@@ -2,55 +2,55 @@
 
 @layer base {
 
-  a[href],
-  button,
-  summary,
-  select,
-  [role="button"],
-  [role="radio"],
-  [role="tab"],
-  input[type="submit"],
-  input[type="checkbox"],
-  input[type="radio"],
-  label:has(input[type="checkbox"], input[type="radio"]) {
-    cursor: pointer;
-  }
+	a[href],
+	button,
+	summary,
+	select,
+	[role="button"],
+	[role="radio"],
+	[role="tab"],
+	input[type="submit"],
+	input[type="checkbox"],
+	input[type="radio"],
+	label:has(input[type="checkbox"], input[type="radio"]) {
+		cursor: pointer;
+	}
 
-  :is(button, input, select, a[href], [role="button"], [role="radio"]):is(:disabled, [aria-disabled="true"]) {
-    cursor: not-allowed;
-  }
+	:is(button, input, select, a[href], [role="button"], [role="radio"]):is(:disabled, [aria-disabled="true"]) {
+		cursor: not-allowed;
+	}
 }
 
 /* Design tokens (slate look). Use these names in components, never raw hex. */
 @theme inline {
-  --color-ink: #0f172a;
-  --color-muted: #475569;
-  --color-canvas: #f8fafc;
-  --color-surface: #ffffff;
-  --color-subtle: #f1f5f9;
-  --color-line: #e2e8f0;
-  --color-line-strong: #cbd5e1;
+	--color-ink: #0f172a;
+	--color-muted: #475569;
+	--color-canvas: #f8fafc;
+	--color-surface: #ffffff;
+	--color-subtle: #f1f5f9;
+	--color-line: #e2e8f0;
+	--color-line-strong: #cbd5e1;
 
-  --color-success: #047857;
-  --color-success-bg: #ecfdf5;
-  --color-success-line: #a7f3d0;
-  --color-warning: #92400e;
-  --color-warning-bg: #fffbeb;
-  --color-warning-line: #fde68a;
-  --color-danger: #be123c;
-  --color-danger-bg: #fff1f2;
-  --color-danger-line: #fecdd3;
-  --color-info: #1d4ed8;
-  --color-info-bg: #eff6ff;
-  --color-info-line: #bfdbfe;
+	--color-success: #047857;
+	--color-success-bg: #ecfdf5;
+	--color-success-line: #a7f3d0;
+	--color-warning: #92400e;
+	--color-warning-bg: #fffbeb;
+	--color-warning-line: #fde68a;
+	--color-danger: #be123c;
+	--color-danger-bg: #fff1f2;
+	--color-danger-line: #fecdd3;
+	--color-info: #1d4ed8;
+	--color-info-bg: #eff6ff;
+	--color-info-line: #bfdbfe;
 
-  --font-sans: var(--font-inter), system-ui, sans-serif;
-  --font-heading: var(--font-hanken), var(--font-inter), system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+	--font-sans: var(--font-inter), system-ui, sans-serif;
+	--font-heading: var(--font-hanken), var(--font-inter), system-ui, sans-serif;
+	--font-mono: var(--font-jetbrains), ui-monospace, monospace;
 }
 
 body {
-  background: var(--color-canvas);
-  color: var(--color-ink);
-  font-family: var(--font-inter), system-ui, sans-serif;
+	background: var(--color-canvas);
+	color: var(--color-ink);
+	font-family: var(--font-inter), system-ui, sans-serif;
 }

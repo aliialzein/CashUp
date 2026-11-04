@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { Card } from "@/components/ui/Card";
 import { FieldError } from "@/components/ui/FieldError";
 import { FormActions } from "@/components/ui/FormActions";
 import { PasswordField } from "@/components/ui/PasswordField";
@@ -48,7 +47,8 @@ export function PasswordForm() {
 
     return (
         <form onSubmit={handleSubmit} className="mx-auto w-full max-w-140">
-            <Card key={formKey} className="space-y-5 p-7">
+            {/* Phone: the fields sit on the page. Desktop: they sit in one white card. */}
+            <div key={formKey} className="space-y-4 md:space-y-5 md:rounded-xl md:border md:border-line md:bg-surface md:p-7">
                 <div>
                     <PasswordField
                         label="Current password"
@@ -86,8 +86,9 @@ export function PasswordForm() {
                     submitLabel="Update password"
                     submitDisabled={!canSubmit}
                     onCancel={reset}
+                    cancelOnPhone={false}
                 />
-            </Card>
+            </div>
         </form>
     );
 }

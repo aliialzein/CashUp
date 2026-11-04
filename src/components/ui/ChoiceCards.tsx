@@ -8,10 +8,13 @@ type ChoiceCardsProps<T extends string> = {
     onChange: (value: T) => void;
 };
 
-/** A vertical list of cards where exactly one is selected, with a radio dot on the right. */
+/**
+ * A vertical list of cards where exactly one is selected, with a radio dot on the right.
+ * Each card is white. The selected one has a dark border. Inside a white desktop card it is also tinted.
+ */
 export function ChoiceCards<T extends string>({ label, options, value, onChange }: ChoiceCardsProps<T>) {
     return (
-        <div role="radiogroup" aria-label={label} className="space-y-2.5">
+        <div role="radiogroup" aria-label={label} className="space-y-2">
             {options.map((option) => {
                 const active = option.value === value;
                 return (
@@ -21,7 +24,7 @@ export function ChoiceCards<T extends string>({ label, options, value, onChange 
                         role="radio"
                         aria-checked={active}
                         onClick={() => onChange(option.value)}
-                        className={`flex min-h-14 w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-left ${active ? "border-ink bg-canvas" : "border-line bg-surface hover:bg-canvas"
+                        className={`flex min-h-14 w-full items-center gap-3 rounded-xl border bg-surface px-4 py-3.5 text-left ${active ? "border-ink md:bg-canvas" : "border-line hover:bg-canvas"
                             }`}
                     >
                         <span className="flex-1">

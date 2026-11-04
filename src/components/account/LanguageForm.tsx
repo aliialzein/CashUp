@@ -2,13 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { Card } from "@/components/ui/Card";
 import { ChoiceCards } from "@/components/ui/ChoiceCards";
 import { FormActions } from "@/components/ui/FormActions";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { LANGUAGES, type LanguageCode } from "@/lib/account/languages";
-import { routes } from "@/lib/routes";
 import { useResetOnHide } from "@/lib/hooks/useResetOnHide";
+import { routes } from "@/lib/routes";
 
 const OPTIONS = LANGUAGES.map((language) => ({
     value: language.code,
@@ -29,7 +28,8 @@ export function LanguageForm({ current }: { current: LanguageCode }) {
 
     return (
         <form onSubmit={handleSubmit} className="mx-auto w-full max-w-140">
-            <Card className="space-y-5 p-7">
+            {/* Phone: no outer box, each language is its own card. Desktop: everything sits in one white card. */}
+            <div className="space-y-4 md:space-y-5 md:rounded-xl md:border md:border-line md:bg-surface md:p-7">
                 <div className="space-y-2">
                     <SectionLabel>Choose language</SectionLabel>
                     <ChoiceCards label="Language" options={OPTIONS} value={selected} onChange={setSelected} />
@@ -40,8 +40,9 @@ export function LanguageForm({ current }: { current: LanguageCode }) {
                     submitLabel="Save"
                     submitDisabled={selected === current}
                     onCancel={() => setSelected(current)}
+                    cancelOnPhone={false}
                 />
-            </Card>
+            </div>
         </form>
     );
 }

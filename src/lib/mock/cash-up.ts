@@ -32,7 +32,7 @@ const fullOpenCashUp: CashUp = {
             number: 105,
             clientPhone: "+961 03 987 654",
             time: "09:14",
-            status: "DELIVERED",
+            status: "TO_DELIVER",
             amount: { usd: "20", lbp: "120000" },
             deliveryFee: { usd: "2", lbp: "0" },
         },

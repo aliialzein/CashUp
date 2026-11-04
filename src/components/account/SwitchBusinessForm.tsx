@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { Card } from "@/components/ui/Card";
 import { ChoiceCards } from "@/components/ui/ChoiceCards";
 import { FormActions } from "@/components/ui/FormActions";
 import { SectionLabel } from "@/components/ui/SectionLabel";
@@ -35,7 +34,8 @@ export function SwitchBusinessForm({ businesses, currentBusinessId, returnHref }
 
     return (
         <form onSubmit={handleSubmit} className="mx-auto w-full max-w-140">
-            <Card className="space-y-5 p-7">
+            {/* Phone: no outer box, each business is its own card. Desktop: everything sits in one white card. */}
+            <div className="space-y-4 md:space-y-5 md:rounded-xl md:border md:border-line md:bg-surface md:p-7">
                 <div className="space-y-2">
                     <SectionLabel>Your businesses</SectionLabel>
                     <ChoiceCards label="Your businesses" options={options} value={selectedId} onChange={setSelectedId} />
@@ -50,8 +50,9 @@ export function SwitchBusinessForm({ businesses, currentBusinessId, returnHref }
                     submitLabel="Switch"
                     submitDisabled={selectedId === currentBusinessId}
                     onCancel={() => setSelectedId(currentBusinessId)}
+                    cancelOnPhone={false}
                 />
-            </Card>
+            </div>
         </form>
     );
 }

@@ -1,3 +1,4 @@
+import { BottomBar } from "@/components/ui/BottomBar";
 import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 
@@ -7,22 +8,29 @@ type FormActionsProps = {
     submitDisabled?: boolean;
     /** Runs when the driver cancels, to reset the form. */
     onCancel?: () => void;
+    /** False when the phone page has its own ← or ✕ that cancels. Desktop always shows Cancel. */
+    cancelOnPhone?: boolean;
 };
 
-/** Cancel and submit buttons, right-aligned at the bottom of a form. */
-export function FormActions({ cancelHref, submitLabel, submitDisabled, onCancel }: FormActionsProps) {
+/**
+ * Cancel and submit buttons. On desktop they sit right-aligned at the end of the form.
+ * On phone, submit is full width and stuck to the bottom.
+ */
+export function FormActions({ cancelHref, submitLabel, submitDisabled, onCancel, cancelOnPhone = true }: FormActionsProps) {
     return (
-        <div className="flex justify-end gap-3">
-            <div className="w-28">
-                <ButtonLink href={cancelHref} variant="secondary" onClick={onCancel}>
-                    Cancel
-                </ButtonLink>
+        <BottomBar>
+            <div className="flex justify-end gap-3">
+                <div className={`w-28 ${cancelOnPhone ? "" : "hidden md:block"}`}>
+                    <ButtonLink href={cancelHref} variant="secondary" onClick={onCancel}>
+                        Cancel
+                    </ButtonLink>
+                </div>
+                <div className="flex-1 md:w-44 md:flex-none">
+                    <Button type="submit" disabled={submitDisabled}>
+                        {submitLabel}
+                    </Button>
+                </div>
             </div>
-            <div className="w-44">
-                <Button type="submit" disabled={submitDisabled}>
-                    {submitLabel}
-                </Button>
-            </div>
-        </div>
+        </BottomBar>
     );
 }

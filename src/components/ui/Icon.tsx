@@ -4,6 +4,8 @@ const PATHS = {
 	chevronDown: "m6 9 6 6 6-6",
 	chevronLeft: "m15 6-6 6 6 6",
 	check: "m5 12 5 5 10-10",
+	close: "M6 6l12 12M18 6 6 18",
+	user: "M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21a8 8 0 0 1 16 0",
 	lock: "M7 11V8a5 5 0 0 1 10 0v3M6 11h12v9H6z",
 	fuel: "M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M5 21h10M15 9h2a2 2 0 0 1 2 2v6",
 	truck: "M3 7h13v10H3zM16 10h3l2 3v4h-5",

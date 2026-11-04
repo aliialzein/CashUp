@@ -18,17 +18,9 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
     );
 }
 
-/** Shows on Today whether the drawer was counted, and how far the count is from the expected cash. */
+/** Shows on Today how far the saved count is from the expected cash. Nothing shows until a count is saved. */
 export function CountStatus({ counted, expected }: CountStatusProps) {
-    if (counted === null) {
-        return (
-            <Card className="px-4 py-3 text-sm">
-                <Row label="Cash count">
-                    <span className="font-sans font-medium text-muted">Not counted yet</span>
-                </Row>
-            </Card>
-        );
-    }
+    if (counted === null) return null;
 
     const gap = subtractAmounts(counted, expected);
     return (

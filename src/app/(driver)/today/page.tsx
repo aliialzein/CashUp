@@ -22,7 +22,7 @@ export default function TodayPage() {
         <>
             <div className="mb-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <h1 className="font-heading text-2xl font-bold tracking-tight">Cash-up #{cashUp.number}</h1>
+                    <h1 className="font-heading text-xl font-bold tracking-tight md:text-2xl">Cash-up #{cashUp.number}</h1>
                     <Badge>Open</Badge>
                 </div>
                 <span className="text-sm text-muted">Started {cashUp.startedAt}</span>
@@ -34,9 +34,10 @@ export default function TodayPage() {
                 </div>
             )}
 
-            <div className="grid grid-cols-2 items-start gap-6">
-                <div className="space-y-4">
-                    <CashUpLedger ledger={cashUp.ledger} />
+            <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 md:gap-6">
+                {/* flex gap, not space-y: on phone Submit is fixed, and space-y would still leave a margin for it. */}
+                <div className="flex flex-col gap-4">
+                    <CashUpLedger ledger={cashUp.ledger} collapsible />
                     <SubmitCashUp
                         salesCount={cashUp.salesCount}
                         waitingCount={waitingSales.length}

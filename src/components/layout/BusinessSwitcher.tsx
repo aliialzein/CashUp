@@ -17,7 +17,7 @@ function SwitcherLink({ href, businessName, userLine }: BusinessSwitcherProps & 
         <Link
             href={href}
             aria-label={`Switch business, current: ${businessName}`}
-            className="flex min-h-11 flex-col items-end justify-center"
+            className="flex min-h-11 flex-col items-start justify-center md:items-end"
         >
             <span className="flex items-center gap-1 font-heading text-[15px] font-semibold">
                 {businessName}

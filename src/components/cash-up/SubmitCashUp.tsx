@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { BottomBar } from "@/components/ui/BottomBar";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { submitCashUp } from "@/lib/cash-up/actions";
@@ -25,7 +26,7 @@ function BlockedSubmit({ children }: { children: ReactNode }) {
 }
 
 /** Blocked until there is a sale, every sale is delivered, and the cash is counted. It says which. */
-export function SubmitCashUp({ salesCount, waitingCount, isCounted, isReturned = false }: SubmitCashUpProps) {
+function SubmitControl({ salesCount, waitingCount, isCounted, isReturned = false }: SubmitCashUpProps) {
     const verb = isReturned ? "Submit again" : "Submit";
 
     if (salesCount === 0) return <BlockedSubmit>{verb} · add a sale first</BlockedSubmit>;
@@ -44,5 +45,14 @@ export function SubmitCashUp({ salesCount, waitingCount, isCounted, isReturned =
         <form action={submitCashUp}>
             <Button type="submit">{isReturned ? "Submit again" : "Submit cash-up"}</Button>
         </form>
+    );
+}
+
+/** On phone the Submit button is stuck above the tab bar, so it is always in reach. */
+export function SubmitCashUp(props: SubmitCashUpProps) {
+    return (
+        <BottomBar aboveTabs>
+            <SubmitControl {...props} />
+        </BottomBar>
     );
 }
