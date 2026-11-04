@@ -3,8 +3,6 @@ import type { ExpectedGap, CurrencySalesSummary } from '../domain/money';
 
 export interface CashUpDto {
   readonly id: string;
-  readonly businessId: string;
-  readonly membershipId: string;
   readonly status: CashUpStatus;
   readonly floatUsd: string;
   readonly floatLbp: string;
@@ -61,6 +59,7 @@ export interface SaleDto {
 }
 
 export interface SaleLineDto {
+  readonly id: string;
   readonly saleNumber: number;
   readonly status: SaleStatus;
   readonly moneyTaken: 'COLLECTED' | 'NOT_YET' | 'CANCELLED';
@@ -97,14 +96,48 @@ export interface CashUpWithSalesDto extends CashUpDto {
   readonly salesSummary: SalesSummaryDto;
 }
 
+export type CashOutStatus = 'ACTIVE' | 'CANCELLED';
+
 export interface CashOutDto {
   readonly id: string;
   readonly cashUpId: string;
   readonly amount: string;
   readonly currency: Currency;
   readonly reason: string;
+  readonly status: CashOutStatus;
+  readonly cancelReason: string | null;
+  readonly cancelledAt: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;
+}
+
+export interface CashUpOwnDto extends CashUpWithSalesDto {
+  readonly cashOuts: readonly CashOutDto[];
+}
+
+export interface CountDto {
+  readonly cashUpId: string;
+  readonly lines: readonly {
+    readonly currency: Currency;
+    readonly denomination: string;
+    readonly quantity: number;
+  }[];
+  readonly countedTotals: Record<Currency, string>;
+}
+
+export interface SaleMutationDto {
+  readonly saleId: string;
+  readonly sale: SaleLineDto;
+  readonly salesSummary: SalesSummaryDto;
+}
+
+export interface SaleCreateResultDto extends SaleMutationDto {
+  readonly replayed: boolean;
+}
+
+export interface CashOutCreateResultDto {
+  readonly cashOut: CashOutDto;
+  readonly replayed: boolean;
 }
 
 export interface CountEntryDto {

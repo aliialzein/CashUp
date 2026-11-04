@@ -12,12 +12,19 @@ export const PERMISSIONS = [
   'cashUp.listOwn',
   'cashUp.listSubmitted',
   'audit.read',
+  'cashUp.mutateOwn',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
 
 export const PERMISSION_MATRIX: Record<MembershipRole, ReadonlySet<Permission>> = {
-  STAFF: new Set(['cashUp.open', 'cashUp.submit', 'cashUp.readOwn', 'cashUp.listOwn']),
+  STAFF: new Set([
+    'cashUp.open',
+    'cashUp.submit',
+    'cashUp.readOwn',
+    'cashUp.listOwn',
+    'cashUp.mutateOwn',
+  ]),
   MANAGER: new Set([
     'cashUp.open',
     'cashUp.submit',
@@ -28,6 +35,7 @@ export const PERMISSION_MATRIX: Record<MembershipRole, ReadonlySet<Permission>> 
     'cashUp.listOwn',
     'cashUp.listSubmitted',
     'audit.read',
+    'cashUp.mutateOwn',
   ]),
   OWNER: new Set([
     'cashUp.review',

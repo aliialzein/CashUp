@@ -38,6 +38,12 @@ export interface ServiceRepositories {
   >;
   readonly sales: AwaitableMethods<
     Repositories['sales'],
+    | 'create'
+    | 'findById'
+    | 'findByIdempotencyKey'
+    | 'edit'
+    | 'markDelivered'
+    | 'cancelToDeliver'
     | 'list'
     | 'countAwaitingDelivery'
     | 'countByStatus'
@@ -47,9 +53,12 @@ export interface ServiceRepositories {
   >;
   readonly cashOuts: AwaitableMethods<
     Repositories['cashOuts'],
-    'listByCashUp' | 'totalsByCurrency'
+    'create' | 'findById' | 'listByCashUp' | 'cancel'
   >;
-  readonly counts: AwaitableMethods<Repositories['counts'], 'listByCashUp' | 'countedTotals'>;
+  readonly counts: AwaitableMethods<
+    Repositories['counts'],
+    'listByCashUp' | 'countedTotals' | 'saveLines'
+  >;
   readonly audit: AwaitableMethods<Repositories['audit'], 'append' | 'list'>;
   readonly requests: AwaitableMethods<Repositories['requests'], 'countAwaitingByCashUp'>;
 }

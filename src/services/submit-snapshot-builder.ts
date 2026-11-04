@@ -16,7 +16,13 @@ export class SubmitSnapshotBuilder {
   ): Promise<CashUpSnapshot> {
     const sales = await repos.sales.totalsByCurrencyAndMethod(cashUp.id);
     const changes = await repos.sales.changeGivenByCurrency(cashUp.id);
-    const cashOuts = await repos.cashOuts.totalsByCurrency(cashUp.id);
+    const cashOuts = (await repos.cashOuts.listByCashUp(cashUp.id)).map(
+      ({ currency, amount, status }) => ({
+        currency,
+        total: amount.toString(),
+        status,
+      }),
+    );
     const counts = await repos.counts.countedTotals(cashUp.id);
     const counted: Record<Currency, string> = {
       USD: counts.USD.toString(),

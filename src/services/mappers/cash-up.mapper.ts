@@ -25,10 +25,14 @@ export interface CashUpRow {
   gapLbp: { toString(): string } | null;
 }
 
-function money(value: { toString(): string } | null): string | null {
-  if (value === null) return null;
+function formatMoney(value: { toString(): string }): string {
   const [whole, fraction = ''] = value.toString().split('.');
   return `${whole}.${fraction.padEnd(2, '0')}`;
+}
+
+function money(value: { toString(): string } | null): string | null {
+  if (value === null) return null;
+  return formatMoney(value);
 }
 
 function date(value: Date | null): string | null {
@@ -38,11 +42,9 @@ function date(value: Date | null): string | null {
 export function mapCashUp(row: CashUpRow): CashUpDto {
   return {
     id: row.id,
-    businessId: row.businessId,
-    membershipId: row.membershipId,
     status: row.status,
-    floatUsd: money(row.floatUsd) ?? '0.00',
-    floatLbp: money(row.floatLbp) ?? '0.00',
+    floatUsd: formatMoney(row.floatUsd),
+    floatLbp: formatMoney(row.floatLbp),
     referenceRate: money(row.referenceRate),
     openedAt: row.openedAt.toISOString(),
     countStartedAt: date(row.countStartedAt),

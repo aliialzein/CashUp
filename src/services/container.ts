@@ -4,7 +4,10 @@ import { AuditTrail } from './audit-trail';
 import { CashUpApprovalPolicy } from './cash-up-approval-policy';
 import { CashUpLifecycleService } from './cash-up-lifecycle.service';
 import { CashUpQueryService } from './cash-up-query.service';
+import { CashOutService } from './cash-out.service';
+import { CountService } from './count.service';
 import { PermissionMatrix } from './permissions';
+import { SaleService } from './sale.service';
 import { SubmitSnapshotBuilder } from './submit-snapshot-builder';
 import { UseCaseRunner } from './use-case-runner';
 
@@ -31,5 +34,8 @@ export function createServices(uow: UnitOfWork, overrides: ServiceOverrides = {}
       audit,
     ),
     queries: new CashUpQueryService(runner, permissions, approvalPolicy),
+    sales: new SaleService(runner, permissions, audit),
+    cashOuts: new CashOutService(runner, permissions, audit),
+    counts: new CountService(runner, permissions, audit),
   };
 }

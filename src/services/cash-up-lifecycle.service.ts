@@ -69,7 +69,7 @@ export class CashUpLifecycleService {
       const cashUp = await repos.cashUps.findOwn(cashUpId, actor.membershipId);
       if (!cashUp) throw new EntityNotFoundError();
       if (locked.status !== CashUpStatus.OPEN) {
-        throw new ConflictError('CASHUP_STATE_CONFLICT');
+        throw new BusinessRuleError('CASHUP_NOT_OPEN');
       }
 
       if ((await repos.sales.countAwaitingDelivery(cashUpId)) > 0) {
