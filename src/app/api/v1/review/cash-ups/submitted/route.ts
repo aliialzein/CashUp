@@ -1,6 +1,9 @@
 import { createReviewRoutes } from '@/http/routes/review';
 import { getHttpDeps } from '@/server/composition';
+import { runDynamicRoute } from '@/server/dynamic-route';
 
 export function GET(request: Request) {
-  return createReviewRoutes(getHttpDeps()).submitted(request);
+  return runDynamicRoute(() =>
+    createReviewRoutes(getHttpDeps()).submitted(request),
+  );
 }

@@ -6,10 +6,18 @@ const globalForPrisma = globalThis as typeof globalThis & {
   prisma?: ReturnType<typeof createPrismaClient>;
 };
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+let unitOfWork: UnitOfWork | undefined;
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+export function getPrismaClient(): ReturnType<typeof createPrismaClient> {
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createPrismaClient();
+  }
+  return globalForPrisma.prisma;
 }
 
-export const uow = new UnitOfWork(prisma);
+export function getUnitOfWork(): UnitOfWork {
+  if (!unitOfWork) {
+    unitOfWork = new UnitOfWork(getPrismaClient());
+  }
+  return unitOfWork;
+}

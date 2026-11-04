@@ -34,4 +34,19 @@ describe('HTTP composition root', () => {
 
     expect(afterReload).toBe(first);
   });
+
+  it('creates Prisma only when the dependency graph is requested', async () => {
+    const createPrismaClient = jest.fn(() => ({}));
+    jest.doMock('../../persistence', () => ({
+      createPrismaClient,
+      UnitOfWork: class UnitOfWork {},
+    }));
+
+    const composition = await import('../../server/composition');
+    expect(createPrismaClient).not.toHaveBeenCalled();
+
+    composition.getHttpDeps();
+
+    expect(createPrismaClient).toHaveBeenCalledTimes(1);
+  });
 });
