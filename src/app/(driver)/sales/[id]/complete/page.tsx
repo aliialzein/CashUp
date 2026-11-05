@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { CompleteDeliveryForm } from "@/components/sales/CompleteDeliveryForm";
-import { BackLink } from "@/components/ui/BackLink";
 import { findMockSale } from "@/lib/mock/cash-up";
 import { mockSession } from "@/lib/mock/session";
 import { resolveOrigin } from "@/lib/navigation/origin";
@@ -23,15 +23,12 @@ async function CompleteDelivery({ params, searchParams }: CompleteDeliveryPagePr
 
     return (
         <>
-            <BackLink href={origin.href}>{origin.label}</BackLink>
-
-            <div>
-                <h1 className="font-heading text-2xl font-bold tracking-tight">Complete delivery</h1>
-                <p className="mt-1 text-sm text-muted">
-                    Sale #{sale.number} · {sale.clientPhone}
-                </p>
-            </div>
-
+            <PageHeader
+                back={origin}
+                title="Complete delivery"
+                subtitle={`Sale #${sale.number} · ${sale.clientPhone}`}
+                phoneSubtitle={`Sale #${sale.number}`}
+            />
             <CompleteDeliveryForm sale={sale} feeRequired={mockSession.role === "DRIVER"} returnHref={origin.href} />
         </>
     );
@@ -39,7 +36,7 @@ async function CompleteDelivery({ params, searchParams }: CompleteDeliveryPagePr
 
 export default function CompleteDeliveryPage(props: CompleteDeliveryPageProps) {
     return (
-        <div className="space-y-5">
+        <div className="flex flex-col gap-4 md:gap-5">
             <Suspense fallback={<div aria-hidden className="h-96 animate-pulse rounded-xl bg-subtle" />}>
                 <CompleteDelivery {...props} />
             </Suspense>
