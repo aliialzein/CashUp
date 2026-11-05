@@ -9,36 +9,45 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { cashUpLabel } from "@/lib/cash-up/cashUpLabel";
 import { detailSubtitle } from "@/lib/cash-up/detailSubtitle";
 import { findMockCashUpDetail } from "@/lib/mock/cash-up-details";
+import { historyOrigin } from "@/lib/navigation/historyOrigin";
+import { resolveOrigin, withOrigin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";
 
 type CashUpDetailPageProps = {
     params: Promise<{ id: string }>;
+    searchParams: Promise<{ from?: string | string[] }>;
 };
 
-/** Reads the id and shows the cash-up. It lives inside Suspense because `params` is runtime data. */
-async function CashUpDetail({ params }: CashUpDetailPageProps) {
-    const { id } = await params;
+/** Reads the id and where the driver came from, then shows the cash-up. It lives inside Suspense because both are runtime data. */
+async function CashUpDetail({ params, searchParams }: CashUpDetailPageProps) {
+    const [{ id }, { from }] = await Promise.all([params, searchParams]);
     const detail = findMockCashUpDetail(id);
     if (!detail) notFound();
 
     const deliveredCount = detail.sales.filter((sale) => sale.status === "DELIVERED").length;
+    // The pages below (Sales, Cash-outs) get the same origin, so their ← comes back here and this ← still goes to the right place.
+    const origin = historyOrigin(from);
 
     return (
         <>
             <PageHeader
                 back={{ href: routes.driver.history, label: "History" }}
+                phoneBack={resolveOrigin(from, "history")}
                 title={cashUpLabel(detail.number)}
                 subtitle={detailSubtitle(detail)}
                 badge={<CashUpStatusBadge status={detail.status} />}
             />
             <div className="grid gap-5 md:grid-cols-2">
                 <div className="flex flex-col gap-5">
-                    <CashUpLedger ledger={detail.ledger} cashOutsHref={routes.driver.historyCashOuts(detail.id)} />
+                    <CashUpLedger
+                        ledger={detail.ledger}
+                        cashOutsHref={withOrigin(routes.driver.historyCashOuts(detail.id), origin)}
+                    />
                 </div>
                 <div className="flex flex-col gap-5">
                     <CountResult counted={detail.counted} gap={detail.gap} />
                     <SalesLinkCard
-                        href={routes.driver.historySales(detail.id)}
+                        href={withOrigin(routes.driver.historySales(detail.id), origin)}
                         deliveredCount={deliveredCount}
                         total={detail.deliveredTotal}
                     />
@@ -59,11 +68,11 @@ function DetailPlaceholder() {
     );
 }
 
-export default function CashUpDetailPage({ params }: CashUpDetailPageProps) {
+export default function CashUpDetailPage({ params, searchParams }: CashUpDetailPageProps) {
     return (
         <div className="space-y-5">
             <Suspense fallback={<DetailPlaceholder />}>
-                <CashUpDetail params={params} />
+                <CashUpDetail params={params} searchParams={searchParams} />
             </Suspense>
         </div>
     );

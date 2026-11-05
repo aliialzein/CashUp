@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { Collapse } from "@/components/ui/Collapse";
 import { Icon } from "@/components/ui/Icon";
 import { useResetOnHide } from "@/lib/hooks/useResetOnHide";
 import { HEADER_ROW, SUMMARY_ROW } from "./ledgerStyles";
@@ -36,15 +37,19 @@ export function CollapsibleLedger({ header, details, summary }: CollapsibleLedge
                     onClick={toggle}
                     className="flex size-8 items-center justify-start text-muted md:hidden"
                 >
-                    <Icon name="chevronDown" size={18} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+                    <Icon
+                        name="chevronDown"
+                        size={18}
+                        className={`transition-transform duration-500 ease-in-out motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+                    />
                 </button>
                 <span className="hidden md:block" />
                 {header}
             </div>
 
-            <div id="ledger-details" className={open ? "" : "hidden md:block"}>
-                {details}
-            </div>
+            <Collapse open={open} alwaysOpenFromMd>
+                <div id="ledger-details">{details}</div>
+            </Collapse>
 
             <button
                 type="button"

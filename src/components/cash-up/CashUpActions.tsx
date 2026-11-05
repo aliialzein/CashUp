@@ -21,10 +21,12 @@ export function CashUpActions({ counted, expected }: CashUpActionsProps) {
                 Add sale
             </ButtonLink>
             <div className="grid grid-cols-2 gap-3">
-                <ButtonLink href={routes.driver.cashOuts} variant="secondary">
+                <ButtonLink href={routes.driver.cashOuts} variant="secondary" className="gap-2">
+                    <Icon name="minus" size={18} className="text-muted" />
                     Cash-out
                 </ButtonLink>
-                <ButtonLink href={routes.driver.countCash} variant="secondary">
+                <ButtonLink href={routes.driver.countCash} variant="secondary" className="gap-2">
+                    <Icon name="drawer" size={18} className="text-muted" />
                     {counted === null ? "Count cash" : "Recount"}
                 </ButtonLink>
             </div>
@@ -32,4 +34,3 @@ export function CashUpActions({ counted, expected }: CashUpActionsProps) {
         </div>
     );
 }
-

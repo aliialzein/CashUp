@@ -22,7 +22,7 @@ const fullOpenCashUp: CashUp = {
     },
     salesCount: 3,
     salesTotal: { usd: "35", lbp: "620000" },
-    // counted: { usd: "70", lbp: "1620000" },
+    // counted: { usd: "70", lbp: "1620000" }, 
     counted: null,
     deliveredTotal: { usd: "15", lbp: "500000" },
     waitingTotal: { usd: "20", lbp: "120000" },

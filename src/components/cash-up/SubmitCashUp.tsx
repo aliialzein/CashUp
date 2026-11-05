@@ -14,9 +14,14 @@ type SubmitCashUpProps = {
     isReturned?: boolean;
 };
 
-function BlockedSubmit({ children }: { children: ReactNode }) {
+/** Yellow while sales still wait for delivery (something to finish). Grey when the driver just has a step to do. */
+function BlockedSubmit({ tone, children }: { tone: "warning" | "neutral"; children: ReactNode }) {
     return (
-        <Button variant="warning" disabled>
+        <Button
+            variant={tone === "warning" ? "warning" : "ghost"}
+            className={tone === "neutral" ? "border border-line bg-subtle" : ""}
+            disabled
+        >
             <span className="inline-flex items-center gap-2">
                 <Icon name="lock" size={16} />
                 {children}
@@ -25,21 +30,21 @@ function BlockedSubmit({ children }: { children: ReactNode }) {
     );
 }
 
-/** Blocked until there is a sale, every sale is delivered, and the cash is counted. It says which. */
+/** Blocked until every sale is delivered, the cash is counted and there is a sale. It says which comes first. */
 function SubmitControl({ salesCount, waitingCount, isCounted, isReturned = false }: SubmitCashUpProps) {
     const verb = isReturned ? "Submit again" : "Submit";
 
-    if (salesCount === 0) return <BlockedSubmit>{verb} · add a sale first</BlockedSubmit>;
-
     if (waitingCount > 0) {
         return (
-            <BlockedSubmit>
+            <BlockedSubmit tone="warning">
                 {verb} · {waitingCount} {waitingCount === 1 ? "sale" : "sales"} still to deliver
             </BlockedSubmit>
         );
     }
 
-    if (!isCounted) return <BlockedSubmit>{verb} · count your cash first</BlockedSubmit>;
+    if (!isCounted) return <BlockedSubmit tone="neutral">{verb} · count your cash first</BlockedSubmit>;
+
+    if (salesCount === 0) return <BlockedSubmit tone="neutral">{verb} · add a sale first</BlockedSubmit>;
 
     return (
         <form action={submitCashUp}>

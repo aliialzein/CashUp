@@ -3,29 +3,41 @@ import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { formatNumber } from "@/lib/format/money";
 import { routes } from "@/lib/routes";
-import type { Amounts } from "@/lib/format/money";
+import type { Amounts, Currency } from "@/lib/format/money";
 import type { Ledger } from "@/types/cash-up";
 import { CollapsibleLedger } from "./CollapsibleLedger";
 import { HEADER_ROW, ROW, SUMMARY_ROW } from "./ledgerStyles";
 
 const NUM = "text-right font-mono text-sm tabular-nums";
+const ZERO = /^[+-]?0*\.?0*$/;
+
+type Tone = "in" | "out";
+
+/** One amount. A zero is plain and muted: there is nothing coming in or going out to point at. */
+function Amount({ value, currency, tone }: { value: string; currency: Currency; tone?: Tone }) {
+    const isZero = ZERO.test(value);
+    const color = isZero ? "text-muted" : tone === "in" ? "text-success" : tone === "out" ? "text-danger" : "";
+    return (
+        <span className={`${NUM} ${color}`}>
+            {formatNumber(value, currency, { signed: tone !== undefined && !isZero })}
+        </span>
+    );
+}
 
 type LineProps = {
     label: string;
     usd: string;
     lbp: string;
     /** "in" = money coming in (green), "out" = money going out (red). No tone = neutral. */
-    tone?: "in" | "out";
+    tone?: Tone;
 };
 
 function Line({ label, usd, lbp, tone }: LineProps) {
-    const color = tone === "in" ? "text-success" : tone === "out" ? "text-danger" : "";
-    const signed = tone !== undefined;
     return (
         <>
             <span>{label}</span>
-            <span className={`${NUM} ${color}`}>{formatNumber(usd, "USD", { signed })}</span>
-            <span className={`${NUM} ${color}`}>{formatNumber(lbp, "LBP", { signed })}</span>
+            <Amount value={usd} currency="USD" tone={tone} />
+            <Amount value={lbp} currency="LBP" tone={tone} />
         </>
     );
 }
@@ -37,8 +49,8 @@ function CashOutsRow({ cashOuts, href }: { cashOuts: Amounts; href: string }) {
             <span className="flex items-center gap-1">
                 Cash-outs <Icon name="chevronRight" size={14} className="text-muted" />
             </span>
-            <span className={`${NUM} text-danger`}>{formatNumber(cashOuts.usd, "USD", { signed: true })}</span>
-            <span className={`${NUM} text-danger`}>{formatNumber(cashOuts.lbp, "LBP", { signed: true })}</span>
+            <Amount value={cashOuts.usd} currency="USD" tone="out" />
+            <Amount value={cashOuts.lbp} currency="LBP" tone="out" />
         </Link>
     );
 }
