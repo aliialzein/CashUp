@@ -46,7 +46,8 @@ export function AddCashOutForm() {
 
     return (
         <form onSubmit={handleSubmit} className="mx-auto w-full max-w-160">
-            <Card className="space-y-5 p-7">
+            {/* A card on desktop; flat on the phone, where the page itself is the surface. */}
+            <Card className="flex flex-col gap-5 max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:shadow-none md:p-7">
                 <div className="space-y-2">
                     <SectionLabel>Amount taken out</SectionLabel>
                     <AmountPairField label="Amount out" value={amount} onChange={setAmount} />
@@ -82,6 +83,7 @@ export function AddCashOutForm() {
                     submitLabel="Save cash-out"
                     submitDisabled={!canSave}
                     onCancel={reset}
+                    cancelOnPhone={false}
                 />
             </Card>
         </form>
