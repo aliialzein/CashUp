@@ -5,7 +5,7 @@ import { formatNumber, type Amounts, type Currency } from "@/lib/format/money";
 const ROW = "grid grid-cols-[8rem_1fr_1.3fr] items-center gap-2 px-5";
 const NUM = "text-right font-mono text-sm tabular-nums";
 
-function GapCell({ currency, value }: { currency: Currency; value: string }) {
+export function GapCell({ currency, value }: { currency: Currency; value: string }) {
     const status = gapStatus(value);
     if (status === "match") return <span className="text-success">Matches</span>;
 
