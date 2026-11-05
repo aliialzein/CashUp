@@ -6,9 +6,11 @@ import { Icon } from "@/components/ui/Icon";
 type PageHeaderProps = {
     title: string;
     subtitle?: string;
+    /** A subtitle for the phone bar only. Desktop shows `subtitle`, or nothing. */
+    phoneSubtitle?: string;
     /** The parent page. Desktop shows a "‹ Page" link, and the phone bar shows a ← arrow. */
     back?: { href: string; label: string };
-    /** Phone only: a ← in the bar that replaces the Cancel button of a form. Desktop shows nothing extra. */
+    /** Phone only: the ← in the bar. Replaces a form's Cancel, or points somewhere other than `back` (where the driver came from). */
     phoneBack?: { href: string; label: string };
     /** Phone only: a ✕ in the bar that replaces the Cancel button of a form. */
     close?: { href: string };
@@ -16,6 +18,8 @@ type PageHeaderProps = {
     badge?: ReactNode;
     /** Something at the right, like a button. */
     action?: ReactNode;
+    /** Something at the right of the phone bar only. It replaces `action` on phone, and desktop never shows it. */
+    phoneAction?: ReactNode;
 };
 
 type PhoneBarProps = Pick<PageHeaderProps, "title" | "subtitle" | "badge" | "action"> & {
@@ -49,18 +53,35 @@ function PhoneBar({ leading, title, subtitle, badge, action }: PhoneBarProps) {
 }
 
 /** Page title with an optional back link, badge, subtitle and action. With `back`, `phoneBack` or `close`, the phone gets a top bar instead. */
-export function PageHeader({ title, subtitle, back, phoneBack, close, badge, action }: PageHeaderProps) {
-    const leading = back
-        ? { href: back.href, label: `Back to ${back.label}`, icon: "chevronLeft" as const }
-        : phoneBack
-            ? { href: phoneBack.href, label: `Back to ${phoneBack.label}`, icon: "chevronLeft" as const }
-            : close
-                ? { href: close.href, label: "Close", icon: "close" as const }
-                : null;
+export function PageHeader({
+    title,
+    subtitle,
+    phoneSubtitle,
+    back,
+    phoneBack,
+    close,
+    badge,
+    action,
+    phoneAction,
+}: PageHeaderProps) {
+    const phoneTarget = phoneBack ?? back;
+    const leading = phoneTarget
+        ? { href: phoneTarget.href, label: `Back to ${phoneTarget.label}`, icon: "chevronLeft" as const }
+        : close
+            ? { href: close.href, label: "Close", icon: "close" as const }
+            : null;
 
     return (
         <>
-            {leading && <PhoneBar leading={leading} title={title} subtitle={subtitle} badge={badge} action={action} />}
+            {leading && (
+                <PhoneBar
+                    leading={leading}
+                    title={title}
+                    subtitle={phoneSubtitle ?? subtitle}
+                    badge={badge}
+                    action={phoneAction ?? action}
+                />
+            )}
             <div className={leading ? "hidden space-y-5 md:block" : "space-y-5"}>
                 {back && <BackLink href={back.href}>{back.label}</BackLink>}
                 <div className="flex items-center justify-between gap-4">

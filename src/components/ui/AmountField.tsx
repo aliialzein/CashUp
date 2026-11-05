@@ -22,7 +22,7 @@ export function AmountField({ currency, value, onChange, label }: AmountFieldPro
                     onChange(capAmountInput(sanitizeAmountInput(event.target.value, currency), value, currency))
                 }
                 aria-label={label ?? `Amount ${currency}`}
-                className="min-h-14 w-full rounded-[10px] border border-line-strong bg-surface px-3.5 pt-4 text-right font-mono text-xl font-semibold text-ink tabular-nums placeholder:text-line-strong focus-visible:outline-2 focus-visible:outline-ink"
+                className="min-h-16 w-full rounded-xl border border-line-strong bg-surface px-3.5 pt-4 text-right font-mono text-[22px] font-semibold text-ink tabular-nums placeholder:text-line-strong focus-visible:outline-2 focus-visible:outline-ink md:min-h-14 md:rounded-[10px] md:text-xl"
             />
             <span className="pointer-events-none absolute top-2 left-3.5 text-[11px] font-semibold text-muted">
                 {currency}
