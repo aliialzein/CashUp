@@ -13,9 +13,34 @@ export const PERMISSIONS = [
   'cashUp.listSubmitted',
   'audit.read',
   'cashUp.mutateOwn',
+  'business.read',
+  'members.list',
+  'members.deactivate',
+  'manager.replace',
+  'business.changeSolo',
+  'joinCodes.create',
+  'joinCodes.list',
+  'joinCodes.revoke',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
+
+const BUSINESS_READ_PERMISSION: readonly Permission[] = ['business.read'];
+
+const MANAGER_SETUP_PERMISSIONS: readonly Permission[] = [
+  ...BUSINESS_READ_PERMISSION,
+  'members.list',
+  'members.deactivate',
+  'joinCodes.create',
+  'joinCodes.list',
+  'joinCodes.revoke',
+];
+
+const OWNER_SETUP_PERMISSIONS: readonly Permission[] = [
+  ...MANAGER_SETUP_PERMISSIONS,
+  'manager.replace',
+  'business.changeSolo',
+];
 
 export const PERMISSION_MATRIX: Record<MembershipRole, ReadonlySet<Permission>> = {
   STAFF: new Set([
@@ -24,6 +49,7 @@ export const PERMISSION_MATRIX: Record<MembershipRole, ReadonlySet<Permission>> 
     'cashUp.readOwn',
     'cashUp.listOwn',
     'cashUp.mutateOwn',
+    ...BUSINESS_READ_PERMISSION,
   ]),
   MANAGER: new Set([
     'cashUp.open',
@@ -36,6 +62,7 @@ export const PERMISSION_MATRIX: Record<MembershipRole, ReadonlySet<Permission>> 
     'cashUp.listSubmitted',
     'audit.read',
     'cashUp.mutateOwn',
+    ...MANAGER_SETUP_PERMISSIONS,
   ]),
   OWNER: new Set([
     'cashUp.review',
@@ -43,6 +70,7 @@ export const PERMISSION_MATRIX: Record<MembershipRole, ReadonlySet<Permission>> 
     'cashUp.readReviewed',
     'cashUp.listSubmitted',
     'audit.read',
+    ...OWNER_SETUP_PERMISSIONS,
   ]),
 };
 

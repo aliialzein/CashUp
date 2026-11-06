@@ -1,6 +1,7 @@
 export * from './actor';
 export * from './actor-resolver';
 export * from './audit-trail';
+export * from './business-setup.service';
 export * from './cash-up-approval-policy';
 export * from './cash-up-lifecycle.service';
 export * from './cash-up-query.service';
