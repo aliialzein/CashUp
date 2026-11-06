@@ -1,6 +1,5 @@
 export const MIN_PASSWORD_LENGTH = 8;
 export const MAX_PASSWORD_LENGTH = 72;
-/** From this length on, a password that follows every rule counts as strong. */
 /** With every rule met, 12 characters or more count as strong. */
 export const STRONG_PASSWORD_LENGTH = 12;
 /** With every rule met, 16 characters or more count as very strong. */
