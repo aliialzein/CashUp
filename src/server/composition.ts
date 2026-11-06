@@ -17,6 +17,7 @@ function createHttpDependencies(): HttpDependencies {
   return {
     sessionProvider: new DevHeaderSessionProvider(),
     actorResolver: services.actorResolver,
+    businessSetup: services.businessSetup,
     lifecycle: services.lifecycle,
     sales: services.sales,
     cashOuts: services.cashOuts,
