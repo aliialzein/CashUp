@@ -19,6 +19,11 @@ enum MembershipRole {
   STAFF
 }
 
+enum MembershipStatus {
+  ACTIVE
+  INACTIVE
+}
+
 enum CashUpStatus {
   OPEN
   SUBMITTED
@@ -87,12 +92,14 @@ enum AuditEntityType {
 enum AuditAction {
   // access
   BUSINESS_CREATED
+  BUSINESS_SOLO_CHANGED
   JOIN_CODE_CREATED
   JOIN_CODE_REVOKED
   JOIN_CODE_USED
   MEMBER_JOINED
   MEMBER_DEACTIVATED
   MEMBER_REACTIVATED
+  MEMBER_ROLE_CHANGED
   // cash-up lifecycle
   CASHUP_OPENED
   CASHUP_SUBMITTED
@@ -135,7 +142,6 @@ model User {
 
   memberships        Membership[]
   joinCodesCreated   JoinCode[]           @relation("JoinCodeCreator")
-  joinCodesUsed      JoinCode[]           @relation("JoinCodeUsedBy")
   passwordResets     PasswordResetToken[]
   auditLogs          AuditLog[]
 
@@ -179,7 +185,7 @@ model Membership {
   userId        String         @db.Uuid
   businessId    String         @db.Uuid
   role          MembershipRole
-  isActive      Boolean        @default(true)
+  status        MembershipStatus @default(ACTIVE)
   joinedAt      DateTime       @default(now()) @db.Timestamptz(3)
   deactivatedAt DateTime?      @db.Timestamptz(3)
 
@@ -195,30 +201,27 @@ model Membership {
   amendmentsProposed Amendment[] @relation("AmendmentProposer")
   amendmentsDecided  Amendment[] @relation("AmendmentDecider")
 
-  @@unique([userId, businessId])
+  @@unique([userId])
   @@index([businessId, role])
   @@map("memberships")
 }
 
-// Staff-only, single-use, expiring. Only the hash is stored.
+// Staff-only, expiring and usage-limited. Only the hash is stored.
 model JoinCode {
-  id          String    @id @default(uuid()) @db.Uuid
-  businessId  String    @db.Uuid
-  codeHash    String    @unique
-  role        MembershipRole @default(STAFF) // role granted on join (MANAGER or STAFF only; a code can never create an OWNER)
-  label       String // label given by the owner when created
-  expiresAt   DateTime  @db.Timestamptz(3)
-  usedAt      DateTime? @db.Timestamptz(3)
-  usedById    String?   @db.Uuid
-  revokedAt   DateTime? @db.Timestamptz(3)
-  createdById String    @db.Uuid
-  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  id              String         @id @default(uuid()) @db.Uuid
+  businessId      String         @db.Uuid
+  codeHash        String         @unique
+  role            MembershipRole @default(STAFF)
+  createdByUserId String         @db.Uuid
+  expiresAt       DateTime       @db.Timestamptz(3)
+  maxUses         Int
+  usedCount       Int            @default(0)
+  revokedAt       DateTime?      @db.Timestamptz(3)
+  createdAt       DateTime       @default(now()) @db.Timestamptz(3)
 
   business  Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
-  createdBy User     @relation("JoinCodeCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  usedBy    User?    @relation("JoinCodeUsedBy", fields: [usedById], references: [id], onDelete: Restrict)
+  createdBy User     @relation("JoinCodeCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
 
-  // Status (active / used / expired / revoked) is derived from usedAt, revokedAt, expiresAt.
   @@index([businessId, createdAt])
   @@map("join_codes")
 }
