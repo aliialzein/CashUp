@@ -9,6 +9,7 @@ import { Icon } from "@/components/ui/Icon";
 import { SearchField } from "@/components/ui/SearchField";
 import { withOrigin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";
+import { LOCKED_SALE_SUMMARY } from "@/lib/sales/lockedSaleSummary";
 import type { Sale, SaleStatus } from "@/types/cash-up";
 import { SaleCards } from "./SaleCards";
 import { SalesTable } from "./SalesTable";
@@ -120,7 +121,7 @@ export function SalesList({ sales }: { sales: Sale[] }) {
                         <SaleCards sales={visibleSales} origin="sales" />
                     </div>
                     <div className="hidden md:block">
-                        <SalesTable sales={visibleSales} />
+                        <SalesTable sales={visibleSales} expandable={LOCKED_SALE_SUMMARY !== "none"} />
                     </div>
                 </>
             ) : (
