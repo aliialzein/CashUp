@@ -12,8 +12,10 @@ enum AuthProvider {
   GOOGLE
 }
 
+// OWNER = owns the business, oversight only | MANAGER = runs operations | STAFF = cashiers/drivers
 enum MembershipRole {
   OWNER
+  MANAGER
   STAFF
 }
 
@@ -30,6 +32,11 @@ enum SaleStatus {
   DELETED
 }
 
+enum CashOutStatus {
+  ACTIVE
+  CANCELLED
+}
+
 enum Currency {
   USD
   LBP
@@ -44,7 +51,6 @@ enum PaymentMethod {
 enum RequestType {
   DELETE_SALE
   VOID_CASHUP
-  Amendment
 }
 
 enum RequestStatus {
@@ -103,6 +109,7 @@ enum AuditAction {
   SALE_DELETED
   // cash-outs & counts
   CASHOUT_CREATED
+  CASHOUT_CANCELLED
   CASHOUT_EDITED
   COUNT_UPDATED
   // requests
@@ -126,11 +133,11 @@ model User {
   createdAt    DateTime     @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime     @updatedAt @db.Timestamptz(3)
 
-  memberships      Membership[]
-  joinCodesCreated JoinCode[]           @relation("JoinCodeCreator")
-  joinCodesUsed    JoinCode[]           @relation("JoinCodeUsedBy")
-  passwordResets   PasswordResetToken[]
-  auditLogs        AuditLog[]
+  memberships        Membership[]
+  joinCodesCreated   JoinCode[]           @relation("JoinCodeCreator")
+  joinCodesUsed      JoinCode[]           @relation("JoinCodeUsedBy")
+  passwordResets     PasswordResetToken[]
+  auditLogs          AuditLog[]
 
   @@map("users")
 }
@@ -150,11 +157,11 @@ model PasswordResetToken {
 }
 
 model Business {
-  id          String       @id @default(uuid()) @db.Uuid
-  name        String
-  isSolo      Boolean      @default(false) // "I work alone"
-  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime     @updatedAt @db.Timestamptz(3)
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  isSolo    Boolean  @default(false) // "I work alone": the Owner also acts as Manager and Staff
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
   memberships Membership[]
   joinCodes   JoinCode[]
   cashUps     CashUp[]
@@ -166,8 +173,7 @@ model Business {
   @@map("businesses")
 }
 
-// The role belongs to the membership, not the person.
-// NOTE: "one Owner per business" needs a partial unique index.
+// One ACTIVE Manager per business (partial unique index one_active_manager_per_business). One Owner per business (one_owner_per_business).
 model Membership {
   id            String         @id @default(uuid()) @db.Uuid
   userId        String         @db.Uuid
@@ -182,6 +188,7 @@ model Membership {
 
   cashUps            CashUp[]    @relation("CashUpOwnerOfWork")
   cashUpsApproved    CashUp[]    @relation("CashUpApprover")
+  cashOutsCancelled  CashOut[]   @relation("CashOutCancelledBy")
   salesEdited        SaleEdit[]
   requestsMade       Request[]   @relation("RequestRequester")
   requestsDecided    Request[]   @relation("RequestDecider")
@@ -198,6 +205,7 @@ model JoinCode {
   id          String    @id @default(uuid()) @db.Uuid
   businessId  String    @db.Uuid
   codeHash    String    @unique
+  role        MembershipRole @default(STAFF) // role granted on join (MANAGER or STAFF only; a code can never create an OWNER)
   label       String // label given by the owner when created
   expiresAt   DateTime  @db.Timestamptz(3)
   usedAt      DateTime? @db.Timestamptz(3)
@@ -216,9 +224,9 @@ model JoinCode {
 }
 
 model CashUp {
-  id           String       @id @default(uuid()) @db.Uuid
-  businessId   String       @db.Uuid
-  membershipId String       @db.Uuid // the person doing the work
+  id           String   @id @default(uuid()) @db.Uuid
+  businessId   String   @db.Uuid
+  membershipId String   @db.Uuid // the person doing the work
   status       CashUpStatus @default(OPEN)
 
   floatUsd      Decimal  @default(0) @db.Decimal(18, 2)
@@ -234,10 +242,11 @@ model CashUp {
   updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
 
   // Owner decision
-  approvedById String? @db.Uuid
-  selfApproved Boolean @default(false)
+  approvedById String?  @db.Uuid // Staff cash-ups are approved by the Manager. A Manager's own cash-up is approved by the Owner. A solo business self-approves.
+  selfApproved Boolean  @default(false)
   returnReason String? // reason given on the last return to OPEN
   voidReason   String?
+  lastSaleNumber Int @default(0) // atomic counter used to hand out Sale.saleNumber without races
 
   // Snapshot computed by the server on submit (per-currency, no combined total)
   expectedUsd Decimal? @db.Decimal(18, 2)
@@ -267,28 +276,28 @@ model Sale {
   id         String @id @default(uuid()) @db.Uuid
   businessId String @db.Uuid
   cashUpId   String @db.Uuid
-  saleNumber Int // sequential per cash-up, assigned by server
+  saleNumber Int // sequential per cash-up, allocated atomically via CashUp.lastSaleNumber
 
   status SaleStatus @default(DELIVERED)
 
   // Amounts (collected & change in the currency actually paid)
-  businessAmount Decimal       @default(0) @db.Decimal(18, 2)
-  deliveryFee    Decimal       @default(0) @db.Decimal(18, 2)
-  tip            Decimal?      @db.Decimal(18, 2)
-  discount       Decimal?      @db.Decimal(18, 2)
-  totalCollected Decimal       @db.Decimal(18, 2)
+  businessAmount Decimal  @default(0) @db.Decimal(18, 2)
+  deliveryFee    Decimal  @default(0) @db.Decimal(18, 2)
+  tip            Decimal? @db.Decimal(18, 2)
+  discount       Decimal? @db.Decimal(18, 2)
+  totalCollected Decimal  @db.Decimal(18, 2)
   currency       Currency
   method         PaymentMethod
-  changeGiven    Decimal?      @db.Decimal(18, 2)
+  changeGiven    Decimal?  @db.Decimal(18, 2)
   changeCurrency Currency?
-  clientNumber   String? // required for TO_DELIVER sales (validated in service layer)
-  note           String?
+  clientNumber String? // required for TO_DELIVER sales (validated in service layer)
+  note         String?
 
   // Flags shown to the owner at review
-  mixedChange      Boolean @default(false) // change currency != payment currency
-  amountDiffers    Boolean @default(false) // collected differs from the order on delivery
-  isEdited         Boolean @default(false)
-  deletionAwaiting Boolean @default(false) // locked while a delete request is pending
+  mixedChange       Boolean @default(false) // change currency != payment currency
+  amountDiffers     Boolean @default(false) // collected differs from the order on delivery
+  isEdited          Boolean @default(false)
+  deletionAwaiting  Boolean @default(false) // locked while a delete request is pending
 
   cancelReason String?
 
@@ -303,8 +312,8 @@ model Sale {
   business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
   cashUp   CashUp   @relation(fields: [cashUpId], references: [id], onDelete: Restrict)
 
-  edits            SaleEdit[]
-  requests         Request[]
+  edits      SaleEdit[]
+  requests   Request[]
   amendmentChanges AmendmentChange[]
 
   @@unique([cashUpId, saleNumber])
@@ -332,20 +341,25 @@ model SaleEdit {
 }
 
 model CashOut {
-  id             String   @id @default(uuid()) @db.Uuid
-  cashUpId       String   @db.Uuid
-  amount         Decimal  @db.Decimal(18, 2)
+  id             String        @id @default(uuid()) @db.Uuid
+  cashUpId       String        @db.Uuid
+  amount         Decimal       @db.Decimal(18, 2)
   currency       Currency
   reason         String
-  idempotencyKey String?  @db.Uuid
-  createdAt      DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+  status         CashOutStatus @default(ACTIVE)
+  cancelReason   String?
+  cancelledAt    DateTime?     @db.Timestamptz(3)
+  cancelledByMembershipId String? @db.Uuid
+  idempotencyKey String?       @db.Uuid
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime      @updatedAt @db.Timestamptz(3)
 
   cashUp CashUp @relation(fields: [cashUpId], references: [id], onDelete: Restrict)
+  cancelledBy Membership? @relation("CashOutCancelledBy", fields: [cancelledByMembershipId], references: [id], onDelete: Restrict)
 
   // Edits are recorded in AuditLog (entityType = CASH_OUT, action = CASHOUT_EDITED)
   @@unique([cashUpId, idempotencyKey])
-  @@index([cashUpId])
+  @@index([cashUpId, status])
   @@map("cash_outs")
 }
 
@@ -367,12 +381,12 @@ model CountEntry {
 
 // One open request per target is enforced by partial unique indexes.
 model Request {
-  id            String        @id @default(uuid()) @db.Uuid
-  businessId    String        @db.Uuid
-  type          RequestType
-  status        RequestStatus @default(AWAITING_OWNER)
-  reason        String
-  requestedById String        @db.Uuid
+  id          String        @id @default(uuid()) @db.Uuid
+  businessId  String        @db.Uuid
+  type        RequestType
+  status      RequestStatus @default(AWAITING_OWNER)
+  reason      String
+  requestedById String      @db.Uuid
 
   // Target: exactly one of these is set depending on `type`
   saleId   String? @db.Uuid // DELETE_SALE
@@ -403,16 +417,16 @@ model Amendment {
   status     AmendmentStatus @default(AWAITING_APPROVAL)
   reason     String
 
-  proposedById   String      @db.Uuid
-  decidedById    String?     @db.Uuid // "the other party" approves
+  proposedById   String    @db.Uuid
+  decidedById    String?   @db.Uuid // "the other party" approves
   decisionReason String?
-  selfApproved   Boolean     @default(false)
-  decidedAt      DateTime?   @db.Timestamptz(3)
-  createdAt      DateTime    @default(now()) @db.Timestamptz(3)
-  business       Business    @relation(fields: [businessId], references: [id], onDelete: Restrict)
-  cashUp         CashUp      @relation(fields: [cashUpId], references: [id], onDelete: Restrict)
-  proposedBy     Membership  @relation("AmendmentProposer", fields: [proposedById], references: [id], onDelete: Restrict)
-  decidedBy      Membership? @relation("AmendmentDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+  selfApproved   Boolean   @default(false)
+  decidedAt      DateTime? @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  business   Business    @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  cashUp     CashUp      @relation(fields: [cashUpId], references: [id], onDelete: Restrict)
+  proposedBy Membership  @relation("AmendmentProposer", fields: [proposedById], references: [id], onDelete: Restrict)
+  decidedBy  Membership? @relation("AmendmentDecider", fields: [decidedById], references: [id], onDelete: Restrict)
 
   changes AmendmentChange[]
 
