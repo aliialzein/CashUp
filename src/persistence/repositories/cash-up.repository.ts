@@ -1,5 +1,5 @@
 import { Prisma } from '../../generated/prisma/client';
-import { CashUpStatus } from '../../generated/prisma/enums';
+import { CashUpStatus, MembershipStatus } from '../../generated/prisma/enums';
 import { TenantRepository } from '../base.repository';
 import {
   DuplicateError,
@@ -39,7 +39,11 @@ export class CashUpRepository extends TenantRepository {
    */
   async open(input: OpenCashUpInput) {
     const membership = await this.db.membership.findFirst({
-      where: { id: input.membershipId, businessId: this.businessId, isActive: true },
+      where: {
+        id: input.membershipId,
+        businessId: this.businessId,
+        status: MembershipStatus.ACTIVE,
+      },
       select: { id: true },
     });
     if (!membership) throw new NotFoundError('Membership');
@@ -83,6 +87,25 @@ export class CashUpRepository extends TenantRepository {
   /** Unscoped-by-visibility read for service logic that already checked permissions. */
   findById(id: string) {
     return this.db.cashUp.findFirst({ where: { id, businessId: this.businessId } });
+  }
+
+  countUnresolvedCashUpsForUser(userId: string) {
+    return this.db.cashUp.count({
+      where: {
+        businessId: this.businessId,
+        membership: { userId },
+        status: { in: [CashUpStatus.OPEN, CashUpStatus.SUBMITTED] },
+      },
+    });
+  }
+
+  countUnresolvedCashUpsForBusiness() {
+    return this.db.cashUp.count({
+      where: {
+        businessId: this.businessId,
+        status: { in: [CashUpStatus.OPEN, CashUpStatus.SUBMITTED] },
+      },
+    });
   }
 
   findOpenByMembership(membershipId: string) {
