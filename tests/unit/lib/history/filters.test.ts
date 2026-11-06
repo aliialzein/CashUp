@@ -7,7 +7,7 @@ function cashUp(overrides: Partial<CashUpSummary>): CashUpSummary {
         id: "c-1",
         number: 1,
         status: "APPROVED",
-        date: "1 Oct",
+        date: "1 Oct", isoDate: "2026-10-01",
         salesCount: 1,
         gap: { usd: "0", lbp: "0" },
         ...overrides,

@@ -3,7 +3,7 @@ import { lastClosedCashUp } from "../../../../src/lib/history/lastClosedCashUp";
 import type { CashUpStatus, CashUpSummary } from "../../../../src/types/cash-up";
 
 function item(id: string, status: CashUpStatus): CashUpSummary {
-    return { id, number: 1, status, date: "28 Oct", salesCount: 1, gap: null };
+    return { id, number: 1, status, date: "28 Oct", isoDate: "2026-10-28", salesCount: 1, gap: null };
 }
 
 describe("lastClosedCashUp", () => {

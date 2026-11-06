@@ -1,20 +1,14 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
-import { routes } from "@/lib/routes";
+import { formatCashUpNumber } from "@/lib/cash-up/cashUpLabel";
+import { historyHref, salesLabel } from "@/lib/history/historyHref";
 import type { CashUpSummary } from "@/types/cash-up";
 import { CashUpStatusBadge } from "./CashUpStatusBadge";
 import { HistoryGap } from "./HistoryGap";
-import { EmptyState } from "@/components/ui/EmptyState";
 
 const COLUMNS = "grid grid-cols-[150px_120px_100px_160px_1fr_24px] items-center gap-3 px-5";
-
-/** Open and returned cash-ups continue on Today. The others open their detail page. */
-function hrefFor(item: CashUpSummary): string {
-    return item.status === "OPEN" || item.status === "RETURNED"
-        ? routes.driver.today
-        : routes.driver.historyDetail(item.id);
-}
 
 export function HistoryTable({ items }: { items: CashUpSummary[] }) {
     return (
@@ -40,14 +34,12 @@ export function HistoryTable({ items }: { items: CashUpSummary[] }) {
             {items.map((item) => (
                 <Link
                     key={item.id}
-                    href={hrefFor(item)}
+                    href={historyHref(item)}
                     className={`${COLUMNS} h-14 border-b border-subtle text-sm last:border-b-0 hover:bg-canvas`}
                 >
-                    <span className="font-heading font-semibold">Cash-up #{String(item.number).padStart(3, "0")}</span>
+                    <span className="font-heading font-semibold">Cash-up {formatCashUpNumber(item.number)}</span>
                     <span className="text-muted">{item.date}</span>
-                    <span className="text-muted">
-                        {item.salesCount} {item.salesCount === 1 ? "sale" : "sales"}
-                    </span>
+                    <span className="text-muted">{salesLabel(item.salesCount)}</span>
                     <span>
                         <CashUpStatusBadge status={item.status} />
                     </span>

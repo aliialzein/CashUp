@@ -14,18 +14,28 @@ type FilterChipsProps<T extends string> = {
     onChange: (value: T) => void;
     /** Greys the chips out on desktop, for a list that has nothing to filter yet. */
     disabled?: boolean;
+    /** Phone only: wrap onto more lines so every chip is visible, instead of scrolling sideways. */
+    wrap?: boolean;
 };
 
 /**
  * A row of pill buttons where exactly one is selected. A chip shows its count when it has one.
- * On phone the row scrolls sideways instead of wrapping, and the chips are taller.
+ * On phone the row scrolls sideways (or wraps, with `wrap`), and the chips are taller.
  */
-export function FilterChips<T extends string>({ label, options, value, onChange, disabled = false }: FilterChipsProps<T>) {
+export function FilterChips<T extends string>({
+    label,
+    options,
+    value,
+    onChange,
+    disabled = false,
+    wrap = false,
+}: FilterChipsProps<T>) {
+    const phoneLayout = wrap ? "flex-wrap" : "overflow-x-auto";
     return (
         <div
             role="group"
             aria-label={label}
-            className="flex gap-2 overflow-x-auto [scrollbar-width:none] md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden"
+            className={`flex gap-2 [scrollbar-width:none] md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden ${phoneLayout}`}
         >
             {options.map((option) => {
                 const active = option.value === value;

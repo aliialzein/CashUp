@@ -1,5 +1,6 @@
 import type { Amounts } from "@/lib/format/money";
 import type { CashOutReason } from "@/lib/cash-out/reasons";
+import type { PaymentMethod } from "@/lib/delivery/summarizeSinglePayment";
 
 export type CashUpStatus = "OPEN" | "SUBMITTED" | "RETURNED" | "APPROVED";
 
@@ -16,6 +17,22 @@ export type Sale = {
     amount: Amounts;
     /** Delivery fee typed in Add sale. Complete delivery pre-fills it, and the driver can edit it. */
     deliveryFee?: Amounts;
+    /** The day of the sale as display text, e.g. "27 Oct". Shown in the sale summary. */
+    date?: string;
+    /** Change the driver gave back, positive. Shown in the sale summary. */
+    changeGiven?: Amounts;
+    /** How the client paid. */
+    method?: PaymentMethod;
+    /** Extra money the client gave, and money taken off. Positive amounts. */
+    tip?: Amounts;
+    discount?: Amounts;
+    /** What was really collected. The server calculates it, so it can differ from order + fee. */
+    totalCollected?: Amounts;
+    /** Free text on the sale. */
+    note?: string;
+    /** Flags the owner sees at review. */
+    isEdited?: boolean;
+    amountDiffers?: boolean;
 };
 
 /**
@@ -69,6 +86,10 @@ export type CashUpSummary = {
     status: CashUpStatus;
     /** Display text, e.g. "28 Oct". */
     date: string;
+    /** The day it started, e.g. "2026-10-28". Groups the phone list by month. */
+    isoDate: string;
+    /** Why the owner returned it. Only set while the status is RETURNED. */
+    returnReason?: string;
     salesCount: number;
     /** Counted minus expected, frozen when the cash-up was submitted. `null` while open or returned. */
     gap: Amounts | null;
