@@ -1,7 +1,7 @@
-import { StartCashUpForm } from "@/components/cash-up/StartCashUpForm";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { mockFloatSuggestion } from "@/lib/mock/start-cash-up";
-import { mockSession } from "@/lib/mock/session";
+import { StartCashUpForm } from "@/components/driver/cash-up/StartCashUpForm";
+import { PageHeader } from "@/components/driver/layout/PageHeader";
+import { mockFloatSuggestion } from "@/lib/driver/mock/start-cash-up";
+import { mockSession } from "@/lib/driver/mock/session";
 import { routes } from "@/lib/routes";
 
 export const metadata = { title: "Start cash-up · CashUp" };

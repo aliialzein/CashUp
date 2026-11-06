@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { CompleteDeliveryForm } from "@/components/sales/CompleteDeliveryForm";
-import { findMockSale } from "@/lib/mock/cash-up";
-import { mockSession } from "@/lib/mock/session";
+import { PageHeader } from "@/components/driver/layout/PageHeader";
+import { CompleteDeliveryForm } from "@/components/driver/sales/CompleteDeliveryForm";
+import { findMockSale } from "@/lib/driver/mock/cash-up";
+import { mockSession } from "@/lib/driver/mock/session";
 import { resolveOrigin } from "@/lib/navigation/origin";
 
 type CompleteDeliveryPageProps = {

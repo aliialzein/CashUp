@@ -1,6 +1,6 @@
 import type { Amounts } from "@/lib/format/money";
-import type { CashOutReason } from "@/lib/cash-out/reasons";
-import type { PaymentMethod } from "@/lib/delivery/summarizeSinglePayment";
+import type { CashOutReason } from "@/lib/driver/cash-out/reasons";
+import type { PaymentMethod } from "@/lib/driver/delivery/summarizeSinglePayment";
 
 export type CashUpStatus = "OPEN" | "SUBMITTED" | "RETURNED" | "APPROVED";
 

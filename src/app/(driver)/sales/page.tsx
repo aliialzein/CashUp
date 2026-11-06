@@ -1,10 +1,10 @@
-import { AddSaleLink } from "@/components/sales/AddSaleLink";
-import { SalesList } from "@/components/sales/SalesList";
-import { SalesTotals } from "@/components/sales/SalesTotals";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { AddSaleLink } from "@/components/driver/sales/AddSaleLink";
+import { SalesList } from "@/components/driver/sales/SalesList";
+import { SalesTotals } from "@/components/driver/sales/SalesTotals";
+import { PageHeader } from "@/components/driver/layout/PageHeader";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { Icon } from "@/components/ui/Icon";
-import { mockOpenCashUp } from "@/lib/mock/cash-up";
+import { mockOpenCashUp } from "@/lib/driver/mock/cash-up";
 import { withOrigin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";
 

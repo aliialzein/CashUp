@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { canCancelCashUp } from "../../../../src/lib/cash-up/canCancelCashUp";
+import { canCancelCashUp } from "../../../../src/lib/driver/cash-up/canCancelCashUp";
 import type { CashOut, Sale } from "../../../../src/types/cash-up";
 
 const sale: Sale = {

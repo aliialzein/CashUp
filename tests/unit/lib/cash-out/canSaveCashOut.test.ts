@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { canSaveCashOut } from "../../../../src/lib/cash-out/canSaveCashOut";
+import { canSaveCashOut } from "../../../../src/lib/driver/cash-out/canSaveCashOut";
 
 describe("canSaveCashOut", () => {
     it("needs an amount in at least one currency", () => {

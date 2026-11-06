@@ -1,7 +1,7 @@
 import { Suspense } from "react";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { AddSaleForm } from "@/components/sales/AddSaleForm";
-import { mockOpenCashUp } from "@/lib/mock/cash-up";
+import { PageHeader } from "@/components/driver/layout/PageHeader";
+import { AddSaleForm } from "@/components/driver/sales/AddSaleForm";
+import { mockOpenCashUp } from "@/lib/driver/mock/cash-up";
 import { resolveOrigin } from "@/lib/navigation/origin";
 
 type AddSalePageProps = {

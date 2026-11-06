@@ -1,5 +1,5 @@
 import { LanguageForm } from "@/components/account/LanguageForm";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/driver/layout/PageHeader";
 import { mockAccount } from "@/lib/mock/account";
 import { routes } from "@/lib/routes";
 

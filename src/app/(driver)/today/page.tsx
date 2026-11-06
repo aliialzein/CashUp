@@ -1,17 +1,17 @@
-import { CancelCashUp } from "@/components/cash-up/CancelCashUp";
-import { CashUpActions } from "@/components/cash-up/CashUpActions";
-import { CashUpLedger } from "@/components/cash-up/CashUpLedger";
-import { NoOpenCashUp } from "@/components/cash-up/NoOpenCashUp";
-import { ReturnedBanner } from "@/components/cash-up/ReturnedBanner";
-import { SubmitCashUp } from "@/components/cash-up/SubmitCashUp";
-import { SalesSummaryCard } from "@/components/sales/SalesSummaryCard";
-import { WaitingSales } from "@/components/sales/WaitingSales";
+import { CancelCashUp } from "@/components/driver/cash-up/CancelCashUp";
+import { CashUpActions } from "@/components/driver/cash-up/CashUpActions";
+import { CashUpLedger } from "@/components/driver/cash-up/CashUpLedger";
+import { NoOpenCashUp } from "@/components/driver/cash-up/NoOpenCashUp";
+import { ReturnedBanner } from "@/components/driver/cash-up/ReturnedBanner";
+import { SubmitCashUp } from "@/components/driver/cash-up/SubmitCashUp";
+import { SalesSummaryCard } from "@/components/driver/sales/SalesSummaryCard";
+import { WaitingSales } from "@/components/driver/sales/WaitingSales";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { canCancelCashUp } from "@/lib/cash-up/canCancelCashUp";
-import { lastClosedCashUp } from "@/lib/history/lastClosedCashUp";
-import { mockHistory } from "@/lib/mock/history";
-import { getOpenCashUp } from "@/lib/mock/today";
+import { canCancelCashUp } from "@/lib/driver/cash-up/canCancelCashUp";
+import { lastClosedCashUp } from "@/lib/driver/history/lastClosedCashUp";
+import { mockHistory } from "@/lib/driver/mock/history";
+import { getOpenCashUp } from "@/lib/driver/mock/today";
 
 export default function TodayPage() {
     const cashUp = getOpenCashUp();

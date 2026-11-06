@@ -2,7 +2,7 @@ import { AccountRow } from "@/components/account/AccountRow";
 import { AccountSection } from "@/components/account/AccountSection";
 import { ProfileCard } from "@/components/account/ProfileCard";
 import { SignOutLink } from "@/components/account/SignOutLink";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/driver/layout/PageHeader";
 import { getCurrentBusiness } from "@/lib/account/currentBusiness";
 import { languageName } from "@/lib/account/languages";
 import { mockAccount } from "@/lib/mock/account";

@@ -1,13 +1,13 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { CashOutsResults } from "@/components/cash-outs/CashOutsResults";
-import { type EmptyText } from "@/components/cash-outs/CashOutsTable";
-import { CashOutsTotal } from "@/components/cash-outs/CashOutsTotal";
-import { LockedBadge } from "@/components/history/LockedBadge";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { cashUpLabel } from "@/lib/cash-up/cashUpLabel";
-import { findMockCashUpDetail } from "@/lib/mock/cash-up-details";
-import { historyOrigin } from "@/lib/navigation/historyOrigin";
+import { CashOutsResults } from "@/components/driver/cash-outs/CashOutsResults";
+import { type EmptyText } from "@/components/driver/cash-outs/CashOutsTable";
+import { CashOutsTotal } from "@/components/driver/cash-outs/CashOutsTotal";
+import { LockedBadge } from "@/components/driver/history/LockedBadge";
+import { PageHeader } from "@/components/driver/layout/PageHeader";
+import { cashUpLabel } from "@/lib/driver/cash-up/cashUpLabel";
+import { findMockCashUpDetail } from "@/lib/driver/mock/cash-up-details";
+import { historyOrigin } from "@/lib/driver/navigation/historyOrigin";
 import { withOrigin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";
 

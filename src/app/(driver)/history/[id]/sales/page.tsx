@@ -1,18 +1,18 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { DeliveredTotal } from "@/components/history/DeliveredTotal";
-import { LockedBadge } from "@/components/history/LockedBadge";
-import { LockedSalesTable } from "@/components/history/LockedSalesTable";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { SaleCards } from "@/components/sales/SaleCards";
+import { DeliveredTotal } from "@/components/driver/history/DeliveredTotal";
+import { LockedBadge } from "@/components/driver/history/LockedBadge";
+import { LockedSalesTable } from "@/components/driver/history/LockedSalesTable";
+import { PageHeader } from "@/components/driver/layout/PageHeader";
+import { SaleCards } from "@/components/driver/sales/SaleCards";
 import { Card } from "@/components/ui/Card";
-import { cashUpLabel } from "@/lib/cash-up/cashUpLabel";
+import { cashUpLabel } from "@/lib/driver/cash-up/cashUpLabel";
 import { formatAmounts } from "@/lib/format/money";
-import { findMockCashUpDetail } from "@/lib/mock/cash-up-details";
-import { historyOrigin } from "@/lib/navigation/historyOrigin";
+import { findMockCashUpDetail } from "@/lib/driver/mock/cash-up-details";
+import { historyOrigin } from "@/lib/driver/navigation/historyOrigin";
 import { withOrigin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";
-import { LOCKED_SALE_SUMMARY } from "@/lib/sales/lockedSaleSummary";
+import { LOCKED_SALE_SUMMARY } from "@/lib/driver/sales/lockedSaleSummary";
 
 type LockedSalesPageProps = {
     params: Promise<{ id: string }>;

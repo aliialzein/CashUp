@@ -1,9 +1,9 @@
-import { CashOutsList } from "@/components/cash-outs/CashOutsList";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { CashOutsList } from "@/components/driver/cash-outs/CashOutsList";
+import { PageHeader } from "@/components/driver/layout/PageHeader";
 import { BottomBar } from "@/components/ui/BottomBar";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { Icon } from "@/components/ui/Icon";
-import { mockOpenCashUp } from "@/lib/mock/cash-up";
+import { mockOpenCashUp } from "@/lib/driver/mock/cash-up";
 import { routes } from "@/lib/routes";
 
 function AddCashOutLink() {

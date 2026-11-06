@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { AppShell } from "@/components/layout/AppShell";
-import { driverNav } from "@/components/layout/navigation";
-import { mockSession } from "@/lib/mock/session";
+import { AppShell } from "@/components/driver/layout/AppShell";
+import { driverNav } from "@/components/driver/layout/navigation";
+import { mockSession } from "@/lib/driver/mock/session";
 
 export default function DriverLayout({ children }: { children: ReactNode }) {
   const roleLabel = mockSession.role === "DRIVER" ? "Driver" : "Cashier";

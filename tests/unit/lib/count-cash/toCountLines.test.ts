@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
-import { DENOMINATIONS, emptyCounts } from "../../../../src/lib/count-cash/denominations";
-import { toCountLines } from "../../../../src/lib/count-cash/toCountLines";
+import { DENOMINATIONS, emptyCounts } from "../../../../src/lib/driver/count-cash/denominations";
+import { toCountLines } from "../../../../src/lib/driver/count-cash/toCountLines";
 
 const empty = { USD: emptyCounts("USD"), LBP: emptyCounts("LBP") };
 

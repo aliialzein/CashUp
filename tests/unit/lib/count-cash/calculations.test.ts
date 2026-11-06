@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { gapStatus, parseCount, totalOfNotes } from "../../../../src/lib/count-cash/calculations";
+import { gapStatus, parseCount, totalOfNotes } from "../../../../src/lib/driver/count-cash/calculations";
 
 describe("totalOfNotes", () => {
     it("adds up the notes of one currency", () => {

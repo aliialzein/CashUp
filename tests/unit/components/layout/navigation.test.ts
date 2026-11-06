@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { isNavActive, phoneChrome, type NavItem } from "../../../../src/components/layout/navigation";
+import { isNavActive, phoneChrome, type NavItem } from "../../../../src/components/driver/layout/navigation";
 
 const today: NavItem = { label: "Today", href: "/today", icon: "sheet", activePaths: ["/today", "/sales"] };
 

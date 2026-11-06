@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { summarizeDelivery } from "../../../../src/lib/delivery/summarizeDelivery";
+import { summarizeDelivery } from "../../../../src/lib/driver/delivery/summarizeDelivery";
 
 const order = { usd: "20", lbp: "120000" };
 const fee = { usd: "2", lbp: "0" };

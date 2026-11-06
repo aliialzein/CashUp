@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { openingFloat } from "../../../../src/lib/cash-up/openingFloat";
+import { openingFloat } from "../../../../src/lib/driver/cash-up/openingFloat";
 
 describe("openingFloat", () => {
     it("keeps what the driver typed", () => {

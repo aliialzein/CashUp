@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { groupByMonth } from "../../../../src/lib/history/groupByMonth";
+import { groupByMonth } from "../../../../src/lib/driver/history/groupByMonth";
 import type { CashUpSummary } from "../../../../src/types/cash-up";
 
 function item(id: string, isoDate: string): CashUpSummary {

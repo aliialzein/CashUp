@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { SwitchBusinessForm } from "@/components/account/SwitchBusinessForm";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/driver/layout/PageHeader";
 import { mockAccount } from "@/lib/mock/account";
 import { resolveOrigin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";

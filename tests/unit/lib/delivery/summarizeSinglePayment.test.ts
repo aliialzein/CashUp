@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { summarizeSinglePayment } from "../../../../src/lib/delivery/summarizeSinglePayment";
+import { summarizeSinglePayment } from "../../../../src/lib/driver/delivery/summarizeSinglePayment";
 import { isZeroAmounts } from "../../../../src/lib/money/amounts";
 
 const order = { usd: "20", lbp: "120000" };

@@ -1,5 +1,5 @@
-import { HistoryList } from "@/components/history/HistoryList";
-import { mockHistory } from "@/lib/mock/history";
+import { HistoryList } from "@/components/driver/history/HistoryList";
+import { mockHistory } from "@/lib/driver/mock/history";
 
 export default function HistoryPage() {
     return (

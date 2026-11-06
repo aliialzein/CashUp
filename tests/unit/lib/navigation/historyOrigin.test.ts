@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { historyOrigin } from "../../../../src/lib/navigation/historyOrigin";
+import { historyOrigin } from "../../../../src/lib/driver/navigation/historyOrigin";
 
 describe("historyOrigin", () => {
     it("keeps a known page the cash-up was opened from", () => {

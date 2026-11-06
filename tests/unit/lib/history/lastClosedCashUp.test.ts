@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { lastClosedCashUp } from "../../../../src/lib/history/lastClosedCashUp";
+import { lastClosedCashUp } from "../../../../src/lib/driver/history/lastClosedCashUp";
 import type { CashUpStatus, CashUpSummary } from "../../../../src/types/cash-up";
 
 function item(id: string, status: CashUpStatus): CashUpSummary {

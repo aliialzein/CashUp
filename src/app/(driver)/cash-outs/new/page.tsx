@@ -1,6 +1,6 @@
-import { AddCashOutForm } from "@/components/cash-outs/AddCashOutForm";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { mockOpenCashUp } from "@/lib/mock/cash-up";
+import { AddCashOutForm } from "@/components/driver/cash-outs/AddCashOutForm";
+import { PageHeader } from "@/components/driver/layout/PageHeader";
+import { mockOpenCashUp } from "@/lib/driver/mock/cash-up";
 import { routes } from "@/lib/routes";
 
 export default function AddCashOutPage() {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { historyHref, salesLabel } from "../../../../src/lib/history/historyHref";
+import { historyHref, salesLabel } from "../../../../src/lib/driver/history/historyHref";
 import { routes } from "../../../../src/lib/routes";
 import type { CashUpStatus, CashUpSummary } from "../../../../src/types/cash-up";
 

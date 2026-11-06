@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { collectedAmounts, saleAmountLine, totalCollected } from "../../../../src/lib/sales/collected";
+import { collectedAmounts, saleAmountLine, totalCollected } from "../../../../src/lib/driver/sales/collected";
 import type { Sale } from "../../../../src/types/cash-up";
 
 function sale(overrides: Partial<Sale>): Sale {
