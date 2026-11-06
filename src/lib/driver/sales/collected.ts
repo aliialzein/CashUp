@@ -1,6 +1,6 @@
 import type { Amounts } from "@/lib/format/money";
 import { addAmounts } from "@/lib/money/amounts";
-import type { Sale } from "@/types/cash-up";
+import type { Sale } from "@/types/driver/cash-up";
 
 const NONE: Amounts = { usd: "0", lbp: "0" };
 

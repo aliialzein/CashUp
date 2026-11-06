@@ -1,4 +1,4 @@
-import type { CashUpSummary } from "@/types/cash-up";
+import type { CashUpSummary } from "@/types/driver/cash-up";
 
 export type MonthGroup = {
     /** "2026-10" */

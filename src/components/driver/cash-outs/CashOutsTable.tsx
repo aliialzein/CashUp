@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatOutflow } from "@/lib/format/money";
-import type { CashOut } from "@/types/cash-up";
+import type { CashOut } from "@/types/driver/cash-up";
 
 const TH = "h-10 px-5 font-medium";
 const TD = "h-14 px-5";

@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import { GapPart } from "@/components/driver/count-cash/GapText";
 import { gapStatus } from "@/lib/driver/count-cash/calculations";
 import type { Amounts, Currency } from "@/lib/format/money";
-import type { CashUpStatus } from "@/types/cash-up";
+import type { CashUpStatus } from "@/types/driver/cash-up";
 
 type HistoryGapProps = {
     status: CashUpStatus;

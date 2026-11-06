@@ -4,7 +4,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { formatCashUpNumber } from "@/lib/driver/cash-up/cashUpLabel";
 import { historyHref, salesLabel } from "@/lib/driver/history/historyHref";
-import type { CashUpSummary } from "@/types/cash-up";
+import type { CashUpSummary } from "@/types/driver/cash-up";
 import { CashUpStatusBadge } from "./CashUpStatusBadge";
 import { HistoryGap } from "./HistoryGap";
 

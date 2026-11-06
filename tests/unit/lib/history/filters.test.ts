@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { matchesHistoryFilter } from "../../../../src/lib/driver/history/filters";
-import type { CashUpSummary } from "../../../../src/types/cash-up";
+import type { CashUpSummary } from "../../../../src/types/driver/cash-up";
 
 function cashUp(overrides: Partial<CashUpSummary>): CashUpSummary {
     return {

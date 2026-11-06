@@ -1,6 +1,6 @@
 import { EmptyState } from "@/components/ui/EmptyState";
 import { groupByMonth } from "@/lib/driver/history/groupByMonth";
-import type { CashUpSummary } from "@/types/cash-up";
+import type { CashUpSummary } from "@/types/driver/cash-up";
 import { HistoryCards } from "./HistoryCards";
 import { HistoryTable } from "./HistoryTable";
 

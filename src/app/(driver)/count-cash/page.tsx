@@ -1,7 +1,7 @@
 import { COUNT_CASH_FORM_ID } from "@/components/driver/count-cash/formId";
 import { CountCashForm } from "@/components/driver/count-cash/CountCashForm";
 import { PageHeader } from "@/components/driver/layout/PageHeader";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/driver/Button";
 import { mockOpenCashUp } from "@/lib/driver/mock/cash-up";
 import { routes } from "@/lib/routes";
 

@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Icon } from "@/components/ui/Icon";
-import type { CashUpStatus } from "@/types/cash-up";
+import type { CashUpStatus } from "@/types/driver/cash-up";
 
 type Tone = ComponentProps<typeof Badge>["tone"];
 

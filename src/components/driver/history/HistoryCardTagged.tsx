@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { cashUpLabel } from "@/lib/driver/cash-up/cashUpLabel";
 import { historyHref } from "@/lib/driver/history/historyHref";
-import type { CashUpStatus, CashUpSummary } from "@/types/cash-up";
+import type { CashUpStatus, CashUpSummary } from "@/types/driver/cash-up";
 import { CashUpStatusBadge } from "./CashUpStatusBadge";
 import { HistoryCardDetails } from "./HistoryCardDetails";
 

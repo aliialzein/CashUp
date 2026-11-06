@@ -1,5 +1,5 @@
 import { EmptyState } from "@/components/ui/EmptyState";
-import type { CashOut } from "@/types/cash-up";
+import type { CashOut } from "@/types/driver/cash-up";
 import { CashOutCards } from "./CashOutCards";
 import { CashOutsTable, type EmptyText } from "./CashOutsTable";
 

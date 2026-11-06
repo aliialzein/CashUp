@@ -8,7 +8,7 @@ import { Collapse } from "@/components/ui/Collapse";
 import { Icon } from "@/components/ui/Icon";
 import { formatAmounts } from "@/lib/format/money";
 import { saleAmountLine } from "@/lib/driver/sales/collected";
-import type { Sale, SaleStatus } from "@/types/cash-up";
+import type { Sale, SaleStatus } from "@/types/driver/cash-up";
 
 type Tone = ComponentProps<typeof Badge>["tone"];
 

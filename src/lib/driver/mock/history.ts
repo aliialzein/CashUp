@@ -1,4 +1,4 @@
-import type { CashUpSummary } from "@/types/cash-up";
+import type { CashUpSummary } from "@/types/driver/cash-up";
 import { hasHistory } from "./scenarios";
 
 /** Newest first. The gap is frozen when a cash-up is submitted. */

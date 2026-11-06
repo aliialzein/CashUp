@@ -4,7 +4,7 @@ import { formatAmounts } from "@/lib/format/money";
 import { withOrigin, type Origin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";
 import { saleAmountLine } from "@/lib/driver/sales/collected";
-import type { Sale } from "@/types/cash-up";
+import type { Sale } from "@/types/driver/cash-up";
 import { SaleStatusBadge } from "./SaleStatusBadge";
 import { SaleSummary } from "./SaleSummary";
 

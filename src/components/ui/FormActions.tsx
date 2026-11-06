@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { BottomBar } from "@/components/ui/BottomBar";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/driver/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 
 type FormActionsProps = {

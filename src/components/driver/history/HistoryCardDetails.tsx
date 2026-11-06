@@ -1,5 +1,5 @@
 import { salesLabel } from "@/lib/driver/history/historyHref";
-import type { CashUpSummary } from "@/types/cash-up";
+import type { CashUpSummary } from "@/types/driver/cash-up";
 import { HistoryGap } from "./HistoryGap";
 
 /** Phone cards: date and sales on the left, the result on the right, and the owner's reason when returned. */

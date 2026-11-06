@@ -1,5 +1,5 @@
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
-import type { SaleStatus } from "@/types/cash-up";
+import type { SaleStatus } from "@/types/driver/cash-up";
 
 const STATUS: Record<SaleStatus, { label: string; tone: BadgeTone; dot: string }> = {
 	TO_DELIVER: { label: "To deliver", tone: "warning", dot: "bg-amber-600" },

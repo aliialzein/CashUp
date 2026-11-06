@@ -1,5 +1,5 @@
 import { totalCollected } from "@/lib/driver/sales/collected";
-import type { CashOut, CashUpDetail, Sale } from "@/types/cash-up";
+import type { CashOut, CashUpDetail, Sale } from "@/types/driver/cash-up";
 
 /** Anything a delivered sale can carry besides its basics. */
 type SaleExtras = Partial<Omit<Sale, "id" | "number" | "clientPhone" | "date" | "time" | "status" | "amount">>;

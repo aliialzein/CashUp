@@ -1,4 +1,4 @@
-import type { CashUp } from "@/types/cash-up";
+import type { CashUp } from "@/types/driver/cash-up";
 import { mockOpenCashUp } from "./cash-up";
 import { hasOpenCashUp } from "./scenarios";
 

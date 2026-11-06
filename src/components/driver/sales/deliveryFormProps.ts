@@ -1,4 +1,4 @@
-import type { Sale } from "@/types/cash-up";
+import type { Sale } from "@/types/driver/cash-up";
 
 /** What every Complete delivery form needs. The page does not care which form it gets. */
 export type DeliveryFormProps = {

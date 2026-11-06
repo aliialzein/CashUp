@@ -10,7 +10,7 @@ import { SearchField } from "@/components/ui/SearchField";
 import { withOrigin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";
 import { LOCKED_SALE_SUMMARY } from "@/lib/driver/sales/lockedSaleSummary";
-import type { Sale, SaleStatus } from "@/types/cash-up";
+import type { Sale, SaleStatus } from "@/types/driver/cash-up";
 import { SaleCards } from "./SaleCards";
 import { SalesTable } from "./SalesTable";
 

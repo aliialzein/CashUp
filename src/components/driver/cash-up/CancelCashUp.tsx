@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/driver/Button";
 import { Card } from "@/components/ui/Card";
 import { cancelCashUp } from "@/lib/driver/cash-up/actions";
 import { useResetOnHide } from "@/lib/hooks/useResetOnHide";

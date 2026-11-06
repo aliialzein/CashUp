@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { lastClosedCashUp } from "../../../../src/lib/driver/history/lastClosedCashUp";
-import type { CashUpStatus, CashUpSummary } from "../../../../src/types/cash-up";
+import type { CashUpStatus, CashUpSummary } from "../../../../src/types/driver/cash-up";
 
 function item(id: string, status: CashUpStatus): CashUpSummary {
     return { id, number: 1, status, date: "28 Oct", isoDate: "2026-10-28", salesCount: 1, gap: null };

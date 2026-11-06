@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { formatAmounts, type Amounts } from "@/lib/format/money";
 import { collectedAmounts } from "@/lib/driver/sales/collected";
-import type { Sale } from "@/types/cash-up";
+import type { Sale } from "@/types/driver/cash-up";
 import { AmountOrNone, hasAmounts, METHOD_LABEL } from "./SaleDetails";
 
 const NONE: Amounts = { usd: "0", lbp: "0" };

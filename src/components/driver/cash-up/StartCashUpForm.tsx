@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import { AmountPairField } from "@/components/ui/AmountPairField";
 import { BottomBar } from "@/components/ui/BottomBar";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/driver/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Icon } from "@/components/ui/Icon";
@@ -14,7 +14,7 @@ import { openingFloat } from "@/lib/driver/cash-up/openingFloat";
 import type { Amounts } from "@/lib/format/money";
 import { useResetOnHide } from "@/lib/hooks/useResetOnHide";
 import { routes } from "@/lib/routes";
-import type { FloatSuggestion } from "@/types/cash-up";
+import type { FloatSuggestion } from "@/types/driver/cash-up";
 
 const EMPTY_FLOAT: Amounts = { usd: "", lbp: "" };
 

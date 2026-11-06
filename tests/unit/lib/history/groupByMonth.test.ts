@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { groupByMonth } from "../../../../src/lib/driver/history/groupByMonth";
-import type { CashUpSummary } from "../../../../src/types/cash-up";
+import type { CashUpSummary } from "../../../../src/types/driver/cash-up";
 
 function item(id: string, isoDate: string): CashUpSummary {
     return { id, number: 1, status: "APPROVED", date: "x", isoDate, salesCount: 1, gap: null };

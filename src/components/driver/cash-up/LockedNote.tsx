@@ -1,5 +1,5 @@
 import { Icon } from "@/components/ui/Icon";
-import type { CashUpDetail } from "@/types/cash-up";
+import type { CashUpDetail } from "@/types/driver/cash-up";
 
 const NOTES: Record<CashUpDetail["status"], { icon: "lock" | "info"; text: string; tone: string }> = {
     SUBMITTED: {

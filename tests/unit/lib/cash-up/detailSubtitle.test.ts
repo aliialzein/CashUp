@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { detailSubtitle } from "../../../../src/lib/driver/cash-up/detailSubtitle";
-import type { CashUpDetail } from "../../../../src/types/cash-up";
+import type { CashUpDetail } from "../../../../src/types/driver/cash-up";
 
 const base: CashUpDetail = {
     id: "c-1",

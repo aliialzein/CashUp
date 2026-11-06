@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import { HISTORY_CARD_STYLE, type HistoryCardStyle } from "@/lib/driver/history/cardStyle";
-import type { CashUpSummary } from "@/types/cash-up";
+import type { CashUpSummary } from "@/types/driver/cash-up";
 import { HistoryCardPlain, HistoryCardRow } from "./HistoryCardPlain";
 import { HistoryCardTagged } from "./HistoryCardTagged";
 

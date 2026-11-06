@@ -1,4 +1,4 @@
-import type { FloatSuggestion } from "@/types/cash-up";
+import type { FloatSuggestion } from "@/types/driver/cash-up";
 import { hasHistory } from "./scenarios";
 
 // TODO(backend): the server suggests the float from the driver's last counted cash-up. `null` for a first cash-up.

@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { FilterChips } from "@/components/ui/FilterChips";
 import { CASH_OUT_REASONS, type CashOutReason } from "@/lib/driver/cash-out/reasons";
 import { formatAmounts, type Amounts } from "@/lib/format/money";
-import type { CashOut } from "@/types/cash-up";
+import type { CashOut } from "@/types/driver/cash-up";
 import { CashOutsResults } from "./CashOutsResults";
 import { TODAY_EMPTY, type EmptyText } from "./CashOutsTable";
 import { CashOutsTotal } from "./CashOutsTotal";

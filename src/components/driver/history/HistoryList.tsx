@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { FilterChips } from "@/components/ui/FilterChips";
 import { HISTORY_FILTERS, matchesHistoryFilter, type HistoryFilter } from "@/lib/driver/history/filters";
-import type { CashUpSummary } from "@/types/cash-up";
+import type { CashUpSummary } from "@/types/driver/cash-up";
 import { HistoryResults } from "./HistoryResults";
 
 export function HistoryList({ items }: { items: CashUpSummary[] }) {

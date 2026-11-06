@@ -6,7 +6,7 @@ import { SectionLabel } from "@/components/ui/SectionLabel";
 import { formatCashUpNumber } from "@/lib/driver/cash-up/cashUpLabel";
 import { withOrigin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";
-import type { CashUpSummary } from "@/types/cash-up";
+import type { CashUpSummary } from "@/types/driver/cash-up";
 
 /** Phone: the last cash-up as a card. While the owner has not reviewed it, the label says so. */
 export function LastCashUpCard({ item }: { item: CashUpSummary }) {

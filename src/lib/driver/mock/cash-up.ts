@@ -1,6 +1,6 @@
 import { addAmounts } from "@/lib/money/amounts";
 import { totalCollected } from "@/lib/driver/sales/collected";
-import type { CashUp, Sale } from "@/types/cash-up";
+import type { CashUp, Sale } from "@/types/driver/cash-up";
 import { withScenario } from "./scenarios";
 
 /**

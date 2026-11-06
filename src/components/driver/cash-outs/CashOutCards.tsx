@@ -1,5 +1,5 @@
 import { formatOutflow } from "@/lib/format/money";
-import type { CashOut } from "@/types/cash-up";
+import type { CashOut } from "@/types/driver/cash-up";
 
 /** Phone only: one card per cash-out. Reason and amount share the first row; the time and note get the full width below. */
 export function CashOutCards({ cashOuts }: { cashOuts: CashOut[] }) {

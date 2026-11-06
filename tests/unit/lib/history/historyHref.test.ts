@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import { historyHref, salesLabel } from "../../../../src/lib/driver/history/historyHref";
 import { routes } from "../../../../src/lib/routes";
-import type { CashUpStatus, CashUpSummary } from "../../../../src/types/cash-up";
+import type { CashUpStatus, CashUpSummary } from "../../../../src/types/driver/cash-up";
 
 function item(status: CashUpStatus): CashUpSummary {
     return { id: "c-7", number: 7, status, date: "1 Oct", isoDate: "2026-10-01", salesCount: 1, gap: null };

@@ -1,5 +1,5 @@
 import { Icon } from "@/components/ui/Icon";
-import type { ReturnNote } from "@/types/cash-up";
+import type { ReturnNote } from "@/types/driver/cash-up";
 
 /** Tells the driver the owner sent the cash-up back, and why. */
 export function ReturnedBanner({ by, text }: ReturnNote) {

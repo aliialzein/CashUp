@@ -1,4 +1,4 @@
-import type { CashUpDetail } from "@/types/cash-up";
+import type { CashUpDetail } from "@/types/driver/cash-up";
 
 /** "Approved 26 Oct, 09:10 by Ali" once reviewed, otherwise when it was submitted. */
 export function detailSubtitle({ status, submittedAt, review }: CashUpDetail): string {

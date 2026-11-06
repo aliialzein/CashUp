@@ -4,7 +4,7 @@ import { Icon } from "@/components/ui/Icon";
 import { formatNumber } from "@/lib/format/money";
 import { routes } from "@/lib/routes";
 import type { Amounts, Currency } from "@/lib/format/money";
-import type { Ledger } from "@/types/cash-up";
+import type { Ledger } from "@/types/driver/cash-up";
 import { CollapsibleLedger } from "./CollapsibleLedger";
 import { HEADER_ROW, ROW, SUMMARY_ROW } from "./ledgerStyles";
 

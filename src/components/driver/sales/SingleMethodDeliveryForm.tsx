@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { AmountPairField } from "@/components/ui/AmountPairField";
 import { BottomBar } from "@/components/ui/BottomBar";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/driver/Button";
 import { Collapse } from "@/components/ui/Collapse";
 import { FormActions } from "@/components/ui/FormActions";
 import { EMPTY_AMOUNT, cleaned, initialFee, toFields } from "@/lib/driver/delivery/fields";

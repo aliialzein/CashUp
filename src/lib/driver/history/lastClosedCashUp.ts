@@ -1,4 +1,4 @@
-import type { CashUpStatus, CashUpSummary } from "@/types/cash-up";
+import type { CashUpStatus, CashUpSummary } from "@/types/driver/cash-up";
 
 const CLOSED: CashUpStatus[] = ["SUBMITTED", "APPROVED"];
 

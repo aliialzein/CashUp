@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import { Collapse } from "@/components/ui/Collapse";
 import { Icon } from "@/components/ui/Icon";
-import type { Sale } from "@/types/cash-up";
+import type { Sale } from "@/types/driver/cash-up";
 import { SaleDetails } from "./SaleDetails";
 
 /** Phone: a button that folds open how a delivered sale worked out. One root element, so the card spacing stays even. */

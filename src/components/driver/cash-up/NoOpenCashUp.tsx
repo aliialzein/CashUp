@@ -3,7 +3,7 @@ import { ButtonLink } from "@/components/ui/ButtonLink";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { routes } from "@/lib/routes";
-import type { CashUpSummary } from "@/types/cash-up";
+import type { CashUpSummary } from "@/types/driver/cash-up";
 import { LastCashUpCard } from "./LastCashUpCard";
 
 /** Today when the driver has no open cash-up: start one, or look at the last one. */

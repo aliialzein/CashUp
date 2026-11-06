@@ -5,7 +5,7 @@ import { useState, type FormEvent } from "react";
 import { AmountPairField } from "@/components/ui/AmountPairField";
 import { FormActions } from "@/components/ui/FormActions";
 import { SectionLabel } from "@/components/ui/SectionLabel";
-import { TextField } from "@/components/ui/TextField";
+import { TextField } from "@/components/ui/driver/TextField";
 import { hasAmount } from "@/lib/format/amountInput";
 import type { Amounts } from "@/lib/format/money";
 import { useResetOnHide } from "@/lib/hooks/useResetOnHide";

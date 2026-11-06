@@ -1,5 +1,5 @@
 import { routes } from "@/lib/routes";
-import type { CashUpSummary } from "@/types/cash-up";
+import type { CashUpSummary } from "@/types/driver/cash-up";
 
 /** Open and returned cash-ups continue on Today. The others open their detail page. */
 export function historyHref(item: CashUpSummary): string {

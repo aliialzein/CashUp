@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Collapse } from "@/components/ui/Collapse";
 import { Icon } from "@/components/ui/Icon";
 import { formatAmounts } from "@/lib/format/money";
-import type { Sale } from "@/types/cash-up";
+import type { Sale } from "@/types/driver/cash-up";
 
 /** Phone only: what the client has to pay. Closed by default; tap to see who and when. Desktop has the summary panel instead. */
 export function OrderCard({ sale }: { sale: Sale }) {

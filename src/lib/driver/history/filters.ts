@@ -1,6 +1,6 @@
 import { gapStatus } from "@/lib/driver/count-cash/calculations";
 import type { Amounts } from "@/lib/format/money";
-import type { CashUpSummary } from "@/types/cash-up";
+import type { CashUpSummary } from "@/types/driver/cash-up";
 
 export type HistoryFilter =
     | "ALL"

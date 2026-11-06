@@ -1,5 +1,5 @@
 import type { Amounts } from "@/lib/format/money";
-import type { CashUp } from "@/types/cash-up";
+import type { CashUp } from "@/types/driver/cash-up";
 
 export type MockScenario = "normal" | "empty-cash-up" | "no-open-cash-up" | "first-day";
 

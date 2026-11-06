@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { BottomBar } from "@/components/ui/BottomBar";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/driver/Button";
 import { Icon } from "@/components/ui/Icon";
 import { submitCashUp } from "@/lib/driver/cash-up/actions";
 

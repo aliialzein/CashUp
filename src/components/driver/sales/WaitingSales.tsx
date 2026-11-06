@@ -3,7 +3,7 @@ import { SectionLabel } from "@/components/ui/SectionLabel";
 import { formatMoney } from "@/lib/format/money";
 import { withOrigin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";
-import type { Sale } from "@/types/cash-up";
+import type { Sale } from "@/types/driver/cash-up";
 
 /** Sales the driver has taken but not yet delivered. Nothing shows when there are none. */
 export function WaitingSales({ sales }: { sales: Sale[] }) {
