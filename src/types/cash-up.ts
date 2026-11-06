@@ -1,138 +1,222 @@
-import type { Amounts } from "@/lib/format/money";
-import type { CashOutReason } from "@/lib/driver/cash-out/reasons";
-import type { PaymentMethod } from "@/lib/driver/delivery/summarizeSinglePayment";
+/* -------------------------------------------------------------------------- */
+/* Enums                                                                       */
+/* -------------------------------------------------------------------------- */
 
-export type CashUpStatus = "OPEN" | "SUBMITTED" | "RETURNED" | "APPROVED";
+export const AuthProvider = {
+  LOCAL: "LOCAL",
+  GOOGLE: "GOOGLE",
+} as const;
+export type AuthProvider = (typeof AuthProvider)[keyof typeof AuthProvider];
 
-export type SaleStatus = "TO_DELIVER" | "DELIVERED" | "DELETED";
+export const MembershipRole = {
+  OWNER: "OWNER",
+  STAFF: "STAFF",
+} as const;
+export type MembershipRole =
+  (typeof MembershipRole)[keyof typeof MembershipRole];
 
-export type Sale = {
-    id: string;
-    number: number;
-    clientPhone: string;
-    /** Time only (HH:mm). The page groups sales by date when a cash-up spans several days. */
-    time: string;
-    status: SaleStatus;
-    /** What the sale asks the client to pay. */
-    amount: Amounts;
-    /** Delivery fee typed in Add sale. Complete delivery pre-fills it, and the driver can edit it. */
-    deliveryFee?: Amounts;
-    /** The day of the sale as display text, e.g. "27 Oct". Shown in the sale summary. */
-    date?: string;
-    /** Change the driver gave back, positive. Shown in the sale summary. */
-    changeGiven?: Amounts;
-    /** How the client paid. */
-    method?: PaymentMethod;
-    /** Extra money the client gave, and money taken off. Positive amounts. */
-    tip?: Amounts;
-    discount?: Amounts;
-    /** What was really collected. The server calculates it, so it can differ from order + fee. */
-    totalCollected?: Amounts;
-    /** Free text on the sale. */
-    note?: string;
-    /** Flags the owner sees at review. */
-    isEdited?: boolean;
-    amountDiffers?: boolean;
-};
+export const CashUpStatus = {
+  OPEN: "OPEN",
+  SUBMITTED: "SUBMITTED",
+  APPROVED: "APPROVED",
+  VOID: "VOID",
+} as const;
+export type CashUpStatus = (typeof CashUpStatus)[keyof typeof CashUpStatus];
 
-/**
- * Money lines of the drawer. Expected cash counts DELIVERED sales only,
- * because the driver only holds the money after delivery.
- */
-export type Ledger = {
-    float: Amounts;
-    received: Amounts;
-    changeGiven: Amounts;
-    cashOuts: Amounts;
-    expected: Amounts;
-};
+export const SaleStatus = {
+  TO_DELIVER: "TO_DELIVER",
+  DELIVERED: "DELIVERED",
+  DELETED: "DELETED",
+} as const;
+export type SaleStatus = (typeof SaleStatus)[keyof typeof SaleStatus];
 
-export type CashOut = {
-    id: string;
-    reason: CashOutReason;
-    /** Time only (HH:mm). */
-    time: string;
-    /** Optional free text. The database has no note column yet, so the team has to decide. */
-    note?: string;
-    /** Positive amounts in USD and LBP, like the cash-up lines. Shown as money leaving the drawer. */
-    amount: Amounts;
-};
+export const Currency = {
+  USD: "USD",
+  LBP: "LBP",
+} as const;
+export type Currency = (typeof Currency)[keyof typeof Currency];
 
-export type CashUp = {
-    id: string;
-    number: number;
-    status: CashUpStatus;
-    /** Why the owner returned it. `null` unless the status is RETURNED. */
-    returned: ReturnNote | null;
-    /** Display text, e.g. "27 Oct, 08:30". */
-    startedAt: string;
-    ledger: Ledger;
-    /** Count and total of all sales that are not deleted. The server calculates it. */
-    salesCount: number;
-    salesTotal: Amounts;
-    /** What the driver counted in the drawer. `null` until the first count is saved. */
-    counted: Amounts | null;
-    /** Totals of delivered sales and of sales still waiting. The server calculates them. */
-    deliveredTotal: Amounts;
-    waitingTotal: Amounts;
-    sales: Sale[];
-    cashOuts: CashOut[];
-};
+export const PaymentMethod = {
+  CASH: "CASH",
+  WHISH: "WHISH",
+  OMT: "OMT",
+} as const;
+export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
 
-/** One row of the History list. */
-export type CashUpSummary = {
-    id: string;
-    number: number;
-    status: CashUpStatus;
-    /** Display text, e.g. "28 Oct". */
-    date: string;
-    /** The day it started, e.g. "2026-10-28". Groups the phone list by month. */
-    isoDate: string;
-    /** Why the owner returned it. Only set while the status is RETURNED. */
-    returnReason?: string;
-    salesCount: number;
-    /** Counted minus expected, frozen when the cash-up was submitted. `null` while open or returned. */
-    gap: Amounts | null;
-};
+export const RequestType = {
+  DELETE_SALE: "DELETE_SALE",
+  VOID_CASHUP: "VOID_CASHUP",
+} as const;
+export type RequestType = (typeof RequestType)[keyof typeof RequestType];
 
-/** Who reviewed a cash-up, and when. */
-export type CashUpReview = {
-    by: string;
-    /** Display text, e.g. "26 Oct, 09:10". */
-    at: string;
-};
+export const RequestStatus = {
+  AWAITING_OWNER: "AWAITING_OWNER",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
+  WITHDRAWN: "WITHDRAWN",
+} as const;
+export type RequestStatus = (typeof RequestStatus)[keyof typeof RequestStatus];
 
-/** A cash-up that was submitted: locked, with its frozen count and gap. */
-export type CashUpDetail = {
-    id: string;
-    number: number;
-    /** SUBMITTED or APPROVED. Open and returned cash-ups continue on Today. */
-    status: Extract<CashUpStatus, "SUBMITTED" | "APPROVED">;
-    submittedAt: string;
-    ledger: Ledger;
-    /** What the driver counted when submitting. */
-    counted: Amounts;
-    /** Counted minus expected, frozen at submit. */
-    gap: Amounts;
-    /** All sales of this cash-up. */
-    sales: Sale[];
-    /** All cash-outs of this cash-up. */
-    cashOuts: CashOut[];
-    /** Total of the delivered sales. The server calculates it. */
-    deliveredTotal: Amounts;
-    /** `null` until the owner approves. */
-    review: CashUpReview | null;
-};
+export const AmendmentStatus = {
+  AWAITING_APPROVAL: "AWAITING_APPROVAL",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
+} as const;
+export type AmendmentStatus =
+  (typeof AmendmentStatus)[keyof typeof AmendmentStatus];
 
-/** The owner's reason for sending a cash-up back. */
-export type ReturnNote = {
-    by: string;
-    text: string;
-};
+export const AmendmentChangeKind = {
+  SALE_FIELD: "SALE_FIELD",
+  COUNT_ENTRY: "COUNT_ENTRY",
+} as const;
+export type AmendmentChangeKind =
+  (typeof AmendmentChangeKind)[keyof typeof AmendmentChangeKind];
 
-/** The opening float the server suggests, taken from the last cash-up the driver counted. */
-export type FloatSuggestion = {
-    /** Number of the cash-up it comes from, e.g. 42. */
-    fromNumber: number;
-    float: Amounts;
-};
+/* -------------------------------------------------------------------------- */
+/* Shared UI types                                                             */
+/* -------------------------------------------------------------------------- */
+
+export interface UserSummary {
+  id?: string;
+  fullName: string;
+  email?: string;
+}
+
+export interface MembershipSummary {
+  id?: string;
+  role?: MembershipRole;
+  user: UserSummary;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Sale                                                                        */
+/* -------------------------------------------------------------------------- */
+
+export interface SaleEditData {
+  id: string;
+  field: string;
+  oldValue: string | null;
+  newValue: string | null;
+  createdAt: Date;
+  editedBy: UserSummary;
+}
+
+export interface SaleData {
+  id: string;
+  saleNumber: number;
+  status: SaleStatus;
+
+  businessAmount: number;
+  deliveryFee: number;
+  tip: number | null;
+  discount: number | null;
+  totalCollected: number;
+
+  currency: Currency;
+  method: PaymentMethod;
+
+  changeGiven: number | null;
+  changeCurrency: Currency | null;
+
+  clientNumber: string | null;
+  note: string | null;
+
+  mixedChange: boolean;
+  amountDiffers: boolean;
+  isEdited: boolean;
+  deletionAwaiting: boolean;
+
+  cancelReason: string | null;
+
+  createdAt: Date;
+  deliveredAt: Date | null;
+  deletedAt: Date | null;
+
+  edits: SaleEditData[];
+}
+
+/* -------------------------------------------------------------------------- */
+/* Requests                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export interface RequestData {
+  id: string;
+  type: RequestType;
+  status: RequestStatus;
+
+  reason: string;
+
+  requestedBy: MembershipSummary;
+
+  saleId: string | null;
+  sale: Pick<
+    SaleData,
+    "id" | "saleNumber" | "totalCollected" | "currency"
+  > | null;
+
+  decisionReason: string | null;
+  decidedBy: MembershipSummary | null;
+  selfApproved: boolean;
+
+  createdAt: Date;
+  decidedAt: Date | null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Cash outs and count entries                                                 */
+/* -------------------------------------------------------------------------- */
+
+export interface CashOutData {
+  id: string;
+  amount: number;
+  currency: Currency;
+  reason: string;
+  createdAt: Date;
+}
+
+export interface CountEntryData {
+  id: string;
+  currency: Currency;
+  denomination: number;
+  quantity: number;
+  updatedAt: Date;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Cash-up                                                                     */
+/* -------------------------------------------------------------------------- */
+
+export interface CashUpCardData {
+  id: string;
+  status: CashUpStatus;
+
+  openedAt: Date;
+  countStartedAt: Date | null;
+  closedAt: Date | null;
+  approvedAt: Date | null;
+  voidedAt: Date | null;
+  updatedAt: Date;
+
+  floatUsd: number;
+  floatLbp: number;
+  referenceRate: number | null;
+
+  expectedUsd: number | null;
+  expectedLbp: number | null;
+  countedUsd: number | null;
+  countedLbp: number | null;
+  gapUsd: number | null;
+  gapLbp: number | null;
+
+  selfApproved: boolean;
+  returnReason: string | null;
+  voidReason: string | null;
+
+  membership: MembershipSummary;
+  approvedBy: MembershipSummary | null;
+
+  sales: SaleData[];
+  cashOuts: CashOutData[];
+  countEntries: CountEntryData[];
+  requests: RequestData[];
+}

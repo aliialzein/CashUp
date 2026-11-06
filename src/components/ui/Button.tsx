@@ -1,46 +1,71 @@
-import type { ButtonHTMLAttributes } from "react";
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "warning";
+type Variant = "primary" | "secondary" | "ghost";
 
-const BASE =
-	"inline-flex min-h-12 w-full items-center justify-center rounded-xl px-4 text-[15px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed";
-
-const VARIANTS: Record<ButtonVariant, string> = {
-	primary: "bg-ink text-white hover:bg-ink/90 disabled:bg-line-strong disabled:text-muted",
-	secondary: "border border-ink bg-surface text-ink hover:bg-subtle disabled:border-line-strong disabled:text-muted",
-	ghost: "text-ink hover:bg-subtle disabled:text-muted",
-	warning: "border border-warning-line bg-warning-bg text-warning",
+export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  /** Shows a spinner and blocks clicks while waiting for the backend. */
+  loading?: boolean;
+  /** Label shown while loading, e.g. "Signing in...". Defaults to children. */
+  loadingText?: string;
+  variant?: Variant;
+  fullWidth?: boolean;
+  children: ReactNode;
 };
 
-/** Shared by Button and ButtonLink, so a link can look exactly like a button. */
-export function buttonClasses(variant: ButtonVariant = "primary", className = ""): string {
-	return `${BASE} ${VARIANTS[variant]} ${className}`.trim();
-}
-
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-	variant?: ButtonVariant;
-	/** Shows a spinner and blocks clicks while a request is running. */
-	loading?: boolean;
+const variants: Record<Variant, string> = {
+  primary:
+    "bg-[#0f2a5c] text-white shadow-sm shadow-[#0f2a5c]/25 hover:bg-[#143674] focus-visible:ring-[#0f2a5c]/40 disabled:bg-[#0f2a5c]/60",
+  secondary:
+    "border border-slate-200 bg-white text-[#0f2a5c] hover:bg-slate-50 focus-visible:ring-[#0f2a5c]/30 disabled:text-slate-400",
+  ghost:
+    "text-[#0f2a5c] hover:bg-slate-100 focus-visible:ring-[#0f2a5c]/30 disabled:text-slate-400",
 };
 
-export function Button({ variant = "primary", loading = false, className, disabled, children, ...props }: ButtonProps) {
-	return (
-		<button
-			type="button"
-			className={buttonClasses(variant, className)}
-			disabled={disabled || loading}
-			aria-busy={loading}
-			{...props}
-		>
-			<span className="inline-flex items-center gap-2">
-				{loading && (
-					<span
-						aria-hidden="true"
-						className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-					/>
-				)}
-				{children}
-			</span>
-		</button>
-	);
+function Spinner() {
+  return (
+    <svg
+      className="h-4 w-4 animate-spin"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+      <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
 }
+
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  {
+    loading = false,
+    loadingText,
+    variant = "primary",
+    fullWidth = false,
+    type = "button",
+    disabled,
+    className = "",
+    children,
+    ...props
+  },
+  ref,
+) {
+  return (
+    <button
+      ref={ref}
+      type={type}
+      disabled={disabled || loading}
+      aria-busy={loading}
+      className={[
+        "inline-flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold",
+        "transition-colors focus:outline-none focus-visible:ring-4 disabled:cursor-not-allowed",
+        fullWidth ? "w-full" : "",
+        variants[variant],
+        className,
+      ].join(" ")}
+      {...props}
+    >
+      {loading && <Spinner />}
+      <span>{loading ? (loadingText ?? children) : children}</span>
+    </button>
+  );
+});
