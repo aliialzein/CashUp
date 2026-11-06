@@ -169,7 +169,7 @@ function setup(options: {
     userId: '44cc1250-48f1-4ae1-b594-ff9b9bb3a4da',
     businessId,
     role: options.ownerRole ?? 'STAFF',
-    isActive: true,
+    status: 'ACTIVE',
     joinedAt: new Date('2026-11-03T10:00:00.000Z'),
     deactivatedAt: null,
   };

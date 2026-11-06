@@ -169,6 +169,7 @@ function makeDependencies(overrides: {
   sales?: Partial<HttpDependencies['sales']>;
   cashOuts?: Partial<HttpDependencies['cashOuts']>;
   queries?: Partial<HttpDependencies['queries']>;
+  businessSetup?: Partial<HttpDependencies['businessSetup']>;
   idempotencyStore?: HttpDependencies['idempotencyStore'];
 } = {}): HttpDependencies {
   const lifecycle: HttpDependencies['lifecycle'] = {
@@ -215,6 +216,53 @@ function makeDependencies(overrides: {
       countedTotals: { USD: '0.00', LBP: '0.00' },
     })),
   };
+  const businessSetup: HttpDependencies['businessSetup'] = {
+    createBusiness: jest.fn(async (_userId, input) => ({
+      id: businessId,
+      name: input.name,
+      isSolo: input.isSolo,
+      role: 'OWNER' as const,
+    })),
+    getBusiness: jest.fn(async () => ({
+      id: businessId,
+      name: 'Test shop',
+      isSolo: false,
+      role: 'STAFF' as const,
+    })),
+    listMembers: jest.fn(async () => []),
+    deactivateMember: jest.fn(async () => ({
+      id: actor.membershipId,
+      fullName: 'Test staff',
+      role: 'STAFF' as const,
+      status: 'INACTIVE' as const,
+      joinedAt: '2026-11-03T10:00:00.000Z',
+      deactivatedAt: '2026-11-04T10:00:00.000Z',
+    })),
+    replaceManager: jest.fn(async () => ({
+      id: actor.membershipId,
+      fullName: 'Test staff',
+      role: 'MANAGER' as const,
+      status: 'ACTIVE' as const,
+      joinedAt: '2026-11-03T10:00:00.000Z',
+      deactivatedAt: null,
+    })),
+    setBusinessSolo: jest.fn(async (_actor, input) => ({
+      id: businessId,
+      name: 'Test shop',
+      isSolo: input.isSolo,
+      role: 'OWNER' as const,
+    })),
+    createJoinCode: jest.fn(async () => ({
+      id: cashUpId,
+      code: '23456789ABCD',
+      expiresAt: '2026-11-10T10:00:00.000Z',
+      maxUses: 1,
+    })),
+    listJoinCodes: jest.fn(async () => []),
+    revokeJoinCode: jest.fn(async (_actor, id) => ({ id, status: 'revoked' as const })),
+    redeemJoinCode: jest.fn(async () => ({ role: 'STAFF' as const, status: 'ACTIVE' as const })),
+    ...overrides.businessSetup,
+  };
   return {
     sessionProvider:
       overrides.sessionProvider ??
@@ -231,6 +279,7 @@ function makeDependencies(overrides: {
     sales,
     cashOuts,
     counts,
+    businessSetup,
     idempotencyStore: overrides.idempotencyStore ?? new InMemoryIdempotencyStore(),
     reportInternalError: jest.fn(),
   };

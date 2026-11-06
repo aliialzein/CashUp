@@ -1,11 +1,16 @@
 import { z } from 'zod';
 import type { Actor } from '../services';
 import { idempotencyHeaderSchema, hashCanonicalBody } from './idempotency';
-import { IdempotencyInProgressError, IdempotencyKeyMismatchError } from './errors';
+import {
+  IdempotencyInProgressError,
+  IdempotencyKeyMismatchError,
+  UnauthenticatedError,
+} from './errors';
 import { mapHttpError } from './errorMapper';
 import { jsonResponse, makeSuccessEnvelope } from './envelope';
 import { getRequestId } from './requestId';
 import { readJsonBody } from './readBody';
+import type { SessionIdentity } from './session';
 import type { HttpDependencies } from './types';
 
 type Schema = z.ZodType;
@@ -33,8 +38,10 @@ export interface RouteRunInput<
   P extends Schema | undefined,
   Q extends Schema | undefined,
   B extends Schema | undefined,
+  AllowMissingBusiness extends boolean = false,
 > {
-  readonly actor: Actor;
+  readonly actor: AllowMissingBusiness extends true ? Actor | null : Actor;
+  readonly session: SessionIdentity;
   readonly params: Output<P>;
   readonly query: Output<Q>;
   readonly body: Output<B>;
@@ -47,6 +54,7 @@ interface DefineRouteOptions<
   Q extends Schema | undefined,
   B extends Schema | undefined,
   T,
+  AllowMissingBusiness extends boolean = false,
 > {
   readonly deps: HttpDependencies;
   readonly routeTemplate: string;
@@ -55,9 +63,10 @@ interface DefineRouteOptions<
   readonly body?: B;
   readonly successStatus: number;
   readonly idempotent?: boolean;
+  readonly allowMissingBusiness?: AllowMissingBusiness;
   readonly entityIdempotencyKey?: 'required';
   readonly run: (
-    input: RouteRunInput<P, Q, B>,
+    input: RouteRunInput<P, Q, B, AllowMissingBusiness>,
   ) => T | RouteResult<T> | Promise<T | RouteResult<T>>;
 }
 
@@ -66,8 +75,9 @@ export function defineRoute<
   Q extends Schema | undefined = undefined,
   B extends Schema | undefined = undefined,
   T = unknown,
+  AllowMissingBusiness extends boolean = false,
 >(
-  options: DefineRouteOptions<P, Q, B, T>,
+  options: DefineRouteOptions<P, Q, B, T, AllowMissingBusiness>,
 ): (request: Request, context?: RouteContext) => Promise<Response> {
   return async (request, context = {}) => {
     const requestId = getRequestId(request);
@@ -76,7 +86,9 @@ export function defineRoute<
     let idempotencyStarted = false;
 
     try {
-      const session = await options.deps.sessionProvider.getSession(request);
+      const session = await options.deps.sessionProvider.getSession(request, {
+        allowMissingBusiness: options.allowMissingBusiness === true,
+      });
       const rawParams = context.params ? await context.params : {};
       const params = options.params ? options.params.parse(rawParams) : undefined;
       const rawQuery = readQuery(request);
@@ -91,7 +103,12 @@ export function defineRoute<
           ? undefined
           : z.object({}).strict().parse(rawBody);
 
-      const actor = await options.deps.actorResolver.resolve(session.userId, session.businessId);
+      const actor = options.allowMissingBusiness === true
+        ? null
+        : session.businessId
+        ? await options.deps.actorResolver.resolve(session.userId, session.businessId)
+        : null;
+      if (!actor && options.allowMissingBusiness !== true) throw new UnauthenticatedError();
 
       if (options.entityIdempotencyKey === 'required') {
         idempotencyKey = requiredEntityIdempotencyHeaderSchema.parse({
@@ -131,7 +148,8 @@ export function defineRoute<
       }
 
       const returned = await options.run({
-        actor,
+        actor: actor as AllowMissingBusiness extends true ? Actor | null : Actor,
+        session,
         params: params as Output<P>,
         query: query as Output<Q>,
         body: body as Output<B>,

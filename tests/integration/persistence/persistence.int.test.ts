@@ -813,8 +813,8 @@ describe("CashUp persistence against PostgreSQL", () => {
     ).rejects.toThrow();
     await expect(
       prisma.$executeRaw`
-        INSERT INTO "join_codes" ("id", "businessId", "codeHash", "role", "label", "expiresAt", "createdById")
-        VALUES (${randomUUID()}::uuid, ${business.id}::uuid, ${randomUUID()}, 'OWNER', 'invalid', NOW(), ${business.members.owner.userId}::uuid)
+        INSERT INTO "join_codes" ("id", "businessId", "codeHash", "role", "expiresAt", "maxUses", "createdByUserId")
+        VALUES (${randomUUID()}::uuid, ${business.id}::uuid, ${randomUUID()}, 'MANAGER', NOW(), 1, ${business.members.owner.userId}::uuid)
       `,
     ).rejects.toThrow();
     await expect(

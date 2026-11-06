@@ -15,10 +15,23 @@ type AwaitableMethods<T, K extends keyof T> = {
 };
 
 export interface ServiceRepositories {
-  readonly businesses: AwaitableMethods<Repositories['businesses'], 'findSettings'>;
+  readonly businesses: AwaitableMethods<
+    Repositories['businesses'],
+    'findSettings' | 'getBusiness' | 'lockBusiness' | 'setBusinessSolo'
+  >;
   readonly memberships: AwaitableMethods<
     Repositories['memberships'],
-    'findActiveByUser' | 'findById' | 'listByRole'
+    | 'findActiveByUser'
+    | 'findById'
+    | 'getMember'
+    | 'listMembers'
+    | 'listByRole'
+    | 'setMemberStatus'
+    | 'replaceManager'
+  >;
+  readonly joinCodes: AwaitableMethods<
+    Repositories['joinCodes'],
+    'listJoinCodes' | 'createJoinCode' | 'revokeJoinCode'
   >;
   readonly cashUps: AwaitableMethods<
     Repositories['cashUps'],
@@ -35,6 +48,8 @@ export interface ServiceRepositories {
     | 'submit'
     | 'approve'
     | 'returnToOpen'
+    | 'countUnresolvedCashUpsForUser'
+    | 'countUnresolvedCashUpsForBusiness'
   >;
   readonly sales: AwaitableMethods<
     Repositories['sales'],
@@ -80,7 +95,7 @@ export interface ActorMembership {
   readonly userId: string;
   readonly businessId: string;
   readonly role: import('../persistence').MembershipRole;
-  readonly isActive: boolean;
+  readonly status: import('../persistence').MembershipStatus;
 }
 
 export interface MembershipLookup {

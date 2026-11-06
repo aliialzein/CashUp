@@ -18,14 +18,19 @@ export class DevHeaderSessionProvider implements SessionProvider {
     },
   ) {}
 
-  async getSession(request: Request): Promise<{ userId: string; businessId: string }> {
+  async getSession(
+    request: Request,
+    options: { readonly allowMissingBusiness?: boolean } = {},
+  ): Promise<{ userId: string; businessId?: string }> {
     if (this.environment.nodeEnv === 'production' || this.environment.enabled !== '1') {
       throw new UnauthenticatedError();
     }
 
     const userId = request.headers.get('x-dev-user-id');
     const businessId = request.headers.get('x-dev-business-id');
-    if (!userId || !businessId) throw new UnauthenticatedError();
-    return { userId, businessId };
+    if (!userId || (!businessId && !options.allowMissingBusiness)) {
+      throw new UnauthenticatedError();
+    }
+    return { userId, businessId: businessId ?? undefined };
   }
 }
