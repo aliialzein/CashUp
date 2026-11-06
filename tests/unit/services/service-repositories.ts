@@ -12,12 +12,28 @@ export function serviceRepositories(
   overrides: ServiceRepositoryOverrides = {},
 ): ServiceRepositories {
   return {
-    businesses: { findSettings: unused, ...overrides.businesses },
+    businesses: {
+      findSettings: unused,
+      getBusiness: unused,
+      lockBusiness: unused,
+      setBusinessSolo: unused,
+      ...overrides.businesses,
+    },
     memberships: {
       findActiveByUser: unused,
       findById: unused,
+      getMember: unused,
+      listMembers: unused,
       listByRole: unused,
+      setMemberStatus: unused,
+      replaceManager: unused,
       ...overrides.memberships,
+    },
+    joinCodes: {
+      listJoinCodes: unused,
+      createJoinCode: unused,
+      revokeJoinCode: unused,
+      ...overrides.joinCodes,
     },
     cashUps: {
       open: unused,
@@ -33,6 +49,8 @@ export function serviceRepositories(
       submit: unused,
       approve: unused,
       returnToOpen: unused,
+      countUnresolvedCashUpsForUser: unused,
+      countUnresolvedCashUpsForBusiness: unused,
       ...overrides.cashUps,
     },
     sales: {

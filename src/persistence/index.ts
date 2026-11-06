@@ -1,9 +1,16 @@
 import type { PrismaClient } from '../generated/prisma/client';
+import type { CreateBusinessWithOwnerInput } from './repositories/business-setup.repository';
+import { createBusinessWithOwner } from './repositories/business-setup.repository';
 import { AuditRepository } from './repositories/audit.repository';
 import { BusinessRepository } from './repositories/business.repository';
 import { CashOutRepository } from './repositories/cash-out.repository';
 import { CashUpRepository } from './repositories/cash-up.repository';
 import { CountEntryRepository } from './repositories/count-entry.repository';
+import { JoinCodeRepository } from './repositories/join-code.repository';
+import {
+  redeemJoinCodeByHash,
+  type RedeemJoinCodeResult,
+} from './repositories/join-code.repository';
 import { MembershipRepository } from './repositories/membership.repository';
 import { RequestRepository } from './repositories/request.repository';
 import { SaleRepository } from './repositories/sale.repository';
@@ -17,6 +24,7 @@ export interface RepositoryOptions {
 export interface Repositories {
   businesses: BusinessRepository;
   memberships: MembershipRepository;
+  joinCodes: JoinCodeRepository;
   cashUps: CashUpRepository;
   sales: SaleRepository;
   cashOuts: CashOutRepository;
@@ -33,6 +41,7 @@ export function createRepositories(
   return {
     businesses: new BusinessRepository(db, scope, options),
     memberships: new MembershipRepository(db, scope, options),
+    joinCodes: new JoinCodeRepository(db, scope, options),
     cashUps: new CashUpRepository(db, scope, options),
     sales: new SaleRepository(db, scope, options),
     cashOuts: new CashOutRepository(db, scope, options),
@@ -52,6 +61,14 @@ export function createRepositories(
  */
 export class UnitOfWork {
   constructor(private readonly prisma: PrismaClient) {}
+
+  createBusinessWithOwner(input: CreateBusinessWithOwnerInput) {
+    return createBusinessWithOwner(this.prisma, input);
+  }
+
+  redeemJoinCodeByHash(codeHash: string, userId: string): Promise<RedeemJoinCodeResult> {
+    return redeemJoinCodeByHash(this.prisma, codeHash, userId);
+  }
 
   /** Plain reads, no transaction. */
   repos(scope: TenantScope): Repositories {
@@ -78,9 +95,21 @@ export {
   CashUpStatus,
   Currency,
   MembershipRole,
+  MembershipStatus,
   PaymentMethod,
   SaleStatus,
 } from '../generated/prisma/enums';
+export { createBusinessWithOwner } from './repositories/business-setup.repository';
+export type {
+  CreateBusinessWithOwnerInput,
+  CreateBusinessWithOwnerResult,
+} from './repositories/business-setup.repository';
+export type { CreateJoinCodeInput, RedeemJoinCodeResult } from './repositories/join-code.repository';
+export type {
+  AddMemberResult,
+  MemberTransitionResult,
+  ReplaceManagerResult,
+} from './repositories/membership.repository';
 export { createPrismaClient } from './prisma.client';
 export type { OpenCashUpInput, CashUpSnapshot } from './repositories/cash-up.repository';
 export type {

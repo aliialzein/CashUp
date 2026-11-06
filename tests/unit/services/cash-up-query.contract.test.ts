@@ -88,7 +88,7 @@ function ownerMembership(
     userId: staffActor.userId,
     businessId,
     role,
-    isActive: true,
+    status: 'ACTIVE',
     joinedAt: now,
     deactivatedAt: null,
   };

@@ -22,12 +22,12 @@ VALUES
   ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'staff2@example.test', NULL, 'Staff Two', '+96170000004', 'LOCAL', NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO memberships (id, "userId", "businessId", role, "isActive", "joinedAt", "deactivatedAt")
+INSERT INTO memberships (id, "userId", "businessId", role, status, "joinedAt", "deactivatedAt")
 VALUES
-  ('22222222-2222-4222-8222-222222222222', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', '11111111-1111-4111-8111-111111111111', 'OWNER', true, NOW(), NULL),
-  ('33333333-3333-4333-8333-333333333333', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '11111111-1111-4111-8111-111111111111', 'MANAGER', true, NOW(), NULL),
-  ('44444444-4444-4444-8444-444444444444', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', '11111111-1111-4111-8111-111111111111', 'STAFF', true, NOW(), NULL),
-  ('55555555-5555-4555-8555-555555555555', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', '11111111-1111-4111-8111-111111111111', 'STAFF', true, NOW(), NULL)
+  ('22222222-2222-4222-8222-222222222222', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', '11111111-1111-4111-8111-111111111111', 'OWNER', 'ACTIVE', NOW(), NULL),
+  ('33333333-3333-4333-8333-333333333333', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '11111111-1111-4111-8111-111111111111', 'MANAGER', 'ACTIVE', NOW(), NULL),
+  ('44444444-4444-4444-8444-444444444444', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', '11111111-1111-4111-8111-111111111111', 'STAFF', 'ACTIVE', NOW(), NULL),
+  ('55555555-5555-4555-8555-555555555555', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', '11111111-1111-4111-8111-111111111111', 'STAFF', 'ACTIVE', NOW(), NULL)
 ON CONFLICT (id) DO NOTHING;
 
 -- Solo-business variant (commented):

@@ -4,6 +4,7 @@ import type { CashUpQueryService } from '../services/cash-up-query.service';
 import type { CashOutService } from '../services/cash-out.service';
 import type { CountService } from '../services/count.service';
 import type { SaleService } from '../services/sale.service';
+import type { BusinessSetupService } from '../services/business-setup.service';
 import type { IdempotencyStore } from './idempotency';
 import type { InternalErrorReporter } from './errorMapper';
 import type { SessionProvider } from './session';
@@ -26,6 +27,19 @@ export interface HttpDependencies {
     | 'listSubmitted'
     | 'listReviewed'
     | 'getReviewDetail'
+  >;
+  readonly businessSetup: Pick<
+    BusinessSetupService,
+    | 'createBusiness'
+    | 'getBusiness'
+    | 'listMembers'
+    | 'deactivateMember'
+    | 'replaceManager'
+    | 'setBusinessSolo'
+    | 'createJoinCode'
+    | 'listJoinCodes'
+    | 'revokeJoinCode'
+    | 'redeemJoinCode'
   >;
   readonly idempotencyStore: IdempotencyStore;
   readonly reportInternalError?: InternalErrorReporter;

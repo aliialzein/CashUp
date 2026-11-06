@@ -1,6 +1,7 @@
 import type { UnitOfWork } from '../persistence';
 import { ActorResolver } from './actor-resolver';
 import { AuditTrail } from './audit-trail';
+import { BusinessSetupService } from './business-setup.service';
 import { CashUpApprovalPolicy } from './cash-up-approval-policy';
 import { CashUpLifecycleService } from './cash-up-lifecycle.service';
 import { CashUpQueryService } from './cash-up-query.service';
@@ -24,6 +25,7 @@ export function createServices(uow: UnitOfWork, overrides: ServiceOverrides = {}
 
   return {
     actorResolver: new ActorResolver(uow),
+    businessSetup: new BusinessSetupService(runner, permissions, uow),
     permissions,
     approvalPolicy,
     lifecycle: new CashUpLifecycleService(

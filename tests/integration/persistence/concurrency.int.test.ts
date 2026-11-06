@@ -349,28 +349,28 @@ describe("cash-up write serialization", () => {
 
     await expect(
       prisma.$executeRaw`
-        INSERT INTO "memberships" ("id", "userId", "businessId", "role", "isActive")
-        VALUES (${randomUUID()}::uuid, ${secondManager.id}::uuid, ${businessA.id}::uuid, 'MANAGER', true)
+        INSERT INTO "memberships" ("id", "userId", "businessId", "role", "status")
+        VALUES (${randomUUID()}::uuid, ${secondManager.id}::uuid, ${businessA.id}::uuid, 'MANAGER', 'ACTIVE')
       `,
     ).rejects.toThrow();
 
     await prisma.$executeRaw`
       UPDATE "memberships"
-      SET "isActive" = false
+      SET "status" = 'INACTIVE', "deactivatedAt" = CURRENT_TIMESTAMP
       WHERE "id" = ${businessA.members.manager.id}::uuid
     `;
     await expect(
       prisma.$executeRaw`
-        INSERT INTO "memberships" ("id", "userId", "businessId", "role", "isActive")
-        VALUES (${randomUUID()}::uuid, ${secondManager.id}::uuid, ${businessA.id}::uuid, 'MANAGER', true)
+        INSERT INTO "memberships" ("id", "userId", "businessId", "role", "status")
+        VALUES (${randomUUID()}::uuid, ${secondManager.id}::uuid, ${businessA.id}::uuid, 'MANAGER', 'ACTIVE')
       `,
     ).resolves.toBe(1);
 
     expect(await prisma.membership.count({
-      where: { businessId: businessA.id, role: "MANAGER", isActive: true },
+      where: { businessId: businessA.id, role: "MANAGER", status: "ACTIVE" },
     })).toBe(1);
     expect(await prisma.membership.count({
-      where: { businessId: businessB.id, role: "MANAGER", isActive: true },
+      where: { businessId: businessB.id, role: "MANAGER", status: "ACTIVE" },
     })).toBe(1);
 
     const secondOwner = await prisma.user.create({
@@ -378,8 +378,8 @@ describe("cash-up write serialization", () => {
     });
     await expect(
       prisma.$executeRaw`
-        INSERT INTO "memberships" ("id", "userId", "businessId", "role", "isActive")
-        VALUES (${randomUUID()}::uuid, ${secondOwner.id}::uuid, ${businessA.id}::uuid, 'OWNER', true)
+        INSERT INTO "memberships" ("id", "userId", "businessId", "role", "status")
+        VALUES (${randomUUID()}::uuid, ${secondOwner.id}::uuid, ${businessA.id}::uuid, 'OWNER', 'ACTIVE')
       `,
     ).rejects.toThrow();
   });

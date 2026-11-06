@@ -2,6 +2,105 @@
 @businessId = 11111111-1111-4111-8111-111111111111
 @staffUserId = 22222222-2222-4222-8222-222222222222
 @managerUserId = 33333333-3333-4333-8333-333333333333
+@ownerUserId = 88888888-8888-4888-8888-888888888888
+@memberId = 99999999-9999-4999-8999-999999999999
+@joinCodeId = aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+
+### Create a business (no business header)
+POST {{baseUrl}}/businesses
+Content-Type: application/json
+x-dev-user-id: {{ownerUserId}}
+
+{
+  "name": "CashUp Shop",
+  "isSolo": false
+}
+
+###
+
+### Read the current business
+GET {{baseUrl}}/business
+x-dev-user-id: {{ownerUserId}}
+x-dev-business-id: {{businessId}}
+
+###
+
+### Change solo mode
+PATCH {{baseUrl}}/business/solo
+Content-Type: application/json
+x-dev-user-id: {{ownerUserId}}
+x-dev-business-id: {{businessId}}
+
+{
+  "isSolo": true
+}
+
+###
+
+### List business members
+GET {{baseUrl}}/business/members
+x-dev-user-id: {{ownerUserId}}
+x-dev-business-id: {{businessId}}
+
+###
+
+### Deactivate a member
+POST {{baseUrl}}/business/members/{{memberId}}/deactivate
+x-dev-user-id: {{ownerUserId}}
+x-dev-business-id: {{businessId}}
+
+###
+
+### Replace the Manager
+PUT {{baseUrl}}/business/manager
+Content-Type: application/json
+x-dev-user-id: {{ownerUserId}}
+x-dev-business-id: {{businessId}}
+
+{
+  "memberId": "{{memberId}}"
+}
+
+###
+
+### Create a Staff join code
+# @name createJoinCode
+POST {{baseUrl}}/business/join-codes
+Content-Type: application/json
+x-dev-user-id: {{ownerUserId}}
+x-dev-business-id: {{businessId}}
+
+{
+  "maxUses": 5,
+  "expiresInDays": 7
+}
+
+###
+
+### List join codes (codes and hashes are never returned)
+GET {{baseUrl}}/business/join-codes
+x-dev-user-id: {{ownerUserId}}
+x-dev-business-id: {{businessId}}
+
+###
+
+### Revoke a join code
+POST {{baseUrl}}/business/join-codes/{{joinCodeId}}/revoke
+x-dev-user-id: {{ownerUserId}}
+x-dev-business-id: {{businessId}}
+
+###
+
+### Redeem a join code (no business header)
+POST {{baseUrl}}/join-codes/redeem
+Content-Type: application/json
+x-dev-user-id: {{staffUserId}}
+
+{
+  "code": "23456789ABCD"
+}
+
+###
 
 ### Open a Staff cash-up
 # @name openCashUp
