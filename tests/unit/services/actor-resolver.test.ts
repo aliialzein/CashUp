@@ -15,7 +15,7 @@ describe('ActorResolver', () => {
               userId,
               businessId: 'business-id',
               role: 'STAFF',
-              isActive: true,
+              status: 'ACTIVE',
               joinedAt: new Date(),
               deactivatedAt: null,
             };
@@ -56,7 +56,7 @@ describe('ActorResolver', () => {
             userId: 'user-id',
             businessId: 'business-id',
             role: 'STAFF',
-            isActive: false,
+            status: 'INACTIVE',
             joinedAt: new Date(),
             deactivatedAt: new Date(),
           }),

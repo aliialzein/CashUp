@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
+  createBusinessSchema,
+  createJoinCodeSchema,
   auditQuerySchema,
   cancelSaleSchema,
   cashUpHistoryQuerySchema,
@@ -9,10 +11,13 @@ import {
   editSaleSchema,
   listSalesQuerySchema,
   openCashUpSchema,
+  redeemJoinCodeSchema,
+  replaceManagerSchema,
   requestDeleteSaleSchema,
   requestVoidCashUpSchema,
   returnCashUpSchema,
   saveCountLinesSchema,
+  setBusinessSoloSchema,
   toValidationError,
   updateCashOutSchema,
   validateMergedCashOut,
@@ -31,6 +36,23 @@ const validSale = () => ({
 });
 
 describe('common schema rules', () => {
+  it('validates business setup schemas strictly and applies only documented defaults', () => {
+    expect(createBusinessSchema.parse({ name: '  Corner shop  ' })).toEqual({
+      name: 'Corner shop',
+      isSolo: false,
+    });
+    expect(createBusinessSchema.safeParse({ name: 'Shop', role: 'OWNER' }).success).toBe(false);
+    expect(createBusinessSchema.safeParse({ name: ' \n ' }).success).toBe(false);
+    expect(setBusinessSoloSchema.safeParse({ isSolo: true, extra: true }).success).toBe(false);
+    expect(replaceManagerSchema.safeParse({ memberId: uuid() }).success).toBe(true);
+    expect(replaceManagerSchema.safeParse({ memberId: uuid(), userId: uuid() }).success).toBe(false);
+    expect(createJoinCodeSchema.parse({})).toEqual({ maxUses: 1, expiresInDays: 7 });
+    expect(createJoinCodeSchema.safeParse({ maxUses: 101 }).success).toBe(false);
+    expect(createJoinCodeSchema.safeParse({ expiresInDays: 31 }).success).toBe(false);
+    expect(redeemJoinCodeSchema.safeParse({ code: '23456789ABCD' }).success).toBe(true);
+    expect(redeemJoinCodeSchema.safeParse({ code: '0123456789IO' }).success).toBe(false);
+  });
+
   it('normalizes money, applies defaults, and validates reference-rate bounds', () => {
     expect(openCashUpSchema.parse({})).toEqual({
       floatUsd: '0.00',

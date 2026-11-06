@@ -1,6 +1,23 @@
 import { MembershipRole } from '../../../src/persistence';
 import { permissionsFor, type Permission } from '../../../src/services/permissions';
 
+const businessRead: Permission[] = ['business.read'];
+
+const managerSetup: Permission[] = [
+  ...businessRead,
+  'members.list',
+  'members.deactivate',
+  'joinCodes.create',
+  'joinCodes.list',
+  'joinCodes.revoke',
+];
+
+const ownerSetup: Permission[] = [
+  ...managerSetup,
+  'manager.replace',
+  'business.changeSolo',
+];
+
 const expected: Record<`${MembershipRole}:${boolean}`, Permission[]> = {
   'STAFF:false': [
     'cashUp.open',
@@ -8,6 +25,7 @@ const expected: Record<`${MembershipRole}:${boolean}`, Permission[]> = {
     'cashUp.readOwn',
     'cashUp.listOwn',
     'cashUp.mutateOwn',
+    ...businessRead,
   ],
   'STAFF:true': [
     'cashUp.open',
@@ -15,6 +33,7 @@ const expected: Record<`${MembershipRole}:${boolean}`, Permission[]> = {
     'cashUp.readOwn',
     'cashUp.listOwn',
     'cashUp.mutateOwn',
+    ...businessRead,
   ],
   'MANAGER:false': [
     'cashUp.open',
@@ -27,6 +46,7 @@ const expected: Record<`${MembershipRole}:${boolean}`, Permission[]> = {
     'cashUp.listSubmitted',
     'audit.read',
     'cashUp.mutateOwn',
+    ...managerSetup,
   ],
   'MANAGER:true': [
     'cashUp.open',
@@ -39,6 +59,7 @@ const expected: Record<`${MembershipRole}:${boolean}`, Permission[]> = {
     'cashUp.listSubmitted',
     'audit.read',
     'cashUp.mutateOwn',
+    ...managerSetup,
   ],
   'OWNER:false': [
     'cashUp.review',
@@ -46,6 +67,7 @@ const expected: Record<`${MembershipRole}:${boolean}`, Permission[]> = {
     'cashUp.readReviewed',
     'cashUp.listSubmitted',
     'audit.read',
+    ...ownerSetup,
   ],
   'OWNER:true': [
     'cashUp.review',
@@ -58,6 +80,7 @@ const expected: Record<`${MembershipRole}:${boolean}`, Permission[]> = {
     'cashUp.readOwn',
     'cashUp.submit',
     'cashUp.mutateOwn',
+    ...ownerSetup,
   ],
 };
 
