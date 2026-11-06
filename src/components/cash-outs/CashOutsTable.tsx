@@ -6,7 +6,7 @@ import type { CashOut } from "@/types/cash-up";
 const TH = "h-10 px-5 font-medium";
 const TD = "h-14 px-5";
 
-export export type EmptyText = { title: string; text: string };
+export type EmptyText = { title: string; text: string };
 
 export const TODAY_EMPTY: EmptyText = {
     title: "No cash-outs yet",
