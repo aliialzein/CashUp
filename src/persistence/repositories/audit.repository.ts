@@ -38,19 +38,6 @@ export class AuditRepository extends TenantRepository {
     });
   }
 
-  appendMany(entries: AuditEntry[]) {
-    return this.db.auditLog.createMany({
-      data: entries.map((entry) => ({
-        businessId: this.businessId,
-        actorId: entry.actorUserId,
-        action: entry.action,
-        entityType: entry.entityType,
-        entityId: entry.entityId,
-        metadata: entry.metadata,
-      })),
-    });
-  }
-
   /** FR25: who, when, what. Newest first, cursor-paged. */
   list(query: AuditQuery = {}) {
     return this.db.auditLog.findMany({

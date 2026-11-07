@@ -23,10 +23,7 @@ export default function LoginPage() {
         title="Log in"
         description="Welcome back. Log in to your CashUp account."
       >
-        <LoginForm
-          onSubmit={handleLogin}
-          forgotPasswordHref="/forgot-password"
-        />
+        <LoginForm onSubmit={handleLogin} />
 
         <p className="mt-7 text-center text-sm text-[#667085]">
           New to CashUp?{" "}

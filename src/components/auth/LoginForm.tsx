@@ -14,10 +14,6 @@ export type LoginFormProps = {
    * To show an error, throw `new AuthError("INVALID_CREDENTIALS")` (or any Error).
    */
   onSubmit: (values: LoginValues) => Promise<void> | void;
-  /** Where the "Forgot password?" text goes. */
-  forgotPasswordHref?: string;
-  /** Optional: handle the click yourself (e.g. open a modal) instead of navigating. */
-  onForgotPassword?: () => void;
   /** Force the loading state from outside (optional). */
   loading?: boolean;
   /** Show a server error from outside (optional). */
@@ -39,8 +35,6 @@ function validate(values: LoginValues): FieldErrors {
 
 export function LoginForm({
   onSubmit,
-  forgotPasswordHref = "/forgot-password",
-  onForgotPassword,
   loading: loadingProp,
   errorMessage,
 }: LoginFormProps) {

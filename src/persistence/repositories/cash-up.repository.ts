@@ -232,15 +232,6 @@ export class CashUpRepository extends TenantRepository {
     return this.requireById(id);
   }
 
-  /** Records when counting started, once (pilot metric, FR29). No error if already set. */
-  async markCountStarted(id: string): Promise<void> {
-    await this.lockOpenForUpdate(id);
-    await this.db.cashUp.updateMany({
-      where: { id, businessId: this.businessId, status: CashUpStatus.OPEN, countStartedAt: null },
-      data: { countStartedAt: new Date() },
-    });
-  }
-
   /**
    * Atomically hands out the next sale number, only while the cash-up is OPEN.
    * Safe under concurrent requests: the increment happens in a single UPDATE.
