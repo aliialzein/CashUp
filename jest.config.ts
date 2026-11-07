@@ -20,6 +20,7 @@ const config: Config = {
   ],
   coverageThreshold: {
     global: { lines: 0, branches: 0 },
+    "./src/services": { lines: 90 },
     "./src/domain": { lines: 95, branches: 95 },
     "./src/validation": { lines: 95, branches: 95 },
   },

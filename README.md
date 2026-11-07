@@ -266,3 +266,17 @@ To add a later endpoint, create a thin `route.ts` under `src/app/api/v1` and add
 validation, error mapping, and response envelopes shared. When cookie sessions arrive in task
 4D, add an Origin/CSRF check in the session layer for mutating routes and replace the in-memory
 idempotency store with durable storage.
+
+
+### PostgreSQL integration tests
+
+Run `npm run test:integration` separately from the fast `npm test -- --runInBand` suite.
+The integration setup starts `docker compose --file docker-compose.test.yml up --detach`
+when `TEST_DATABASE_URL` is absent, waits for PostgreSQL, and applies existing migrations.
+Docker must be running. Missing Docker or PostgreSQL fails the command; tests are never silently skipped.
+
+Only the dedicated disposable service is accepted: database/user/password `cashup_test`,
+localhost port `55432`, with no URL query parameters. CI supplies the same PostgreSQL 16 service.
+Never point this suite at a development or production database: fixtures reset its tables.
+The Compose service uses tmpfs; after testing, stop it with
+`docker compose --file docker-compose.test.yml down` to discard its data.
