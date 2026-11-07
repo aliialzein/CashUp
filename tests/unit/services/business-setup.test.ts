@@ -7,7 +7,7 @@ import { BusinessSetupService } from '../../../src/services/business-setup.servi
 import { BusinessRuleError, ConflictError, ForbiddenError } from '../../../src/services/errors';
 import { markTransactionRepositories, type ServiceRepositories } from '../../../src/services/ports';
 import { UseCaseRunner } from '../../../src/services/use-case-runner';
-import { serviceRepositories } from './service-repositories';
+import { serviceRepositories, type ServiceRepositoryOverrides } from './service-repositories';
 
 const userId = 'cfd0db5d-cd96-4f5c-bb34-88d08e0748a8';
 const businessId = '02d32eae-21cb-497f-86e4-8a2df9e469f8';
@@ -65,9 +65,7 @@ function joinCode(overrides: Partial<JoinCode> = {}): JoinCode {
 }
 
 function service(
-  repositoryOverrides: Partial<{
-    [K in keyof ServiceRepositories]: Partial<ServiceRepositories[K]>;
-  }> = {},
+  repositoryOverrides: ServiceRepositoryOverrides = {},
   persistenceOverrides: Partial<ConstructorParameters<typeof BusinessSetupService>[1]> = {},
 ) {
   const repositories = serviceRepositories(repositoryOverrides);

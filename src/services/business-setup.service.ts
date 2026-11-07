@@ -268,7 +268,7 @@ export class BusinessSetupService {
     return { role: 'STAFF', status: 'ACTIVE' };
   }
 
-  private async requireBusiness(repos: TransactionRepositories) {
+  private async requireBusiness(repos: TransactionRepositories<'businesses'>) {
     const business = await repos.businesses.getBusiness();
     if (!business) throw new EntityNotFoundError();
     return business;

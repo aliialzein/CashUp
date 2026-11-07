@@ -75,18 +75,6 @@ export class MembershipRepository extends TenantRepository {
     });
   }
 
-  listByRole(role: MembershipRole, opts: { activeOnly?: boolean } = {}) {
-    return this.db.membership.findMany({
-      where: {
-        businessId: this.businessId,
-        role,
-        ...(opts.activeOnly ? { status: MembershipStatus.ACTIVE } : {}),
-      },
-      include: { user: { select: { id: true, fullName: true, email: true } } },
-      orderBy: { joinedAt: 'asc' },
-    });
-  }
-
   async addMember(userId: string, actorUserId: string): Promise<AddMemberResult> {
     this.requireTransaction();
     const userRows = await this.db.$queryRaw<Array<{ id: string }>>(Prisma.sql`

@@ -157,14 +157,14 @@ export class CashUpLifecycleService {
   }
 
   private async requireBusiness(
-    repos: TransactionRepositories,
+    repos: TransactionRepositories<'businesses'>,
   ): Promise<{ id: string; name: string; isSolo: boolean }> {
     const settings = await repos.businesses.findSettings();
     if (!settings) throw new EntityNotFoundError();
     return settings;
   }
 
-  private async requireCashUp(repos: TransactionRepositories, id: string) {
+  private async requireCashUp(repos: TransactionRepositories<'cashUps'>, id: string) {
     const cashUp = await repos.cashUps.findById(id);
     if (!cashUp) throw new EntityNotFoundError();
     return cashUp;

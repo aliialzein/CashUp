@@ -214,7 +214,6 @@ function setup(options: {
         created: options.saleCreated ?? true,
       })),
       findById: async () => currentSale,
-      findByIdempotencyKey: async () => currentSale,
       countByStatus: jest.fn(async () => ({
         total: 1,
         delivered: currentSale.status === 'DELIVERED' ? 1 : 0,

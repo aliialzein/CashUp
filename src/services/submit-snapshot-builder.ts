@@ -10,7 +10,7 @@ export type SnapshotCashUp = Pick<CashUpRow, 'id' | 'floatUsd' | 'floatLbp'>;
  * the state protected by the cash-up row lock already held by the caller.
  */
 export async function buildCashUpSnapshot(
-  repos: TransactionRepositories,
+  repos: TransactionRepositories<'sales' | 'cashOuts' | 'counts'>,
   cashUp: SnapshotCashUp,
 ): Promise<CashUpSnapshot> {
   const sales = await repos.sales.totalsByCurrencyAndMethod(cashUp.id);

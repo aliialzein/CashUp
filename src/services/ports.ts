@@ -21,11 +21,9 @@ export interface ServiceRepositories {
   >;
   readonly memberships: AwaitableMethods<
     Repositories['memberships'],
-    | 'findActiveByUser'
     | 'findById'
     | 'getMember'
     | 'listMembers'
-    | 'listByRole'
     | 'setMemberStatus'
     | 'replaceManager'
   >;
@@ -44,18 +42,15 @@ export interface ServiceRepositories {
     | 'listSubmitted'
     | 'listReviewed'
     | 'lockForUpdate'
-    | 'lockOpenForUpdate'
     | 'submit'
     | 'approve'
     | 'returnToOpen'
     | 'countUnresolvedCashUpsForUser'
-    | 'countUnresolvedCashUpsForBusiness'
   >;
   readonly sales: AwaitableMethods<
     Repositories['sales'],
     | 'create'
     | 'findById'
-    | 'findByIdempotencyKey'
     | 'edit'
     | 'markDelivered'
     | 'cancelToDeliver'
@@ -74,13 +69,16 @@ export interface ServiceRepositories {
     Repositories['counts'],
     'listByCashUp' | 'countedTotals' | 'saveLines'
   >;
-  readonly audit: AwaitableMethods<Repositories['audit'], 'append' | 'list'>;
+  readonly audit: AwaitableMethods<Repositories['audit'], 'append'>;
   readonly requests: AwaitableMethods<Repositories['requests'], 'countAwaitingByCashUp'>;
 }
 
 export const TRANSACTION_CONTEXT: unique symbol = Symbol('CashUpTransactionContext');
 
-export type TransactionRepositories = ServiceRepositories & {
+/** Narrow repository groups without dropping the transaction-context requirement. */
+export type TransactionRepositories<
+  K extends keyof ServiceRepositories = keyof ServiceRepositories,
+> = Pick<ServiceRepositories, K> & {
   readonly [TRANSACTION_CONTEXT]: true;
 };
 

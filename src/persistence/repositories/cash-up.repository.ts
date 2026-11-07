@@ -99,15 +99,6 @@ export class CashUpRepository extends TenantRepository {
     });
   }
 
-  countUnresolvedCashUpsForBusiness() {
-    return this.db.cashUp.count({
-      where: {
-        businessId: this.businessId,
-        status: { in: [CashUpStatus.OPEN, CashUpStatus.SUBMITTED] },
-      },
-    });
-  }
-
   findOpenByMembership(membershipId: string) {
     return this.db.cashUp.findFirst({
       where: { businessId: this.businessId, membershipId, status: CashUpStatus.OPEN },

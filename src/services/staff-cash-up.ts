@@ -5,7 +5,7 @@ import { assertCan } from './permissions';
 import type { TransactionRepositories } from './ports';
 
 export async function lockOwnOpenCashUp(
-  repos: TransactionRepositories,
+  repos: TransactionRepositories<'businesses' | 'cashUps'>,
   actor: Actor,
   cashUpId: string,
 ): Promise<void> {

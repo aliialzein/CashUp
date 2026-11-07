@@ -201,7 +201,7 @@ export class SaleService {
 }
 
 async function salesSummary(
-  repos: TransactionRepositories,
+  repos: TransactionRepositories<'sales'>,
   cashUpId: string,
 ): Promise<SaleMutationDto['salesSummary']> {
   return repos.sales.countByStatus(cashUpId);

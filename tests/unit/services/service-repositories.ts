@@ -4,7 +4,7 @@ const unused = async () => {
   throw new Error('Unexpected repository call in test.');
 };
 
-type ServiceRepositoryOverrides = {
+export type ServiceRepositoryOverrides = {
   [K in keyof ServiceRepositories]?: Partial<ServiceRepositories[K]>;
 };
 
@@ -20,11 +20,9 @@ export function serviceRepositories(
       ...overrides.businesses,
     },
     memberships: {
-      findActiveByUser: unused,
       findById: unused,
       getMember: unused,
       listMembers: unused,
-      listByRole: unused,
       setMemberStatus: unused,
       replaceManager: unused,
       ...overrides.memberships,
@@ -45,18 +43,15 @@ export function serviceRepositories(
       listSubmitted: unused,
       listReviewed: unused,
       lockForUpdate: unused,
-      lockOpenForUpdate: unused,
       submit: unused,
       approve: unused,
       returnToOpen: unused,
       countUnresolvedCashUpsForUser: unused,
-      countUnresolvedCashUpsForBusiness: unused,
       ...overrides.cashUps,
     },
     sales: {
       create: unused,
       findById: unused,
-      findByIdempotencyKey: unused,
       edit: unused,
       markDelivered: unused,
       cancelToDeliver: unused,
@@ -81,7 +76,7 @@ export function serviceRepositories(
       saveLines: unused,
       ...overrides.counts,
     },
-    audit: { append: unused, list: unused, ...overrides.audit },
+    audit: { append: unused, ...overrides.audit },
     requests: { countAwaitingByCashUp: unused, ...overrides.requests },
   };
 }

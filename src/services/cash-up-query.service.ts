@@ -179,7 +179,7 @@ export class CashUpQueryService {
   }
 
   private async requireBusiness(
-    repos: TransactionRepositories,
+    repos: TransactionRepositories<'businesses'>,
   ): Promise<{ id: string; name: string; isSolo: boolean }> {
     const settings = await repos.businesses.findSettings();
     if (!settings) throw new EntityNotFoundError();
@@ -187,7 +187,7 @@ export class CashUpQueryService {
   }
 
   private async filterReviewable<T extends { membershipId: string }>(
-    repos: TransactionRepositories,
+    repos: TransactionRepositories<'memberships'>,
     actor: Actor,
     cashUps: readonly T[],
     isSolo: boolean,

@@ -13,7 +13,7 @@ export interface AuditRecord {
 
 export class AuditTrail {
   async record(
-    repos: TransactionRepositories,
+    repos: TransactionRepositories<'audit'>,
     actor: Actor,
     entry: AuditRecord,
   ): Promise<void> {
