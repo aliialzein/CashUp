@@ -2,7 +2,7 @@ import {
   RequestStatus,
   RequestType,
   type CashUpCardData,
-} from "@/types/cash-up";
+} from "@/components/owner/cash-up-view-models";
 
 interface Props {
   requests: CashUpCardData["requests"];

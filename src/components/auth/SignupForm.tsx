@@ -6,7 +6,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 
-import type { SignupValues } from "@/types/auth";
+import type { SignupValues } from "@/components/auth/form-contracts";
 
 export type SignupFormProps = {
   onSubmit: (values: SignupValues) => Promise<void> | void;

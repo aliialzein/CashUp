@@ -10,7 +10,7 @@ import {
   SaleStatus,
   type RequestData,
   type SaleData,
-} from "@/types/cash-up";
+} from "@/components/owner/cash-up-view-models";
 
 interface Props {
   sales: SaleData[];

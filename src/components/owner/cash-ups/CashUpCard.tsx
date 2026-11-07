@@ -1,4 +1,4 @@
-import { CashUpStatus, RequestStatus, RequestType } from "@/types/cash-up";
+import { CashUpStatus, RequestStatus, RequestType } from "@/components/owner/cash-up-view-models";
 
 import { Button } from "@/components/ui/Button";
 

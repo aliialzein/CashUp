@@ -6,7 +6,7 @@ import AuthLayout from "@/components/auth/AuthLayout";
 import AuthCard from "@/components/auth/AuthCard";
 import { LoginForm } from "@/components/auth/LoginForm";
 
-import { AuthError, type LoginValues } from "@/types/auth";
+import { AuthError, type LoginValues } from "@/components/auth/form-contracts";
 
 async function handleLogin(values: LoginValues): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 1200));

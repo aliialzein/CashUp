@@ -6,7 +6,7 @@ import AuthLayout from "@/components/auth/AuthLayout";
 import AuthCard from "@/components/auth/AuthCard";
 import SignupForm from "@/components/auth/SignupForm";
 
-import type { SignupValues } from "@/types/auth";
+import type { SignupValues } from "@/components/auth/form-contracts";
 
 async function handleSignup(values: SignupValues): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 1200));

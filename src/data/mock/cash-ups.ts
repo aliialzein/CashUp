@@ -6,7 +6,7 @@ import {
   RequestType,
   RequestStatus,
   type CashUpCardData,
-} from "@/types/cash-up";
+} from "@/components/owner/cash-up-view-models";
 
 export const mockCashUps: CashUpCardData[] = [
   {

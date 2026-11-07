@@ -5,7 +5,7 @@ import { useState, type FormEvent } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
-import { AuthError, defaultAuthMessages } from "@/types/auth";
+import { AuthError, defaultAuthMessages } from "@/components/auth/form-contracts";
 
 export type ForgotPasswordFormProps = {
   /**
