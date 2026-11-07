@@ -2,10 +2,8 @@ import { Prisma } from '../../../src/generated/prisma/client';
 import type { CashOut, CashUp, Membership } from '../../../src/generated/prisma/client';
 import { ACTOR_BRAND } from '../../../src/services/actor';
 import type { Actor } from '../../../src/services/actor';
-import { CashUpApprovalPolicy } from '../../../src/services/cash-up-approval-policy';
 import { CashUpQueryService } from '../../../src/services/cash-up-query.service';
 import { EntityNotFoundError } from '../../../src/services/errors';
-import { PermissionMatrix } from '../../../src/services/permissions';
 import { markTransactionRepositories } from '../../../src/services/ports';
 import { UseCaseRunner } from '../../../src/services/use-case-runner';
 import { serviceRepositories } from './service-repositories';
@@ -178,11 +176,7 @@ function serviceWithCashOutRows(
   });
   return {
     rows,
-    service: new CashUpQueryService(
-      runner,
-      new PermissionMatrix(),
-      new CashUpApprovalPolicy(),
-    ),
+    service: new CashUpQueryService(runner),
   };
 }
 

@@ -14,7 +14,6 @@ import { AuditTrail } from './audit-trail';
 import type { SaleCreateResultDto, SaleMutationDto } from './dto';
 import { BusinessRuleError, ConflictError, EntityNotFoundError } from './errors';
 import { mapSaleLine } from './mappers/sale.mapper';
-import { PermissionMatrix } from './permissions';
 import type { TransactionRepositories } from './ports';
 import { lockOwnOpenCashUp, tenantScope } from './staff-cash-up';
 import { UseCaseRunner } from './use-case-runner';
@@ -25,7 +24,6 @@ const SALE_ENTITY = AuditEntityType.SALE;
 export class SaleService {
   constructor(
     private readonly runner: UseCaseRunner,
-    private readonly permissions: PermissionMatrix,
     private readonly audit: AuditTrail,
   ) {}
 
@@ -36,7 +34,7 @@ export class SaleService {
     idempotencyKey: string,
   ): Promise<SaleCreateResultDto> {
     return this.runner.run(tenantScope(actor), async (repos) => {
-      await lockOwnOpenCashUp(repos, this.permissions, actor, cashUpId);
+      await lockOwnOpenCashUp(repos, actor, cashUpId);
       const balance = checkSaleBalance(input);
       if (!balance.balanced) throw new BusinessRuleError('SALE_NOT_BALANCED');
 
@@ -77,7 +75,7 @@ export class SaleService {
     return this.runner.run(tenantScope(actor), async (repos) => {
       const beforeLock = await repos.sales.findById(saleId);
       if (!beforeLock || beforeLock.cashUpId !== cashUpId) throw new EntityNotFoundError();
-      await lockOwnOpenCashUp(repos, this.permissions, actor, cashUpId);
+      await lockOwnOpenCashUp(repos, actor, cashUpId);
 
       const current = await repos.sales.findById(saleId);
       if (!current || current.cashUpId !== cashUpId) throw new EntityNotFoundError();
@@ -135,7 +133,7 @@ export class SaleService {
     return this.runner.run(tenantScope(actor), async (repos) => {
       const beforeLock = await repos.sales.findById(saleId);
       if (!beforeLock || beforeLock.cashUpId !== cashUpId) throw new EntityNotFoundError();
-      await lockOwnOpenCashUp(repos, this.permissions, actor, cashUpId);
+      await lockOwnOpenCashUp(repos, actor, cashUpId);
 
       const current = await repos.sales.findById(saleId);
       if (!current || current.cashUpId !== cashUpId) throw new EntityNotFoundError();
@@ -176,7 +174,7 @@ export class SaleService {
     return this.runner.run(tenantScope(actor), async (repos) => {
       const beforeLock = await repos.sales.findById(saleId);
       if (!beforeLock || beforeLock.cashUpId !== cashUpId) throw new EntityNotFoundError();
-      await lockOwnOpenCashUp(repos, this.permissions, actor, cashUpId);
+      await lockOwnOpenCashUp(repos, actor, cashUpId);
 
       const current = await repos.sales.findById(saleId);
       if (!current || current.cashUpId !== cashUpId) throw new EntityNotFoundError();

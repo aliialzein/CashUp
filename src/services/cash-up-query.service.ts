@@ -3,7 +3,7 @@ import { CashUpStatus, SaleStatus } from '../persistence';
 import { computeExpectedAndGap, summarizeSales, walletTotals } from '../domain/money';
 import type { CashUpHistoryQuery, PageQuery } from '../validation';
 import type { Actor } from './actor';
-import { CashUpApprovalPolicy } from './cash-up-approval-policy';
+import { canReview } from './cash-up-approval-policy';
 import type {
   CashUpDto,
   CashUpOwnDto,
@@ -15,23 +15,19 @@ import { mapCashUp, mapOpenCashUpSummary } from './mappers/cash-up.mapper';
 import { mapCashOut } from './mappers/cash-out.mapper';
 import { mapCountEntry } from './mappers/count-entry.mapper';
 import { mapSaleLine } from './mappers/sale.mapper';
-import { PermissionMatrix } from './permissions';
+import { assertCan } from './permissions';
 import type { TransactionRepositories } from './ports';
 import { UseCaseRunner } from './use-case-runner';
 
 const REVIEW_SCAN_BATCH = 100;
 
 export class CashUpQueryService {
-  constructor(
-    private readonly runner: UseCaseRunner,
-    private readonly permissions: PermissionMatrix,
-    private readonly approvalPolicy: CashUpApprovalPolicy,
-  ) {}
+  constructor(private readonly runner: UseCaseRunner) {}
 
   getOwn(actor: Actor, id: string): Promise<CashUpOwnDto> {
     return this.runner.run(this.scope(actor), async (repos) => {
       const settings = await this.requireBusiness(repos);
-      this.permissions.assertCan(actor, 'cashUp.readOwn', settings.isSolo);
+      assertCan(actor, 'cashUp.readOwn', settings.isSolo);
       const cashUp = await repos.cashUps.findOwn(id, actor.membershipId);
       if (!cashUp) throw new EntityNotFoundError();
       const [sales, salesSummary, cashOuts] = await Promise.all([
@@ -51,7 +47,7 @@ export class CashUpQueryService {
   listOwn(actor: Actor, query: PageQuery): Promise<CashUpDto[]> {
     return this.runner.run(this.scope(actor), async (repos) => {
       const settings = await this.requireBusiness(repos);
-      this.permissions.assertCan(actor, 'cashUp.listOwn', settings.isSolo);
+      assertCan(actor, 'cashUp.listOwn', settings.isSolo);
       const rows = await repos.cashUps.listOwn(actor.membershipId, {
         take: query.take,
         cursorId: query.cursorId,
@@ -63,7 +59,7 @@ export class CashUpQueryService {
   listOpenSummaries(actor: Actor): Promise<OpenCashUpSummaryDto[]> {
     return this.runner.run(this.scope(actor), async (repos) => {
       const settings = await this.requireBusiness(repos);
-      this.permissions.assertCan(actor, 'cashUp.listOpenSummaries', settings.isSolo);
+      assertCan(actor, 'cashUp.listOpenSummaries', settings.isSolo);
       return (await repos.cashUps.listOpenSummaries()).map(mapOpenCashUpSummary);
     });
   }
@@ -71,7 +67,7 @@ export class CashUpQueryService {
   listSubmitted(actor: Actor): Promise<CashUpDto[]> {
     return this.runner.run(this.scope(actor), async (repos) => {
       const settings = await this.requireBusiness(repos);
-      this.permissions.assertCan(actor, 'cashUp.listSubmitted', settings.isSolo);
+      assertCan(actor, 'cashUp.listSubmitted', settings.isSolo);
       const submitted = await repos.cashUps.listSubmitted();
       const visible = await this.filterReviewable(repos, actor, submitted, settings.isSolo);
       return visible.map(mapCashUp);
@@ -81,7 +77,7 @@ export class CashUpQueryService {
   listReviewed(actor: Actor, query: CashUpHistoryQuery): Promise<CashUpDto[]> {
     return this.runner.run(this.scope(actor), async (repos) => {
       const settings = await this.requireBusiness(repos);
-      this.permissions.assertCan(actor, 'cashUp.readReviewed', settings.isSolo);
+      assertCan(actor, 'cashUp.readReviewed', settings.isSolo);
       const filters = {
         from: query.from ? new Date(`${query.from}T00:00:00.000Z`) : undefined,
         to: query.to ? new Date(`${query.to}T23:59:59.999Z`) : undefined,
@@ -129,7 +125,7 @@ export class CashUpQueryService {
   getReviewDetail(actor: Actor, id: string): Promise<CashUpReviewDto> {
     return this.runner.run(this.scope(actor), async (repos) => {
       const settings = await this.requireBusiness(repos);
-      this.permissions.assertCan(actor, 'cashUp.readReviewed', settings.isSolo);
+      assertCan(actor, 'cashUp.readReviewed', settings.isSolo);
       const cashUp = await repos.cashUps.findForReview(id);
       if (!cashUp) throw new EntityNotFoundError();
       this.assertReviewable(
@@ -204,7 +200,7 @@ export class CashUpQueryService {
         visible.push(cashUp);
         continue;
       }
-      const decision = this.approvalPolicy.canReview({
+      const decision = canReview({
         reviewer: actor.role,
         reviewerMembershipId: actor.membershipId,
         cashUpOwner: owner.role,
@@ -223,7 +219,7 @@ export class CashUpQueryService {
     isSolo: boolean,
   ): void {
     if (ownerMembershipId === actor.membershipId) throw new EntityNotFoundError();
-    const decision = this.approvalPolicy.canReview({
+    const decision = canReview({
       reviewer: actor.role,
       reviewerMembershipId: actor.membershipId,
       cashUpOwner: ownerRole,

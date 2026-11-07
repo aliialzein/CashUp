@@ -8,7 +8,7 @@ import type {
 } from '../validation';
 import type { Actor } from './actor';
 import { BusinessRuleError, ConflictError, EntityNotFoundError, ForbiddenError } from './errors';
-import { PermissionMatrix } from './permissions';
+import { assertCan } from './permissions';
 import type { TransactionRepositories } from './ports';
 import { UseCaseRunner } from './use-case-runner';
 
@@ -45,7 +45,6 @@ type SetupPersistence = Pick<UnitOfWork, 'createBusinessWithOwner' | 'redeemJoin
 export class BusinessSetupService {
   constructor(
     private readonly runner: UseCaseRunner,
-    private readonly permissions: PermissionMatrix,
     private readonly persistence: SetupPersistence,
   ) {}
 
@@ -71,7 +70,7 @@ export class BusinessSetupService {
 
   getBusiness(actor: Actor): Promise<BusinessDto> {
     return this.runner.run({ businessId: actor.businessId }, async (repos) => {
-      this.permissions.assertCan(actor, 'business.read', false);
+      assertCan(actor, 'business.read', false);
       const business = await repos.businesses.getBusiness();
       if (!business) throw new EntityNotFoundError();
       return {
@@ -86,7 +85,7 @@ export class BusinessSetupService {
   listMembers(actor: Actor): Promise<MemberDto[]> {
     return this.runner.run({ businessId: actor.businessId }, async (repos) => {
       const business = await this.requireBusiness(repos);
-      this.permissions.assertCan(actor, 'members.list', business.isSolo);
+      assertCan(actor, 'members.list', business.isSolo);
       const members = await repos.memberships.listMembers();
       return members.map(mapMember);
     });
@@ -96,7 +95,7 @@ export class BusinessSetupService {
     return this.runner.run({ businessId: actor.businessId }, async (repos) => {
       const business = await repos.businesses.lockBusiness();
       if (!business) throw new EntityNotFoundError();
-      this.permissions.assertCan(actor, 'members.deactivate', business.isSolo);
+      assertCan(actor, 'members.deactivate', business.isSolo);
       const target = await repos.memberships.getMember(memberId);
       if (!target) throw new EntityNotFoundError();
       if (target.userId === actor.userId) {
@@ -138,7 +137,7 @@ export class BusinessSetupService {
     return this.runner.run({ businessId: actor.businessId }, async (repos) => {
       const business = await repos.businesses.lockBusiness();
       if (!business) throw new EntityNotFoundError();
-      this.permissions.assertCan(actor, 'manager.replace', business.isSolo);
+      assertCan(actor, 'manager.replace', business.isSolo);
       if (business.isSolo) throw new BusinessRuleError('MANAGER_CHANGE_IN_SOLO_BUSINESS');
 
       const target = await repos.memberships.getMember(memberId);
@@ -169,7 +168,7 @@ export class BusinessSetupService {
   setBusinessSolo(actor: Actor, input: SetBusinessSolo): Promise<BusinessDto> {
     return this.runner.run({ businessId: actor.businessId }, async (repos) => {
       const business = await this.requireBusiness(repos);
-      this.permissions.assertCan(actor, 'business.changeSolo', business.isSolo);
+      assertCan(actor, 'business.changeSolo', business.isSolo);
       const result = await repos.businesses.setBusinessSolo(input.isSolo, actor.userId);
       if (
         result.status === 'updated' &&
@@ -193,7 +192,7 @@ export class BusinessSetupService {
   ): Promise<{ id: string; code: string; expiresAt: string; maxUses: number }> {
     return this.runner.run({ businessId: actor.businessId }, async (repos) => {
       const business = await this.requireBusiness(repos);
-      this.permissions.assertCan(actor, 'joinCodes.create', business.isSolo);
+      assertCan(actor, 'joinCodes.create', business.isSolo);
       const code = createReadableJoinCode();
       const expiresAt = new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000);
       const joinCode = await repos.joinCodes.createJoinCode(
@@ -217,7 +216,7 @@ export class BusinessSetupService {
   listJoinCodes(actor: Actor): Promise<JoinCodeDto[]> {
     return this.runner.run({ businessId: actor.businessId }, async (repos) => {
       const business = await this.requireBusiness(repos);
-      this.permissions.assertCan(actor, 'joinCodes.list', business.isSolo);
+      assertCan(actor, 'joinCodes.list', business.isSolo);
       const now = new Date();
       return (await repos.joinCodes.listJoinCodes()).map((joinCode) => ({
         id: joinCode.id,
@@ -239,7 +238,7 @@ export class BusinessSetupService {
   revokeJoinCode(actor: Actor, id: string): Promise<{ id: string; status: 'revoked' }> {
     return this.runner.run({ businessId: actor.businessId }, async (repos) => {
       const business = await this.requireBusiness(repos);
-      this.permissions.assertCan(actor, 'joinCodes.revoke', business.isSolo);
+      assertCan(actor, 'joinCodes.revoke', business.isSolo);
       const result = await repos.joinCodes.revokeJoinCode(id, actor.userId);
       if (result.status === 'not_found' || result.status === 'stale') {
         throw new EntityNotFoundError();

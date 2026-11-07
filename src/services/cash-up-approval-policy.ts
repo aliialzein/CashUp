@@ -20,22 +20,20 @@ export interface ReviewActors {
   readonly isSolo: boolean;
 }
 
-export class CashUpApprovalPolicy {
-  selectReviewerRole(ownerRole: MembershipRole, isSolo: boolean): MembershipRole | null {
-    return REVIEWER_ROLE_BY_OWNER[ownerRole][isSolo ? 'solo' : 'regular'];
+export function selectReviewerRole(ownerRole: MembershipRole, isSolo: boolean): MembershipRole | null {
+  return REVIEWER_ROLE_BY_OWNER[ownerRole][isSolo ? 'solo' : 'regular'];
+}
+
+export function canReview(input: ReviewActors): ReviewDecision {
+  const expectedRole = selectReviewerRole(input.cashUpOwner, input.isSolo);
+  if (expectedRole === null || input.reviewer !== expectedRole) {
+    return { allowed: false, reason: 'WRONG_REVIEWER_ROLE' };
   }
 
-  canReview(input: ReviewActors): ReviewDecision {
-    const expectedRole = this.selectReviewerRole(input.cashUpOwner, input.isSolo);
-    if (expectedRole === null || input.reviewer !== expectedRole) {
-      return { allowed: false, reason: 'WRONG_REVIEWER_ROLE' };
-    }
-
-    const isSelf = input.reviewerMembershipId === input.ownerMembershipId;
-    if (!isSelf) return { allowed: true, selfApproved: false };
-    if (input.isSolo && input.cashUpOwner === 'OWNER' && input.reviewer === 'OWNER') {
-      return { allowed: true, selfApproved: true };
-    }
-    return { allowed: false, reason: 'SELF_REVIEW_FORBIDDEN' };
+  const isSelf = input.reviewerMembershipId === input.ownerMembershipId;
+  if (!isSelf) return { allowed: true, selfApproved: false };
+  if (input.isSolo && input.cashUpOwner === 'OWNER' && input.reviewer === 'OWNER') {
+    return { allowed: true, selfApproved: true };
   }
+  return { allowed: false, reason: 'SELF_REVIEW_FORBIDDEN' };
 }

@@ -1,9 +1,9 @@
 import { Prisma } from '../../../src/generated/prisma/client';
 import { markTransactionRepositories } from '../../../src/services/ports';
-import { SubmitSnapshotBuilder } from '../../../src/services/submit-snapshot-builder';
+import { buildCashUpSnapshot } from '../../../src/services/submit-snapshot-builder';
 import { serviceRepositories } from './service-repositories';
 
-describe('SubmitSnapshotBuilder', () => {
+describe('buildCashUpSnapshot', () => {
   it('reads transaction aggregates for the cash-up and returns persisted snapshot fields', async () => {
     const calls: string[] = [];
     const repositories = serviceRepositories({
@@ -74,8 +74,7 @@ describe('SubmitSnapshotBuilder', () => {
         },
       },
     });
-    const builder = new SubmitSnapshotBuilder();
-    const result = await builder.build(
+    const result = await buildCashUpSnapshot(
       markTransactionRepositories(repositories),
       {
         id: 'cash-up-id',

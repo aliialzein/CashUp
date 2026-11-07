@@ -5,7 +5,6 @@ import { ACTOR_BRAND } from '../../../src/services/actor';
 import type { Actor } from '../../../src/services/actor';
 import { BusinessSetupService } from '../../../src/services/business-setup.service';
 import { BusinessRuleError, ConflictError, ForbiddenError } from '../../../src/services/errors';
-import { PermissionMatrix } from '../../../src/services/permissions';
 import { markTransactionRepositories, type ServiceRepositories } from '../../../src/services/ports';
 import { UseCaseRunner } from '../../../src/services/use-case-runner';
 import { serviceRepositories } from './service-repositories';
@@ -69,7 +68,7 @@ function service(
   repositoryOverrides: Partial<{
     [K in keyof ServiceRepositories]: Partial<ServiceRepositories[K]>;
   }> = {},
-  persistenceOverrides: Partial<ConstructorParameters<typeof BusinessSetupService>[2]> = {},
+  persistenceOverrides: Partial<ConstructorParameters<typeof BusinessSetupService>[1]> = {},
 ) {
   const repositories = serviceRepositories(repositoryOverrides);
   const runner = new UseCaseRunner({
@@ -78,7 +77,7 @@ function service(
       callback: (repos: ServiceRepositories) => Promise<T>,
     ) => callback(markTransactionRepositories(repositories)),
   });
-  const persistence: ConstructorParameters<typeof BusinessSetupService>[2] = {
+  const persistence: ConstructorParameters<typeof BusinessSetupService>[1] = {
     createBusinessWithOwner: async () => ({ status: 'user_not_found' }),
     redeemJoinCodeByHash: async () => ({ status: 'not_found' }),
     ...persistenceOverrides,
@@ -86,7 +85,7 @@ function service(
   return {
     repositories,
     persistence,
-    service: new BusinessSetupService(runner, new PermissionMatrix(), persistence),
+    service: new BusinessSetupService(runner, persistence),
   };
 }
 

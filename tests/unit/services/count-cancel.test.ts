@@ -8,7 +8,6 @@ import type { Actor } from '../../../src/services/actor';
 import { CashOutService } from '../../../src/services/cash-out.service';
 import { CountService } from '../../../src/services/count.service';
 import { EntityNotFoundError } from '../../../src/services/errors';
-import { PermissionMatrix } from '../../../src/services/permissions';
 import { UseCaseRunner } from '../../../src/services/use-case-runner';
 import { serviceRepositories } from './service-repositories';
 
@@ -107,9 +106,8 @@ function setupRepositories() {
   const runner = new UseCaseRunner({
     run: async (_scope, fn) => fn(repositories),
   });
-  const permissions = new PermissionMatrix();
   const audit = { record: async () => undefined };
-  return { repositories, runner, permissions, audit };
+  return { repositories, runner, audit };
 }
 
 describe('CountService', () => {
@@ -122,7 +120,6 @@ describe('CountService', () => {
     });
     const service = new CountService(
       runner,
-      new PermissionMatrix(),
       { record: async () => undefined },
     );
 
@@ -133,7 +130,7 @@ describe('CountService', () => {
 
   it('replaces a whole count set and returns counted totals', async () => {
     const app = setupRepositories();
-    const service = new CountService(app.runner, app.permissions, app.audit);
+    const service = new CountService(app.runner, app.audit);
 
     await expect(
       service.replace(actor, cashUpId, {
@@ -150,7 +147,7 @@ describe('CountService', () => {
 describe('CashOutService.cancel', () => {
   it('cancels an active cash-out with the supplied reason', async () => {
     const app = setupRepositories();
-    const service = new CashOutService(app.runner, app.permissions, app.audit);
+    const service = new CashOutService(app.runner, app.audit);
 
     await expect(
       service.cancel(actor, cashUpId, cashOut('ACTIVE').id, 'No longer needed'),

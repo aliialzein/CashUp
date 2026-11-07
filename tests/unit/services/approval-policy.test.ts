@@ -1,8 +1,7 @@
 import { MembershipRole } from '../../../src/persistence';
-import { CashUpApprovalPolicy } from '../../../src/services/cash-up-approval-policy';
+import { canReview, selectReviewerRole } from '../../../src/services/cash-up-approval-policy';
 
-describe('CashUpApprovalPolicy', () => {
-  const policy = new CashUpApprovalPolicy();
+describe('cash-up approval policy', () => {
   const roles = Object.values(MembershipRole);
 
   it.each(roles.flatMap((reviewer) =>
@@ -14,8 +13,8 @@ describe('CashUpApprovalPolicy', () => {
     cashUpOwner,
     isSolo,
   ) => {
-    const expectedRole = policy.selectReviewerRole(cashUpOwner, isSolo);
-    const decision = policy.canReview({
+    const expectedRole = selectReviewerRole(cashUpOwner, isSolo);
+    const decision = canReview({
       reviewer,
       reviewerMembershipId: 'reviewer-id',
       cashUpOwner,
@@ -31,7 +30,7 @@ describe('CashUpApprovalPolicy', () => {
 
   it('allows only solo Owner self-approval', () => {
     expect(
-      policy.canReview({
+      canReview({
         reviewer: 'OWNER',
         reviewerMembershipId: 'owner-id',
         cashUpOwner: 'OWNER',
@@ -40,7 +39,7 @@ describe('CashUpApprovalPolicy', () => {
       }),
     ).toEqual({ allowed: true, selfApproved: true });
     expect(
-      policy.canReview({
+      canReview({
         reviewer: 'MANAGER',
         reviewerMembershipId: 'same-id',
         cashUpOwner: 'STAFF',

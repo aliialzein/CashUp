@@ -90,13 +90,3 @@ export function permissionsFor(
 export function assertCan(actor: Actor, permission: Permission, isSolo: boolean): void {
   if (!permissionsFor(actor.role, isSolo).has(permission)) throw new ForbiddenError();
 }
-
-export class PermissionMatrix {
-  permissionsFor(role: MembershipRole, isSolo: boolean): ReadonlySet<Permission> {
-    return permissionsFor(role, isSolo);
-  }
-
-  assertCan(actor: Actor, permission: Permission, isSolo: boolean): void {
-    assertCan(actor, permission, isSolo);
-  }
-}

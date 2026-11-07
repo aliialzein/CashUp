@@ -7,7 +7,7 @@ import {
 } from '../persistence';
 import type { OpenCashUpInput } from '../validation';
 import type { Actor } from './actor';
-import { CashUpApprovalPolicy } from './cash-up-approval-policy';
+import { canReview } from './cash-up-approval-policy';
 import { AuditTrail } from './audit-trail';
 import type { CashUpDto } from './dto';
 import {
@@ -17,9 +17,9 @@ import {
   ForbiddenError,
 } from './errors';
 import { mapCashUp } from './mappers/cash-up.mapper';
-import { PermissionMatrix } from './permissions';
+import { assertCan } from './permissions';
 import type { TransactionRepositories } from './ports';
-import { SubmitSnapshotBuilder } from './submit-snapshot-builder';
+import { buildCashUpSnapshot } from './submit-snapshot-builder';
 import { UseCaseRunner } from './use-case-runner';
 
 const CASH_UP_ENTITY = AuditEntityType.CASH_UP;
@@ -27,9 +27,6 @@ const CASH_UP_ENTITY = AuditEntityType.CASH_UP;
 export class CashUpLifecycleService {
   constructor(
     private readonly runner: UseCaseRunner,
-    private readonly permissions: PermissionMatrix,
-    private readonly approvalPolicy: CashUpApprovalPolicy,
-    private readonly snapshots: SubmitSnapshotBuilder,
     private readonly audit: AuditTrail,
   ) {}
 
@@ -37,7 +34,7 @@ export class CashUpLifecycleService {
     const scope: TenantScope = { businessId: actor.businessId };
     return this.runner.run(scope, async (repos) => {
       const settings = await this.requireBusiness(repos);
-      this.permissions.assertCan(actor, 'cashUp.open', settings.isSolo);
+      assertCan(actor, 'cashUp.open', settings.isSolo);
       let opened;
       try {
         opened = await repos.cashUps.open({
@@ -64,7 +61,7 @@ export class CashUpLifecycleService {
     const scope: TenantScope = { businessId: actor.businessId };
     return this.runner.run(scope, async (repos) => {
       const settings = await this.requireBusiness(repos);
-      this.permissions.assertCan(actor, 'cashUp.submit', settings.isSolo);
+      assertCan(actor, 'cashUp.submit', settings.isSolo);
       const locked = await repos.cashUps.lockForUpdate(cashUpId);
       const cashUp = await repos.cashUps.findOwn(cashUpId, actor.membershipId);
       if (!cashUp) throw new EntityNotFoundError();
@@ -83,7 +80,7 @@ export class CashUpLifecycleService {
         throw new BusinessRuleError('REQUESTS_AWAITING_DECISION');
       }
 
-      const snapshot = await this.snapshots.build(repos, cashUp);
+      const snapshot = await buildCashUpSnapshot(repos, cashUp);
       await repos.cashUps.submit(cashUpId, snapshot);
       await this.audit.record(repos, actor, {
         action: AuditAction.CASHUP_SUBMITTED,
@@ -99,7 +96,7 @@ export class CashUpLifecycleService {
     const scope: TenantScope = { businessId: actor.businessId };
     return this.runner.run(scope, async (repos) => {
       const settings = await this.requireBusiness(repos);
-      this.permissions.assertCan(actor, 'cashUp.review', settings.isSolo);
+      assertCan(actor, 'cashUp.review', settings.isSolo);
       const locked = await repos.cashUps.lockForUpdate(cashUpId);
       if (locked.status === CashUpStatus.OPEN) throw new EntityNotFoundError();
       if (locked.status !== CashUpStatus.SUBMITTED) {
@@ -108,7 +105,7 @@ export class CashUpLifecycleService {
       const cashUp = await this.requireCashUp(repos, cashUpId);
       const owner = await repos.memberships.findById(cashUp.membershipId);
       if (!owner) throw new EntityNotFoundError();
-      const decision = this.approvalPolicy.canReview({
+      const decision = canReview({
         reviewer: actor.role,
         reviewerMembershipId: actor.membershipId,
         cashUpOwner: owner.role,
@@ -137,7 +134,7 @@ export class CashUpLifecycleService {
     const scope: TenantScope = { businessId: actor.businessId };
     return this.runner.run(scope, async (repos) => {
       const settings = await this.requireBusiness(repos);
-      this.permissions.assertCan(actor, 'cashUp.review', settings.isSolo);
+      assertCan(actor, 'cashUp.review', settings.isSolo);
       const locked = await repos.cashUps.lockForUpdate(cashUpId);
       if (locked.status === CashUpStatus.OPEN) throw new EntityNotFoundError();
       if (locked.status !== CashUpStatus.SUBMITTED) {
@@ -179,7 +176,7 @@ export class CashUpLifecycleService {
     ownerMembershipId: string,
     isSolo: boolean,
   ): void {
-    const decision = this.approvalPolicy.canReview({
+    const decision = canReview({
       reviewer: actor.role,
       reviewerMembershipId: actor.membershipId,
       cashUpOwner: ownerRole,

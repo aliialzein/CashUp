@@ -5,14 +5,13 @@ import type { Actor } from './actor';
 import { AuditTrail } from './audit-trail';
 import type { CountDto } from './dto';
 import { EntityNotFoundError } from './errors';
-import { PermissionMatrix } from './permissions';
+import { assertCan } from './permissions';
 import { lockOwnOpenCashUp, tenantScope } from './staff-cash-up';
 import { UseCaseRunner } from './use-case-runner';
 
 export class CountService {
   constructor(
     private readonly runner: UseCaseRunner,
-    private readonly permissions: PermissionMatrix,
     private readonly audit: AuditTrail,
   ) {}
 
@@ -20,8 +19,8 @@ export class CountService {
     return this.runner.run(tenantScope(actor), async (repos) => {
       const settings = await repos.businesses.findSettings();
       if (!settings) throw new EntityNotFoundError();
-      this.permissions.assertCan(actor, 'cashUp.mutateOwn', settings.isSolo);
-      await lockOwnOpenCashUp(repos, this.permissions, actor, cashUpId);
+      assertCan(actor, 'cashUp.mutateOwn', settings.isSolo);
+      await lockOwnOpenCashUp(repos, actor, cashUpId);
 
       const rows = await repos.counts.saveLines(
         cashUpId,

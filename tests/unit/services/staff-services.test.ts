@@ -9,7 +9,6 @@ import type {
 import { ACTOR_BRAND } from '../../../src/services/actor';
 import type { Actor } from '../../../src/services/actor';
 import { CashOutService } from '../../../src/services/cash-out.service';
-import { CashUpApprovalPolicy } from '../../../src/services/cash-up-approval-policy';
 import { CashUpLifecycleService } from '../../../src/services/cash-up-lifecycle.service';
 import { CountService } from '../../../src/services/count.service';
 import {
@@ -18,10 +17,8 @@ import {
   EntityNotFoundError,
   ForbiddenError,
 } from '../../../src/services/errors';
-import { PermissionMatrix } from '../../../src/services/permissions';
 import { DuplicateError } from '../../../src/persistence';
 import { SaleService } from '../../../src/services/sale.service';
-import { SubmitSnapshotBuilder } from '../../../src/services/submit-snapshot-builder';
 import type { ServiceRepositories } from '../../../src/services/ports';
 import { markTransactionRepositories } from '../../../src/services/ports';
 import { UseCaseRunner } from '../../../src/services/use-case-runner';
@@ -287,25 +284,17 @@ function setup(options: {
   const runner = new UseCaseRunner({
     run: async (_scope, fn) => fn(markTransactionRepositories(repos)),
   });
-  const permissions = new PermissionMatrix();
   return {
     repos,
     audit,
     runner,
-    permissions,
     actor: actor(options.role, options.actorId),
     sale: currentSale,
     cashUp: currentCashUp,
-    sales: new SaleService(runner, permissions, audit),
-    cashOuts: new CashOutService(runner, permissions, audit),
-    counts: new CountService(runner, permissions, audit),
-    lifecycle: new CashUpLifecycleService(
-      runner,
-      permissions,
-      new CashUpApprovalPolicy(),
-      new SubmitSnapshotBuilder(),
-      audit,
-    ),
+    sales: new SaleService(runner, audit),
+    cashOuts: new CashOutService(runner, audit),
+    counts: new CountService(runner, audit),
+    lifecycle: new CashUpLifecycleService(runner, audit),
   };
 }
 
