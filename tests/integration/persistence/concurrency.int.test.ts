@@ -138,6 +138,7 @@ describe("cash-up write serialization", () => {
     "sales.create",
     "cashOuts.create",
     "cashOuts.update",
+    "cashOuts.cancel",
     "counts.saveLines",
     "sales.markDelivered",
     "sales.cancelToDeliver",
@@ -155,7 +156,7 @@ describe("cash-up write serialization", () => {
           repos.sales.create(makeSaleInput(cashUp.id)),
         )
       ).sale.id;
-    } else if (operation === "cashOuts.update") {
+    } else if (operation === "cashOuts.update" || operation === "cashOuts.cancel") {
       cashOutId = (
         await uow.run({ businessId: business.id }, (repos) =>
           repos.cashOuts.create({
@@ -205,6 +206,8 @@ describe("cash-up write serialization", () => {
             currency: Currency.USD,
             reason: "Must not land after submit",
           });
+        case "cashOuts.cancel":
+          return repos.cashOuts.cancel(cashOutId!, "Cancelled during submit", business.members.staff1.id);
         case "cashOuts.update":
           return repos.cashOuts.update(cashOutId!, { reason: "Must not land after submit" });
         case "counts.saveLines":
@@ -238,6 +241,64 @@ describe("cash-up write serialization", () => {
     );
     const finalCashUp = await prisma.cashUp.findUniqueOrThrow({ where: { id: cashUp.id } });
     expect(finalCashUp.expectedUsd?.toFixed(2)).toBe(snapshot.expectedUsd);
+  });
+
+  it("rereads cancellation state after waiting for the parent lock", async () => {
+    const business = fixtures.businessA;
+    const cashUp = await uow.run({ businessId: business.id }, repos =>
+      repos.cashUps.open({ membershipId: business.members.staff1.id }));
+    const { cashOut } = await uow.run({ businessId: business.id }, repos =>
+      repos.cashOuts.create({ cashUpId: cashUp.id, amount: '3.00', currency: Currency.USD, reason: 'Expense' }));
+    const acquired = deferred();
+    const release = deferred();
+    const first = uow.run({ businessId: business.id }, async repos => {
+      const result = await repos.cashOuts.cancel(cashOut.id, 'First', business.members.staff1.id);
+      acquired.resolve();
+      await release.promise;
+      return result;
+    });
+    await acquired.promise;
+    const second = uow.run({ businessId: business.id }, repos =>
+      repos.cashOuts.cancel(cashOut.id, 'Second', business.members.staff2.id));
+    const rejected = expect(second).rejects.toBeInstanceOf(StaleStateError);
+    try {
+      await waitForCashUpLockWait();
+    } finally {
+      release.resolve();
+    }
+    const winner = await first;
+    await rejected;
+    expect(await prisma.cashOut.findUniqueOrThrow({ where: { id: cashOut.id } })).toEqual(winner);
+  });
+
+  it("includes a cancellation committed before a waiting submission", async () => {
+    const business = fixtures.businessA;
+    const cashUp = await uow.run({ businessId: business.id }, repos =>
+      repos.cashUps.open({ membershipId: business.members.staff1.id }));
+    const { cashOut } = await uow.run({ businessId: business.id }, repos =>
+      repos.cashOuts.create({ cashUpId: cashUp.id, amount: '3.00', currency: Currency.USD, reason: 'Expense' }));
+    const acquired = deferred();
+    const release = deferred();
+    const cancelling = uow.run({ businessId: business.id }, async repos => {
+      await repos.cashOuts.cancel(cashOut.id, 'Not needed', business.members.staff1.id);
+      acquired.resolve();
+      await release.promise;
+    });
+    await acquired.promise;
+    const submitting = uow.run({ businessId: business.id }, async repos => {
+      await repos.cashUps.lockForUpdate(cashUp.id);
+      return repos.cashUps.submit(cashUp.id, await snapshotForSubmit(repos, cashUp.id));
+    });
+    try {
+      await waitForCashUpLockWait();
+    } finally {
+      release.resolve();
+    }
+    await cancelling;
+    const submitted = await submitting;
+    expect(submitted.status).toBe(CashUpStatus.SUBMITTED);
+    expect(submitted.expectedUsd?.toFixed(2)).toBe('0.00');
+    expect((await prisma.cashOut.findUniqueOrThrow({ where: { id: cashOut.id } })).status).toBe('CANCELLED');
   });
 
   it("serializes concurrent edits so the second audit entry chains from the first", async () => {

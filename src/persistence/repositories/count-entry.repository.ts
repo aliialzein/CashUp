@@ -25,7 +25,7 @@ export class CountEntryRepository extends TenantRepository {
     });
     const desired = new Map<string, CountLine>();
     for (const line of lines) {
-      desired.set(`${line.currency}:${line.denomination.toString()}`, line);
+      desired.set(`${line.currency}:${new Prisma.Decimal(line.denomination).toString()}`, line);
     }
 
     const saved: CountEntry[] = [];

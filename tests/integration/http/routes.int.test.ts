@@ -141,29 +141,49 @@ describe('CashUp HTTP routes with the real composition', () => {
     expect(response.status).toBe(404);
   });
 
-  it('lists open summaries without cash-up amount fields', async () => {
-    const staff = summaryBusiness.members.staff1;
-    const routes = createCashUpRoutes(getHttpDeps());
-    const reviewerRoutes = createReviewRoutes(getHttpDeps());
-    await routes.open(
-      makeRequest('POST', '/api/v1/cash-ups', staff.userId, summaryBusiness.id, {
-        floatUsd: '99.00',
-        floatLbp: '0.00',
-      }),
-    );
 
-    const response = await reviewerRoutes.open(
-      makeRequest(
-        'GET',
-        '/api/v1/review/cash-ups/open',
-        summaryBusiness.members.manager.userId,
-        summaryBusiness.id,
-      ),
-    );
-    const body = await response.json();
-    expect(response.status).toBe(200);
-    expect(JSON.stringify(body)).not.toMatch(/floatUsd|floatLbp|expectedUsd|gapUsd|sales/);
-  });
+it('lists open summaries without cash-up amount fields', async () => {
+  const staff = summaryBusiness.members.staff1;
+  const routes = createCashUpRoutes(getHttpDeps());
+  const reviewerRoutes = createReviewRoutes(getHttpDeps());
+
+  await routes.open(
+    makeRequest('POST', '/api/v1/cash-ups', staff.userId, summaryBusiness.id, {
+      floatUsd: '99.00',
+      floatLbp: '0.00',
+    }),
+  );
+
+  const response = await reviewerRoutes.open(
+    makeRequest(
+      'GET',
+      '/api/v1/review/cash-ups/open',
+      summaryBusiness.members.manager.userId,
+      summaryBusiness.id,
+    ),
+  );
+
+  expect(response.status).toBe(200);
+
+  const body = await response.json();
+
+  expect(Array.isArray(body.data)).toBe(true);
+  expect(body.data.length).toBeGreaterThan(0);
+
+  for (const cashUp of body.data) {
+    // Financial amounts and detailed sales must not be exposed.
+    expect(cashUp).not.toHaveProperty('floatUsd');
+    expect(cashUp).not.toHaveProperty('floatLbp');
+    expect(cashUp).not.toHaveProperty('expectedUsd');
+    expect(cashUp).not.toHaveProperty('gapUsd');
+    expect(cashUp).not.toHaveProperty('sales');
+
+    // Summary information is allowed.
+    expect(cashUp).toHaveProperty('salesCount');
+    expect(cashUp).toHaveProperty('requestsCount');
+  }
+});
+
 
   it('returns 401 when the development session headers are missing', async () => {
     const response = await createCashUpRoutes(getHttpDeps()).listOwn(

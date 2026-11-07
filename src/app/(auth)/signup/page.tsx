@@ -11,7 +11,7 @@ import type { SignupValues } from "@/types/auth";
 async function handleSignup(values: SignupValues): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 1200));
 
-  console.log("signup submit", values);
+  void values;
 
   // TODO: Connect with signup backend.
 }

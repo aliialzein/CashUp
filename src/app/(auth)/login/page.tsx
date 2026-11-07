@@ -11,8 +11,6 @@ import { AuthError, type LoginValues } from "@/types/auth";
 async function handleLogin(values: LoginValues): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 1200));
 
-  console.log("login submit", values);
-
   if (values.email !== "demo@cashup.app" || values.password !== "password123") {
     throw new AuthError("INVALID_CREDENTIALS");
   }

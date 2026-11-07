@@ -106,6 +106,13 @@ export class CashOutRepository extends TenantRepository {
     reason: string,
     cancelledByMembershipId: string,
   ): Promise<CashOut> {
+    this.requireTransaction();
+    const beforeLock = await this.findById(id);
+    if (!beforeLock) throw new NotFoundError('Cash-out');
+    await new CashUpRepository(this.db, this.scope, this.options).lockOpenForUpdate(
+      beforeLock.cashUpId,
+    );
+
     const existing = await this.findById(id);
     if (!existing) throw new NotFoundError('Cash-out');
     if ((existing as { status?: CashOutStatus }).status === 'CANCELLED') {

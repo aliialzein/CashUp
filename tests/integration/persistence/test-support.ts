@@ -1,3 +1,4 @@
+import { assertTestDatabase } from './database-safety.cjs';
 import {
   createPrismaClient,
   UnitOfWork,
@@ -16,12 +17,7 @@ if (!connectionString) {
   throw new Error("TEST_DATABASE_URL must be set before loading persistence integration tests.");
 }
 
-const databaseName = decodeURIComponent(new URL(connectionString).pathname.slice(1));
-if (!databaseName.toLowerCase().includes("test")) {
-  throw new Error(
-    `Refusing integration tests: database name "${databaseName}" must contain "test".`,
-  );
-}
+assertTestDatabase(connectionString);
 
 export const prisma = createPrismaClient(connectionString);
 export const uow = new UnitOfWork(prisma);
@@ -46,6 +42,7 @@ export interface Fixtures {
 }
 
 export async function resetDatabase(): Promise<void> {
+  assertTestDatabase(connectionString!);
   await prisma.$executeRawUnsafe(`
     TRUNCATE TABLE
       "amendment_changes",
