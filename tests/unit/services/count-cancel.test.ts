@@ -1,5 +1,3 @@
-import type { TransactionRunner } from '../../../src/services/ports';
-import type { UnitOfWork } from '../../../src/persistence';
 import { createServices } from '../../../src/services';
 import { Prisma } from '../../../src/generated/prisma/client';
 import type { CashOut, CashUp, CountEntry } from '../../../src/generated/prisma/client';
@@ -162,20 +160,26 @@ describe('Cancellation service composition', () => {
   it('uses the supplied transaction and propagates audit failure to its caller', async () => {
     const app = setupRepositories();
     let transactionScope: unknown;
-    const transactions: TransactionRunner = {
+    const unexpectedCall = () => {
+      throw new Error('Unexpected persistence call in composition test.');
+    };
+    const persistence: Parameters<typeof createServices>[0] = {
       run: async (scope, fn) => {
         transactionScope = scope;
         return fn(app.repositories);
       },
+      repos: unexpectedCall,
+      createBusinessWithOwner: unexpectedCall,
+      redeemJoinCodeByHash: unexpectedCall,
     };
     const failure = new Error('audit persistence failed');
-    const services = createServices(transactions as unknown as UnitOfWork, {
+    const services = createServices(persistence, {
       audit: { record: async () => { throw failure; } },
     });
     await expect(services.cashOuts.cancel(actor, cashUpId, cashOut('ACTIVE').id, 'Reason'))
       .rejects.toBe(failure);
     expect(transactionScope).toEqual({ businessId: actor.businessId });
     // The public factory must also support the normal persisted audit implementation.
-    expect(createServices(transactions as unknown as UnitOfWork).cashOuts).toBeInstanceOf(CashOutService);
+    expect(createServices(persistence).cashOuts).toBeInstanceOf(CashOutService);
   });
 });

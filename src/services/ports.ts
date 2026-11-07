@@ -1,4 +1,4 @@
-import type { Repositories, TenantScope } from '../persistence';
+import type { Repositories, TenantScope, UnitOfWork } from '../persistence';
 
 export interface TransactionRunner {
   run<T>(scope: TenantScope, fn: (repos: ServiceRepositories) => Promise<T>): Promise<T>;
@@ -7,6 +7,11 @@ export interface TransactionRunner {
 export interface RepositoryProvider {
   repos(scope: TenantScope): { readonly memberships: MembershipLookup };
 }
+
+export type BusinessSetupPersistence = Pick<
+  UnitOfWork,
+  'createBusinessWithOwner' | 'redeemJoinCodeByHash'
+>;
 
 type AwaitableMethods<T, K extends keyof T> = {
   readonly [P in K]: T[P] extends (...args: infer Args) => infer Result

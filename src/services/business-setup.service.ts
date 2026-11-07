@@ -1,6 +1,5 @@
 import { createHash, randomInt } from 'node:crypto';
 import type { MembershipStatus } from '../persistence';
-import type { UnitOfWork } from '../persistence';
 import type {
   CreateBusiness,
   CreateJoinCode,
@@ -9,7 +8,7 @@ import type {
 import type { Actor } from './actor';
 import { BusinessRuleError, ConflictError, EntityNotFoundError, ForbiddenError } from './errors';
 import { assertCan } from './permissions';
-import type { TransactionRepositories } from './ports';
+import type { BusinessSetupPersistence, TransactionRepositories } from './ports';
 import { UseCaseRunner } from './use-case-runner';
 
 const JOIN_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -40,12 +39,10 @@ export interface JoinCodeDto {
   readonly createdAt: string;
 }
 
-type SetupPersistence = Pick<UnitOfWork, 'createBusinessWithOwner' | 'redeemJoinCodeByHash'>;
-
 export class BusinessSetupService {
   constructor(
     private readonly runner: UseCaseRunner,
-    private readonly persistence: SetupPersistence,
+    private readonly persistence: BusinessSetupPersistence,
   ) {}
 
   async createBusiness(userId: string, input: CreateBusiness): Promise<BusinessDto> {

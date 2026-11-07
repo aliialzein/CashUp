@@ -1,4 +1,3 @@
-import type { UnitOfWork } from '../persistence';
 import { ActorResolver } from './actor-resolver';
 import { AuditTrail } from './audit-trail';
 import { BusinessSetupService } from './business-setup.service';
@@ -8,12 +7,16 @@ import { CashOutService } from './cash-out.service';
 import { CountService } from './count.service';
 import { SaleService } from './sale.service';
 import { UseCaseRunner } from './use-case-runner';
+import type { BusinessSetupPersistence, RepositoryProvider, TransactionRunner } from './ports';
 
 export interface ServiceOverrides {
   readonly audit?: AuditTrail;
 }
 
-export function createServices(uow: UnitOfWork, overrides: ServiceOverrides = {}) {
+export function createServices(
+  uow: TransactionRunner & RepositoryProvider & BusinessSetupPersistence,
+  overrides: ServiceOverrides = {},
+) {
   const runner = new UseCaseRunner(uow);
   const audit = overrides.audit ?? new AuditTrail();
 
