@@ -1,4 +1,4 @@
-import type { CashUpCardData } from "@/types/cash-up";
+import type { CashUpCardData } from "@/components/owner/cash-up-view-models";
 
 interface Props {
   cashUp: CashUpCardData;

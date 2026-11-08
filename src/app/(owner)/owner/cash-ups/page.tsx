@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 
 import CashUpCard from "@/components/owner/cash-ups/CashUpCard";
 import { mockCashUps } from "@/data/mock/cash-ups";
-import { CashUpStatus, RequestStatus } from "@/types/cash-up";
+import { CashUpStatus, RequestStatus } from "@/components/owner/cash-up-view-models";
 
 export default function CashUpsPage() {
   const router = useRouter();

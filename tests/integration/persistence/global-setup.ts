@@ -4,16 +4,7 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { Client } from "pg";
 
-const defaultTestUrl = "postgresql://cashup_test:cashup_test@127.0.0.1:55432/cashup_test";
-
-function assertTestDatabase(connectionString: string): void {
-  const databaseName = decodeURIComponent(new URL(connectionString).pathname.slice(1));
-  if (!databaseName.toLowerCase().includes("test")) {
-    throw new Error(
-      `Refusing integration tests: database name "${databaseName}" must contain "test".`,
-    );
-  }
-}
+import { assertTestDatabase, defaultTestUrl } from './database-safety.cjs';
 
 async function waitForDatabase(connectionString: string): Promise<void> {
   const deadline = Date.now() + 60_000;
@@ -38,11 +29,7 @@ async function waitForDatabase(connectionString: string): Promise<void> {
 }
 
 export default async function globalSetup(): Promise<void> {
-  if (process.env.RUN_DB_TESTS !== "1") {
-    console.warn("Skipping DB-backed integration tests because RUN_DB_TESTS is not set to 1.");
-    return;
-  }
-
+  process.env.RUN_DB_TESTS = "1";
   let connectionString = process.env.TEST_DATABASE_URL;
 
   if (!connectionString) {
@@ -53,17 +40,14 @@ export default async function globalSetup(): Promise<void> {
         { cwd: process.cwd(), stdio: "inherit" },
       );
     } catch (error) {
-      console.warn(
-        "Docker is unavailable for DB-backed integration tests. Marking them UNVERIFIED and skipping execution.",
-        error,
-      );
-      return;
+      throw new Error("Integration tests require Docker with a running daemon, or the disposable PostgreSQL service configured via TEST_DATABASE_URL.", { cause: error });
     }
     connectionString = defaultTestUrl;
     process.env.TEST_DATABASE_URL = connectionString;
   }
 
   assertTestDatabase(connectionString);
+  process.env.TEST_DATABASE_URL = connectionString;
   await waitForDatabase(connectionString);
 
   const env = {

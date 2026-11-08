@@ -7,6 +7,7 @@ const createJestConfig = nextJest({
 
 const config: Config = {
   clearMocks: true,
+  setupFilesAfterEnv: ["<rootDir>/tests/support/unit-service-boundaries.ts"],
   testEnvironment: "node",
   testPathIgnorePatterns: ["/node_modules/", "/.next/", "<rootDir>/tests/integration/"],
   coverageProvider: "v8",
@@ -14,14 +15,19 @@ const config: Config = {
   coverageDirectory: "coverage",
   collectCoverageFrom: [
     "src/domain/**/*.ts",
-    "src/http/**/*.ts",
-    "src/services/**/*.ts",
-    "src/validation/**/*.ts",
+    "src/modules/**/*.service.ts",
+    "src/modules/**/*.mapper.ts",
+    "src/modules/**/*.validation.ts",
+    "src/modules/cash-ups/cash-ups.workflow.ts",
+    "src/shared/errors/**/*.ts",
+    "src/shared/validation/**/*.ts",
   ],
   coverageThreshold: {
     global: { lines: 0, branches: 0 },
+    "./src/modules/**/*.service.ts": { lines: 90 },
     "./src/domain": { lines: 95, branches: 95 },
-    "./src/validation": { lines: 95, branches: 95 },
+    "./src/modules/**/*.validation.ts": { lines: 95, branches: 95 },
+    "./src/shared/validation": { lines: 95, branches: 95 },
   },
 };
 

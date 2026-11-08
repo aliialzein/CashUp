@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import LogoutButton from '@/components/auth/LogoutButton';
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -43,6 +44,7 @@ export default function OwnerDashboardShell({
           </div>
 
           <div className="flex items-center gap-3">
+            <LogoutButton />
             <span className="hidden text-sm font-medium text-[#64756A] sm:block">
               Owner Workspace
             </span>

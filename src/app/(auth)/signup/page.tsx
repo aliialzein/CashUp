@@ -6,15 +6,7 @@ import AuthLayout from "@/components/auth/AuthLayout";
 import AuthCard from "@/components/auth/AuthCard";
 import SignupForm from "@/components/auth/SignupForm";
 
-import type { SignupValues } from "@/types/auth";
-
-async function handleSignup(values: SignupValues): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 1200));
-
-  console.log("signup submit", values);
-
-  // TODO: Connect with signup backend.
-}
+import { signupAction } from '../actions';
 
 export default function SignupPage() {
   return (
@@ -23,7 +15,7 @@ export default function SignupPage() {
         title="Create your account"
         description="It takes a minute. You can create or join a business next."
       >
-        <SignupForm onSubmit={handleSignup} />
+        <SignupForm onSubmit={signupAction} />
 
         <p className="mt-7 text-center text-sm text-[#667085]">
           Already have an account?{" "}
