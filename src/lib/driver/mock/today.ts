@@ -1,3 +1,5 @@
+import { totalOfNotes } from "@/lib/driver/count-cash/calculations";
+import type { CashCount } from "@/lib/driver/count-cash/denominations";
 import type { CashUp } from "@/types/driver/cash-up";
 import { mockOpenCashUp } from "./cash-up";
 import { hasOpenCashUp } from "./scenarios";
@@ -18,4 +20,10 @@ export function closeMockCashUp(): void {
 
 export function startMockCashUp(): void {
     openOverride = true;
+}
+
+/** Keeps the count while the server runs, so Today and Count cash both show it. */
+export function saveMockCount(count: CashCount): void {
+    mockOpenCashUp.savedCounts = count;
+    mockOpenCashUp.counted = { usd: totalOfNotes(count.USD), lbp: totalOfNotes(count.LBP) };
 }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/driver/Button";
 import { Collapse } from "@/components/ui/Collapse";
 import { Icon } from "@/components/ui/Icon";
 import { formatNumber, type Amounts } from "@/lib/format/money";
+import { SUBMIT_INTENT } from "./formId";
 
 /** Every row shares these columns, so the numbers line up even though the middle rows fold away. */
 const ROW = "grid grid-cols-[0.9fr_1fr_1.2fr] items-center text-sm";
@@ -19,10 +20,12 @@ type CountBarProps = {
     expected: Amounts;
     /** Counted minus expected. */
     gap: Amounts;
+    /** True while a save or submit is running: both buttons wait. */
+    isPending: boolean;
 };
 
-/** Phone only: the gap and the Save button, stuck to the bottom. The chevron opens Counted and Expected. */
-export function CountBar({ counted, expected, gap }: CountBarProps) {
+/** Phone only: the gap, Save count and Submit, stuck to the bottom. The chevron opens Counted and Expected. */
+export function CountBar({ counted, expected, gap, isPending }: CountBarProps) {
     const [open, setOpen] = useState(false);
 
     return (
@@ -67,7 +70,14 @@ export function CountBar({ counted, expected, gap }: CountBarProps) {
                     <GapCell currency="LBP" value={gap.lbp} />
                 </span>
             </div>
-            <Button type="submit">Save count</Button>
+            <div className="grid grid-cols-2 gap-3">
+                <Button type="submit" variant="secondary" loading={isPending}>
+                    Save count
+                </Button>
+                <Button type="submit" value={SUBMIT_INTENT} loading={isPending}>
+                    Submit
+                </Button>
+            </div>
         </BottomBar>
     );
 }

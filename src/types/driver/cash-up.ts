@@ -1,5 +1,6 @@
 import type { Amounts } from "@/lib/format/money";
 import type { CashOutReason } from "@/lib/driver/cash-out/reasons";
+import type { CashCount } from "@/lib/driver/count-cash/denominations";
 import type { PaymentMethod } from "@/lib/driver/delivery/summarizeSinglePayment";
 
 export type CashUpStatus = "OPEN" | "SUBMITTED" | "RETURNED" | "APPROVED";
@@ -72,6 +73,8 @@ export type CashUp = {
     salesTotal: Amounts;
     /** What the driver counted in the drawer. `null` until the first count is saved. */
     counted: Amounts | null;
+    /** The saved count note by note, so Count cash can show it again. `null` until the first count is saved. */
+    savedCounts: CashCount | null;
     /** Totals of delivered sales and of sales still waiting. The server calculates them. */
     deliveredTotal: Amounts;
     waitingTotal: Amounts;

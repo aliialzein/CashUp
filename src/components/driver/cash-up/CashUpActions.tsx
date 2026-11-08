@@ -12,7 +12,7 @@ type CashUpActionsProps = {
     expected: Amounts;
 };
 
-/** The three things a driver does most: add a sale, take cash out, count the drawer. */
+/** What a driver does during the day: add a sale, take cash out. Counting is part of Submit, at the end of the day. */
 export function CashUpActions({ counted, expected }: CashUpActionsProps) {
     return (
         <div className="space-y-3">
@@ -20,16 +20,10 @@ export function CashUpActions({ counted, expected }: CashUpActionsProps) {
                 <Icon name="plus" size={18} />
                 Add sale
             </ButtonLink>
-            <div className="grid grid-cols-2 gap-3">
-                <ButtonLink href={routes.driver.cashOuts} variant="secondary" className="gap-2">
-                    <Icon name="minus" size={18} className="text-muted" />
-                    Cash-out
-                </ButtonLink>
-                <ButtonLink href={routes.driver.countCash} variant="secondary" className="gap-2">
-                    <Icon name="drawer" size={18} className="text-muted" />
-                    {counted === null ? "Count cash" : "Recount"}
-                </ButtonLink>
-            </div>
+            <ButtonLink href={routes.driver.cashOuts} variant="secondary" className="gap-2">
+                <Icon name="minus" size={18} className="text-muted" />
+                Cash-out
+            </ButtonLink>
             <CountStatus counted={counted} expected={expected} />
         </div>
     );

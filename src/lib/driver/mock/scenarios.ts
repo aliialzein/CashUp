@@ -19,6 +19,7 @@ function emptied(cashUp: CashUp): CashUp {
         status: "OPEN",
         returned: null,
         counted: null,
+        savedCounts: null,
         sales: [],
         salesCount: 0,
         salesTotal: ZERO,

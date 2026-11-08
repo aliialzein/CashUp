@@ -61,6 +61,7 @@ const fullOpenCashUp: CashUp = {
     salesTotal: addAmounts(deliveredTotal, waitingTotal),
     // counted: { usd: "70", lbp: "1620000" },
     counted: null,
+    savedCounts: null,
     deliveredTotal,
     waitingTotal,
     sales,

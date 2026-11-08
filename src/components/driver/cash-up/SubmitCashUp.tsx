@@ -1,15 +1,15 @@
 import type { ReactNode } from "react";
 import { BottomBar } from "@/components/ui/BottomBar";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 import { Button } from "@/components/ui/driver/Button";
 import { Icon } from "@/components/ui/Icon";
-import { submitCashUp } from "@/lib/driver/cash-up/actions";
+import { submitStep } from "@/lib/driver/cash-up/submitStep";
+import { routes } from "@/lib/routes";
 
 type SubmitCashUpProps = {
     /** Sales that are not deleted. A cash-up with none cannot be submitted: cancel it instead. */
     salesCount: number;
     waitingCount: number;
-    /** True once the driver has saved a count. */
-    isCounted: boolean;
     /** True when the owner sent the cash-up back: the button then says "Submit again". */
     isReturned?: boolean;
 };
@@ -30,27 +30,22 @@ function BlockedSubmit({ tone, children }: { tone: "warning" | "neutral"; childr
     );
 }
 
-/** Blocked until every sale is delivered, the cash is counted and there is a sale. It says which comes first. */
-function SubmitControl({ salesCount, waitingCount, isCounted, isReturned = false }: SubmitCashUpProps) {
+/** Blocked until every sale is delivered and there is a sale. Then it opens Count cash, the last step before submitting. */
+function SubmitControl({ salesCount, waitingCount, isReturned = false }: SubmitCashUpProps) {
     const verb = isReturned ? "Submit again" : "Submit";
+    const step = submitStep(salesCount, waitingCount);
 
-    if (waitingCount > 0) {
+    if (step.kind === "deliver-first") {
         return (
             <BlockedSubmit tone="warning">
-                {verb} · {waitingCount} {waitingCount === 1 ? "sale" : "sales"} still to deliver
+                {verb} · {step.waitingCount} {step.waitingCount === 1 ? "sale" : "sales"} still to deliver
             </BlockedSubmit>
         );
     }
 
-    if (!isCounted) return <BlockedSubmit tone="neutral">{verb} · count your cash first</BlockedSubmit>;
+    if (step.kind === "add-sale-first") return <BlockedSubmit tone="neutral">{verb} · add a sale first</BlockedSubmit>;
 
-    if (salesCount === 0) return <BlockedSubmit tone="neutral">{verb} · add a sale first</BlockedSubmit>;
-
-    return (
-        <form action={submitCashUp}>
-            <Button type="submit">{isReturned ? "Submit again" : "Submit cash-up"}</Button>
-        </form>
-    );
+    return <ButtonLink href={routes.driver.countCash}>{isReturned ? "Submit again" : "Submit cash-up"}</ButtonLink>;
 }
 
 /** On phone the Submit button is stuck above the tab bar, so it is always in reach. */

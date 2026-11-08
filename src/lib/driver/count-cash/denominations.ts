@@ -15,6 +15,9 @@ export const MAX_NOTE_COUNT = 9999;
 /** How many notes of each kind: denomination -> count. */
 export type NoteCounts = Record<string, number>;
 
+/** A whole drawer count: the notes of each currency. */
+export type CashCount = Record<Currency, NoteCounts>;
+
 export function emptyCounts(currency: Currency): NoteCounts {
     return Object.fromEntries(DENOMINATIONS[currency].map((denomination) => [denomination, 0]));
 }
