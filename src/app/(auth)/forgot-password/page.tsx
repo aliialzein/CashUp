@@ -3,17 +3,9 @@
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { Logo } from "@/components/ui/Logo";
 
-// connect with backend
-//   const res = await fetch("/api/auth/forgot-password", {
-//     method: "POST",
-//     headers: { "Content-Type": "application/json" },
-//     body: JSON.stringify({ email }),
-//   });
-//   if (res.status === 429) throw new AuthError("TOO_MANY_ATTEMPTS");
-//   if (!res.ok) throw new AuthError("UNKNOWN");
-async function handleForgotPassword(email: string): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 1200)); // fake network wait
-  console.log("forgot password submit", email);
+// Password reset is intentionally unavailable; never report fake success.
+async function handleForgotPassword(): Promise<void> {
+  throw new Error('Password reset is not available yet.');
 }
 
 export default function ForgotPasswordPage() {
@@ -30,6 +22,7 @@ export default function ForgotPasswordPage() {
       />
 
       <div className="relative w-full max-w-md">
+        <p role="status" className="mb-4 text-center text-sm text-slate-600">Password reset is not available yet. Please contact your business owner.</p>
         <div className="mb-8 flex justify-center">
           <Logo height={52} />
         </div>

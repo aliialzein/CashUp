@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from 'next/navigation';
+import type { AuthActionResult } from '@/modules/auth/auth.types';
 
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
@@ -9,7 +11,7 @@ import { TextField } from "@/components/ui/TextField";
 import type { SignupValues } from "@/components/auth/form-contracts";
 
 export type SignupFormProps = {
-  onSubmit: (values: SignupValues) => Promise<void> | void;
+  onSubmit: (values: SignupValues) => Promise<void | AuthActionResult> | void;
   loading?: boolean;
   errorMessage?: string;
 };
@@ -45,6 +47,7 @@ export default function SignupForm({
   loading: loadingProp,
   errorMessage,
 }: SignupFormProps) {
+  const router = useRouter();
   const [values, setValues] = useState<SignupValues>({
     fullName: "",
     email: "",
@@ -93,7 +96,9 @@ export default function SignupForm({
     setSubmitting(true);
 
     try {
-      await onSubmit(trimmed);
+      const result = await onSubmit(trimmed);
+      if (result && !result.ok) { setFieldErrors(result.fields ?? {}); setFormError(result.message); return; }
+      if (result?.ok) { router.replace(result.destination); router.refresh(); }
     } catch {
       setFormError("Something went wrong. Please try again.");
     } finally {

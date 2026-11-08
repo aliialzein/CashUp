@@ -1,231 +1,43 @@
-import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+import { defineConfig, globalIgnores } from 'eslint/config';
+import nextVitals from 'eslint-config-next/core-web-vitals';
+import nextTs from 'eslint-config-next/typescript';
 
-const eslintConfig = defineConfig([
+export default defineConfig([
   ...nextVitals,
   ...nextTs,
-  // Override default ignores of eslint-config-next.
-  globalIgnores([
-    // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
-    "coverage/**",
-    "src/generated/prisma/**",
-    "next-env.d.ts",
-  ]),
+  globalIgnores(['.next/**', 'out/**', 'build/**', 'coverage/**', 'src/generated/prisma/**', 'next-env.d.ts']),
   {
-    files: ["src/**/*.{js,jsx,ts,tsx}"],
-    ignores: ["src/persistence/**"],
+    files: ['src/domain/**/*.ts', 'src/modules/**/*.validation.ts', 'src/shared/validation/**/*.ts'],
     rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["@/generated/prisma/**", "**/generated/prisma/**"],
-              message: "Import Prisma generated client code only through src/persistence.",
-            },
-          ],
-        },
-      ],
+      'no-restricted-imports': ['error', { patterns: [{
+        group: ['**/*.repository', '**/*.service', '**/shared/db/**', '**/generated/prisma/**', 'next', 'next/**', 'server-only', 'node:*'],
+        message: 'Financial calculations and validation must remain portable.',
+      }] }],
     },
   },
   {
-    files: ["src/domain/**/*.{js,jsx,ts,tsx}", "src/validation/**/*.{js,jsx,ts,tsx}"],
+    files: ['src/modules/**/*.repository.ts'],
     rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: [
-                "@/persistence",
-                "@/persistence/**",
-                "src/persistence",
-                "src/persistence/**",
-                "**/persistence",
-                "**/persistence/**",
-                "@/generated/prisma/**",
-                "**/generated/prisma/**",
-                "next",
-                "next/**",
-                "server-only",
-                "node:*",
-                "fs",
-                "fs/**",
-                "path",
-                "path/**",
-                "crypto",
-                "crypto/**",
-                "os",
-                "os/**",
-                "child_process",
-                "child_process/**",
-                "@/services",
-                "@/services/**",
-                "src/services",
-                "src/services/**",
-                "**/services/**",
-              ],
-              message:
-                "Domain and validation modules must remain portable and free of server-only dependencies.",
-            },
-          ],
-        },
-      ],
+      'no-restricted-imports': ['error', { patterns: [{
+        group: ['**/*.service'],
+        message: 'Repositories own queries and must not call services.',
+      }] }],
     },
   },
   {
-    files: ["src/services/**/*.{js,jsx,ts,tsx}"],
+    files: ['src/modules/**/*.service.ts'],
+    ignores: ['src/modules/auth/auth.service.ts'],
     rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          paths: [
-            {
-              name: "next",
-              message: "Services must remain framework-agnostic.",
-            },
-            {
-              name: "server-only",
-              message: "Services must remain framework-agnostic.",
-            },
-            {
-              name: "zod",
-              message: "Controllers validate request data before calling services.",
-            },
-          ],
-          patterns: [
-            {
-              group: [
-                "next/**",
-                "src/generated/prisma/**",
-                "@/generated/prisma/**",
-                "**/generated/prisma/**",
-                "../generated/prisma/**",
-                "../../generated/prisma/**",
-                "../../../generated/prisma/**",
-                "../../../../generated/prisma/**",
-                "@/persistence/**",
-                "src/persistence/**",
-                "../../persistence/**",
-              ],
-              message:
-                "Services may use persistence only through its public index and must not import framework or generated-client code.",
-            },
-          ],
-        },
-      ],
+      'no-restricted-imports': ['error', { patterns: [{ group: ['next', 'next/**'], message: 'Services own workflows independently of transport.' }] }],
     },
   },
   {
-    files: ["src/persistence/**/*.{js,jsx,ts,tsx}"],
+    files: ['src/app/**/*.tsx', 'src/components/**/*.tsx'],
     rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          paths: [
-            {
-              name: "@/services",
-              message: "Services cannot be imported by lower layers.",
-            },
-            {
-              name: "src/services",
-              message: "Services cannot be imported by lower layers.",
-            },
-          ],
-          patterns: [
-            {
-              group: ["@/services/**", "src/services/**", "**/services/**"],
-              message: "Services cannot be imported by lower layers.",
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    files: ["src/http/**/*.{js,jsx,ts,tsx}"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: [
-                "@/persistence",
-                "@/persistence/**",
-                "**/persistence",
-                "**/persistence/**",
-                "@/domain",
-                "@/domain/**",
-                "**/domain",
-                "**/domain/**",
-                "@/generated/prisma/**",
-                "**/generated/prisma/**",
-                "next",
-                "next/**",
-                "server-only",
-              ],
-              message:
-                "HTTP helpers must not import persistence, domain, generated Prisma, or Next.js modules.",
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    files: ["src/app/**/*.{js,jsx,ts,tsx}"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: [
-                "@/persistence",
-                "@/persistence/**",
-                "**/persistence",
-                "**/persistence/**",
-                "@/domain",
-                "@/domain/**",
-                "**/domain",
-                "**/domain/**",
-                "@/generated/prisma/**",
-                "**/generated/prisma/**",
-              ],
-              message: "App routes must use the HTTP and service layers, not lower-level modules.",
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    files: ["src/server/**/*.{js,jsx,ts,tsx}"],
-    ignores: ["src/server/composition.ts"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: [
-                "@/persistence",
-                "@/persistence/**",
-                "**/persistence",
-                "**/persistence/**",
-              ],
-              message: "Only src/server/composition.ts may import the persistence composition.",
-            },
-          ],
-        },
-      ],
+      'no-restricted-imports': ['error', { patterns: [{
+        group: ['**/*.repository', '**/shared/db/**', '**/generated/prisma/**'],
+        message: 'Call feature services; Prisma access belongs in repositories.',
+      }] }],
     },
   },
 ]);
-
-export default eslintConfig;

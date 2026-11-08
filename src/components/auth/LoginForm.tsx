@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { useRouter } from 'next/navigation';
+import type { AuthActionResult } from '@/modules/auth/auth.types';
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
@@ -13,7 +15,7 @@ export type LoginFormProps = {
    * Return a promise: the button shows a loader until it settles.
    * To show an error, throw `new AuthError("INVALID_CREDENTIALS")` (or any Error).
    */
-  onSubmit: (values: LoginValues) => Promise<void> | void;
+  onSubmit: (values: LoginValues) => Promise<void | AuthActionResult> | void;
   /** Force the loading state from outside (optional). */
   loading?: boolean;
   /** Show a server error from outside (optional). */
@@ -38,6 +40,7 @@ export function LoginForm({
   loading: loadingProp,
   errorMessage,
 }: LoginFormProps) {
+  const router = useRouter();
   const [values, setValues] = useState<LoginValues>({
     email: "",
     password: "",
@@ -76,7 +79,14 @@ export function LoginForm({
     setCredentialsWrong(false);
     setSubmitting(true);
     try {
-      await onSubmit(trimmed);
+      const result = await onSubmit(trimmed);
+      if (result && !result.ok) {
+        setFieldErrors(result.fields ?? {});
+        setFormError(result.message);
+        setCredentialsWrong(result.code === 'INVALID_CREDENTIALS');
+        return;
+      }
+      if (result?.ok) { router.replace(result.destination); router.refresh(); }
     } catch (err) {
       if (err instanceof AuthError) {
         setFormError(err.message);

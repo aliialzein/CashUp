@@ -11,6 +11,7 @@ const config: Config = {
   testMatch: ["<rootDir>/tests/integration/**/*.int.test.ts"],
   testPathIgnorePatterns: ["/node_modules/", "/.next/"],
   maxWorkers: 1,
+  setupFilesAfterEnv: ["<rootDir>/tests/support/integration-service-boundaries.ts"],
   extensionsToTreatAsEsm: [".ts"],
   // Coverage thresholds belong to the fast suite; this suite verifies real DB boundaries.
   collectCoverage: false,

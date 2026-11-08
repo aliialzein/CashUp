@@ -6,15 +6,7 @@ import AuthLayout from "@/components/auth/AuthLayout";
 import AuthCard from "@/components/auth/AuthCard";
 import { LoginForm } from "@/components/auth/LoginForm";
 
-import { AuthError, type LoginValues } from "@/components/auth/form-contracts";
-
-async function handleLogin(values: LoginValues): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 1200));
-
-  if (values.email !== "demo@cashup.app" || values.password !== "password123") {
-    throw new AuthError("INVALID_CREDENTIALS");
-  }
-}
+import { loginAction } from '../actions';
 
 export default function LoginPage() {
   return (
@@ -23,7 +15,7 @@ export default function LoginPage() {
         title="Log in"
         description="Welcome back. Log in to your CashUp account."
       >
-        <LoginForm onSubmit={handleLogin} />
+        <LoginForm onSubmit={loginAction} />
 
         <p className="mt-7 text-center text-sm text-[#667085]">
           New to CashUp?{" "}
