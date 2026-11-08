@@ -26,3 +26,13 @@ export function formatDay(iso: string): string {
     const month = parts.find((part) => part.type === "month")?.value ?? "";
     return `${day} ${month}`;
 }
+
+/** The Beirut day as "2026-10-28". It groups the History list by month. */
+export function formatIsoDay(iso: string): string {
+    return new Intl.DateTimeFormat("en-CA", {
+        timeZone: BUSINESS_TIME_ZONE,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).format(new Date(iso));
+}

@@ -35,7 +35,7 @@ export type SaleLineInput = {
     amountDiffers: boolean;
 };
 
-function pair(usd: string, lbp: string): Amounts {
+export function pair(usd: string, lbp: string): Amounts {
     return { usd, lbp };
 }
 

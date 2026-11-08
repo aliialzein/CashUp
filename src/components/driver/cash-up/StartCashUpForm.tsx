@@ -9,6 +9,7 @@ import { ButtonLink } from "@/components/ui/ButtonLink";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Icon } from "@/components/ui/Icon";
 import { startCashUp } from "@/lib/driver/cash-up/actions";
+import { errorText } from "@/lib/driver/cash-up/actionResult";
 import { formatCashUpNumber } from "@/lib/driver/cash-up/cashUpLabel";
 import { openingFloat } from "@/lib/driver/cash-up/openingFloat";
 import type { Amounts } from "@/lib/format/money";
@@ -45,10 +46,12 @@ export function StartCashUpForm({ suggestion }: { suggestion: FloatSuggestion | 
     const [float, setFloat] = useState<Amounts>(suggested);
     const [confirming, setConfirming] = useState(false);
     const [isPending, startTransition] = useTransition();
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     function reset() {
         setFloat(suggested);
         setConfirming(false);
+        setErrorMessage(null);
     }
 
     useResetOnHide(reset);
@@ -60,7 +63,12 @@ export function StartCashUpForm({ suggestion }: { suggestion: FloatSuggestion | 
 
     function handleConfirm() {
         startTransition(async () => {
-            await startCashUp(openingFloat(float));
+            const result = await startCashUp(openingFloat(float));
+            if (!result.ok) {
+                setErrorMessage(errorText(result.code));
+                setConfirming(false);
+                return;
+            }
             reset();
             router.push(routes.driver.today);
         });
@@ -80,6 +88,11 @@ export function StartCashUpForm({ suggestion }: { suggestion: FloatSuggestion | 
                             {!suggestion && " Leave a currency empty if it started with none."}
                         </p>
                         <AmountPairField label="Opening float" value={float} onChange={setFloat} />
+                        {errorMessage && (
+                            <p role="alert" className="text-sm text-red-600">
+                                {errorMessage}
+                            </p>
+                        )}
                     </div>
 
                     {suggestion && <SuggestionNote fromNumber={suggestion.fromNumber} />}

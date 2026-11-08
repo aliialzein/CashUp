@@ -10,12 +10,16 @@ import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { canCancelCashUp } from "@/lib/driver/cash-up/canCancelCashUp";
 import { lastClosedCashUp } from "@/lib/driver/history/lastClosedCashUp";
-import { mockHistory } from "@/lib/driver/mock/history";
-import { getOpenCashUp } from "@/lib/driver/mock/today";
+import { driverData } from "@/lib/driver/data/driverData";
 
-export default function TodayPage() {
-    const cashUp = getOpenCashUp();
-    if (!cashUp) return <NoOpenCashUp last={lastClosedCashUp(mockHistory)} />;
+export default async function TodayPage() {
+    // BACKEND: the open cash-up. Real or mock is decided in src/lib/driver/data/driverData.ts.
+    const cashUp = await driverData.getOpenCashUp();
+    if (!cashUp) {
+        // BACKEND: the history, only needed here to show the last closed cash-up.
+        const history = await driverData.getHistory();
+        return <NoOpenCashUp last={lastClosedCashUp(history)} />;
+    }
 
     const waitingSales = cashUp.sales.filter((sale) => sale.status === "TO_DELIVER");
     const hasSales = cashUp.salesCount > 0;
@@ -47,7 +51,6 @@ export default function TodayPage() {
                     <SubmitCashUp
                         salesCount={cashUp.salesCount}
                         waitingCount={waitingSales.length}
-                        isCounted={cashUp.counted !== null}
                         isReturned={cashUp.status === "RETURNED"}
                     />
                 </div>

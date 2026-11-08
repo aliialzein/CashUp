@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/driver/layout/PageHeader";
 import { BottomBar } from "@/components/ui/BottomBar";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { Icon } from "@/components/ui/Icon";
-import { mockOpenCashUp } from "@/lib/driver/mock/cash-up";
+import { requireOpenCashUp } from "@/lib/driver/data/requireOpenCashUp";
 import { routes } from "@/lib/routes";
 
 function AddCashOutLink() {
@@ -15,8 +15,9 @@ function AddCashOutLink() {
     );
 }
 
-export default function CashOutsPage() {
-    const cashUp = mockOpenCashUp;
+export default async function CashOutsPage() {
+    // BACKEND: the open cash-up and its cash-outs. With none open, the driver goes to Today.
+    const cashUp = await requireOpenCashUp();
 
     return (
         <div className="flex flex-col gap-3 md:gap-5">

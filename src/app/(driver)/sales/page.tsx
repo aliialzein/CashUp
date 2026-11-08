@@ -4,12 +4,13 @@ import { SalesTotals } from "@/components/driver/sales/SalesTotals";
 import { PageHeader } from "@/components/driver/layout/PageHeader";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { Icon } from "@/components/ui/Icon";
-import { mockOpenCashUp } from "@/lib/driver/mock/cash-up";
+import { requireOpenCashUp } from "@/lib/driver/data/requireOpenCashUp";
 import { withOrigin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";
 
-export default function SalesPage() {
-    const cashUp = mockOpenCashUp;
+export default async function SalesPage() {
+    // BACKEND: the open cash-up and its sales. With none open, the driver goes to Today.
+    const cashUp = await requireOpenCashUp();
 
     return (
         <div className="flex flex-col gap-3 md:gap-5">

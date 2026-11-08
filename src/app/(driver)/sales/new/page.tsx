@@ -1,33 +1,32 @@
 import { Suspense } from "react";
 import { PageHeader } from "@/components/driver/layout/PageHeader";
 import { AddSaleForm } from "@/components/driver/sales/AddSaleForm";
-import { mockOpenCashUp } from "@/lib/driver/mock/cash-up";
+import { requireOpenCashUp } from "@/lib/driver/data/requireOpenCashUp";
 import { resolveOrigin } from "@/lib/navigation/origin";
 
 type AddSalePageProps = {
 	searchParams: Promise<{ from?: string | string[] }>;
 };
 
-const SUBTITLE = `Cash-up #${mockOpenCashUp.number}`;
-
-/** Reads where the driver came from. It lives inside Suspense because search params are runtime data. */
+/** Reads where the driver came from and the open cash-up. It lives inside Suspense because both are runtime data. */
 async function AddSaleContent({ searchParams }: AddSalePageProps) {
-	const { from } = await searchParams;
+	// BACKEND: the open cash-up, for its number. With none open, the driver goes to Today.
+	const [{ from }, cashUp] = await Promise.all([searchParams, requireOpenCashUp()]);
 	const origin = resolveOrigin(from, "sales");
 
 	return (
 		<>
-			<PageHeader title="Add sale" subtitle={SUBTITLE} close={{ href: origin.href }} />
+			<PageHeader title="Add sale" subtitle={`Cash-up #${cashUp.number}`} close={{ href: origin.href }} />
 			<AddSaleForm returnHref={origin.href} />
 		</>
 	);
 }
 
-/** Shown until the origin is known: the same title bar, pointing to Sales, so nothing jumps. */
+/** Shown until the origin and the cash-up are known: the same title bar, pointing to Sales. The number is not known yet. */
 function AddSaleFallback() {
 	return (
 		<>
-			<PageHeader title="Add sale" subtitle={SUBTITLE} close={{ href: resolveOrigin(undefined, "sales").href }} />
+			<PageHeader title="Add sale" close={{ href: resolveOrigin(undefined, "sales").href }} />
 			<div aria-hidden className="mx-auto h-96 w-full max-w-[640px] animate-pulse rounded-xl bg-subtle" />
 		</>
 	);

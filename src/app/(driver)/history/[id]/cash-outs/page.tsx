@@ -6,7 +6,7 @@ import { CashOutsTotal } from "@/components/driver/cash-outs/CashOutsTotal";
 import { LockedBadge } from "@/components/driver/history/LockedBadge";
 import { PageHeader } from "@/components/driver/layout/PageHeader";
 import { cashUpLabel } from "@/lib/driver/cash-up/cashUpLabel";
-import { findMockCashUpDetail } from "@/lib/driver/mock/cash-up-details";
+import { driverData } from "@/lib/driver/data/driverData";
 import { historyOrigin } from "@/lib/driver/navigation/historyOrigin";
 import { withOrigin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";
@@ -24,7 +24,8 @@ const EMPTY: EmptyText = {
 /** Reads the id and where the cash-up was opened from, so the ← goes back to the cash-up with the same origin. */
 async function LockedCashOuts({ params, searchParams }: LockedCashOutsPageProps) {
     const [{ id }, { from }] = await Promise.all([params, searchParams]);
-    const detail = findMockCashUpDetail(id);
+    // BACKEND: one locked cash-up with its cash-outs. Real or mock is decided in src/lib/driver/data/driverData.ts.
+    const detail = await driverData.getCashUpDetail(id);
     if (!detail) notFound();
 
     return (
