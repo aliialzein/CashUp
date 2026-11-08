@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
 import { mockCashUps } from "@/data/mock/cash-ups";
-import { CashUpStatus, RequestStatus } from "@/types/cash-up";
+import { CashUpStatus, RequestStatus } from "@/components/owner/cash-up-view-models";
 
 import ReviewHeader from "@/components/owner/cash-up-review/ReviewHeader";
 import CashSummary from "@/components/owner/cash-up-review/CashSummary";

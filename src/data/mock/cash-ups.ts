@@ -1,12 +1,4 @@
-import {
-  CashUpStatus,
-  SaleStatus,
-  Currency,
-  PaymentMethod,
-  RequestType,
-  RequestStatus,
-  type CashUpCardData,
-} from "@/types/cash-up";
+import { CashUpStatus, SaleStatus, Currency, PaymentMethod, RequestType, RequestStatus, type CashUpCardData } from '../../components/owner/cash-up-view-models';
 
 export const mockCashUps: CashUpCardData[] = [
   {

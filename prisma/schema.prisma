@@ -12,7 +12,10 @@ enum AuthProvider {
   GOOGLE
 }
 
-// OWNER = owns the business, oversight only | MANAGER = runs operations | STAFF = cashiers/drivers
+// OWNER oversees the business.
+// MANAGER runs operations.
+// STAFF handles cashier/driver work.
+// In a solo business, the OWNER performs all three functions.
 enum MembershipRole {
   OWNER
   MANAGER
@@ -90,7 +93,6 @@ enum AuditEntityType {
 }
 
 enum AuditAction {
-  // access
   BUSINESS_CREATED
   BUSINESS_SOLO_CHANGED
   JOIN_CODE_CREATED
@@ -100,31 +102,31 @@ enum AuditAction {
   MEMBER_DEACTIVATED
   MEMBER_REACTIVATED
   MEMBER_ROLE_CHANGED
-  // cash-up lifecycle
+
   CASHUP_OPENED
   CASHUP_SUBMITTED
   CASHUP_APPROVED
   CASHUP_SELF_APPROVED
   CASHUP_RETURNED
   CASHUP_VOIDED
-  // sales
+
   SALE_CREATED
   SALE_EDITED
   SALE_DELIVERED
   SALE_CANCELLED
   SALE_LOCKED_FOR_DELETION
   SALE_DELETED
-  // cash-outs & counts
+
   CASHOUT_CREATED
   CASHOUT_CANCELLED
   CASHOUT_EDITED
   COUNT_UPDATED
-  // requests
+
   REQUEST_CREATED
   REQUEST_WITHDRAWN
   REQUEST_APPROVED
   REQUEST_REJECTED
-  // amendments
+
   AMENDMENT_PROPOSED
   AMENDMENT_APPROVED
   AMENDMENT_REJECTED
@@ -133,17 +135,18 @@ enum AuditAction {
 model User {
   id           String       @id @default(uuid()) @db.Uuid
   email        String       @unique
-  passwordHash String? // null for social providers
+  passwordHash String?
   fullName     String
   phone        String?
   provider     AuthProvider @default(LOCAL)
   createdAt    DateTime     @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime     @updatedAt @db.Timestamptz(3)
 
-  memberships        Membership[]
-  joinCodesCreated   JoinCode[]           @relation("JoinCodeCreator")
-  passwordResets     PasswordResetToken[]
-  auditLogs          AuditLog[]
+  memberships      Membership[]
+  joinCodesCreated JoinCode[]           @relation("JoinCodeCreator")
+  passwordResets   PasswordResetToken[]
+  sessions         Session[]
+  auditLogs        AuditLog[]
 
   @@map("users")
 }
@@ -163,11 +166,13 @@ model PasswordResetToken {
 }
 
 model Business {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  isSolo    Boolean  @default(false) // "I work alone": the Owner also acts as Manager and Staff
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String
+  isSolo           Boolean  @default(false)
+  lastCashUpNumber Int      @default(0)
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
+
   memberships Membership[]
   joinCodes   JoinCode[]
   cashUps     CashUp[]
@@ -179,15 +184,17 @@ model Business {
   @@map("businesses")
 }
 
-// One ACTIVE Manager per business (partial unique index one_active_manager_per_business). One Owner per business (one_owner_per_business).
+// One membership per user for the current MVP.
+// One OWNER and one ACTIVE MANAGER per business are enforced
+// through partial unique indexes in migrations.
 model Membership {
-  id            String         @id @default(uuid()) @db.Uuid
-  userId        String         @db.Uuid
-  businessId    String         @db.Uuid
+  id            String           @id @default(uuid()) @db.Uuid
+  userId        String           @db.Uuid
+  businessId    String           @db.Uuid
   role          MembershipRole
   status        MembershipStatus @default(ACTIVE)
-  joinedAt      DateTime       @default(now()) @db.Timestamptz(3)
-  deactivatedAt DateTime?      @db.Timestamptz(3)
+  joinedAt      DateTime         @default(now()) @db.Timestamptz(3)
+  deactivatedAt DateTime?        @db.Timestamptz(3)
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Restrict)
   business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
@@ -206,7 +213,8 @@ model Membership {
   @@map("memberships")
 }
 
-// Staff-only, expiring and usage-limited. Only the hash is stored.
+// Staff-only for the MVP, enforced in the service.
+// Codes expire, have a usage limit, and are stored as hashes.
 model JoinCode {
   id              String         @id @default(uuid()) @db.Uuid
   businessId      String         @db.Uuid
@@ -227,36 +235,38 @@ model JoinCode {
 }
 
 model CashUp {
-  id           String   @id @default(uuid()) @db.Uuid
-  businessId   String   @db.Uuid
-  membershipId String   @db.Uuid // the person doing the work
+  id           String       @id @default(uuid()) @db.Uuid
+  businessId   String       @db.Uuid
+  number       Int
+  membershipId String       @db.Uuid
   status       CashUpStatus @default(OPEN)
 
   floatUsd      Decimal  @default(0) @db.Decimal(18, 2)
   floatLbp      Decimal  @default(0) @db.Decimal(18, 2)
-  referenceRate Decimal? @db.Decimal(18, 2) // informational only, locked after approval
+  referenceRate Decimal? @db.Decimal(18, 2)
 
-  // Timestamps (server-generated, UTC)
   openedAt       DateTime  @default(now()) @db.Timestamptz(3)
-  countStartedAt DateTime? @db.Timestamptz(3) // when counting began (pilot metric)
-  closedAt       DateTime? @db.Timestamptz(3) // set on submission
+  countStartedAt DateTime? @db.Timestamptz(3)
+  closedAt       DateTime? @db.Timestamptz(3)
   approvedAt     DateTime? @db.Timestamptz(3)
   voidedAt       DateTime? @db.Timestamptz(3)
   updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
 
-  // Owner decision
-  approvedById String?  @db.Uuid // Staff cash-ups are approved by the Manager. A Manager's own cash-up is approved by the Owner. A solo business self-approves.
-  selfApproved Boolean  @default(false)
-  returnReason String? // reason given on the last return to OPEN
-  voidReason   String?
-  lastSaleNumber Int @default(0) // atomic counter used to hand out Sale.saleNumber without races
+  // STAFF cash-ups: approved by MANAGER.
+  // MANAGER cash-ups: approved by OWNER.
+  // Solo businesses: self-approved.
+  approvedById   String? @db.Uuid
+  selfApproved   Boolean @default(false)
+  returnReason   String?
+  voidReason     String?
+  lastSaleNumber Int     @default(0)
 
-  // Snapshot computed by the server on submit (per-currency, no combined total)
+  // Snapshot calculated on submission, separately per currency.
   expectedUsd Decimal? @db.Decimal(18, 2)
   expectedLbp Decimal? @db.Decimal(18, 2)
   countedUsd  Decimal? @db.Decimal(18, 2)
   countedLbp  Decimal? @db.Decimal(18, 2)
-  gapUsd      Decimal? @db.Decimal(18, 2) // counted - expected (signed)
+  gapUsd      Decimal? @db.Decimal(18, 2)
   gapLbp      Decimal? @db.Decimal(18, 2)
 
   business   Business    @relation(fields: [businessId], references: [id], onDelete: Restrict)
@@ -269,6 +279,7 @@ model CashUp {
   requests     Request[]
   amendments   Amendment[]
 
+  @@unique([businessId, number])
   @@index([businessId, status])
   @@index([membershipId, status])
   @@index([businessId, openedAt])
@@ -279,32 +290,38 @@ model Sale {
   id         String @id @default(uuid()) @db.Uuid
   businessId String @db.Uuid
   cashUpId   String @db.Uuid
-  saleNumber Int // sequential per cash-up, allocated atomically via CashUp.lastSaleNumber
+  saleNumber Int
 
   status SaleStatus @default(DELIVERED)
 
-  // Amounts (collected & change in the currency actually paid)
-  businessAmount Decimal  @default(0) @db.Decimal(18, 2)
-  deliveryFee    Decimal  @default(0) @db.Decimal(18, 2)
-  tip            Decimal? @db.Decimal(18, 2)
-  discount       Decimal? @db.Decimal(18, 2)
-  totalCollected Decimal  @db.Decimal(18, 2)
-  currency       Currency
-  method         PaymentMethod
-  changeGiven    Decimal?  @db.Decimal(18, 2)
-  changeCurrency Currency?
-  clientNumber String? // required for TO_DELIVER sales (validated in service layer)
+  businessAmountUsd Decimal @default(0) @db.Decimal(18, 2)
+  businessAmountLbp Decimal @default(0) @db.Decimal(18, 2)
+
+  deliveryFeeUsd Decimal @default(0) @db.Decimal(18, 2)
+  deliveryFeeLbp Decimal @default(0) @db.Decimal(18, 2)
+
+  tipUsd Decimal @default(0) @db.Decimal(18, 2)
+  tipLbp Decimal @default(0) @db.Decimal(18, 2)
+
+  discountUsd Decimal @default(0) @db.Decimal(18, 2)
+  discountLbp Decimal @default(0) @db.Decimal(18, 2)
+
+  totalCollectedUsd Decimal @default(0) @db.Decimal(18, 2)
+  totalCollectedLbp Decimal @default(0) @db.Decimal(18, 2)
+
+  changeGivenUsd Decimal @default(0) @db.Decimal(18, 2)
+  changeGivenLbp Decimal @default(0) @db.Decimal(18, 2)
+
+  method       PaymentMethod
+  clientNumber String?
   note         String?
 
-  // Flags shown to the owner at review
-  mixedChange       Boolean @default(false) // change currency != payment currency
-  amountDiffers     Boolean @default(false) // collected differs from the order on delivery
-  isEdited          Boolean @default(false)
-  deletionAwaiting  Boolean @default(false) // locked while a delete request is pending
+  amountDiffers    Boolean @default(false)
+  isEdited         Boolean @default(false)
+  deletionAwaiting Boolean @default(false)
 
   cancelReason String?
 
-  // Reliability: save once even if the request is sent twice
   idempotencyKey String? @db.Uuid
 
   createdAt   DateTime  @default(now()) @db.Timestamptz(3)
@@ -315,8 +332,8 @@ model Sale {
   business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
   cashUp   CashUp   @relation(fields: [cashUpId], references: [id], onDelete: Restrict)
 
-  edits      SaleEdit[]
-  requests   Request[]
+  edits            SaleEdit[]
+  requests         Request[]
   amendmentChanges AmendmentChange[]
 
   @@unique([cashUpId, saleNumber])
@@ -326,7 +343,7 @@ model Sale {
   @@map("sales")
 }
 
-// Every edit is logged with the old and new value.
+// Records the old and new value of each edited field.
 model SaleEdit {
   id         String   @id @default(uuid()) @db.Uuid
   saleId     String   @db.Uuid
@@ -344,34 +361,39 @@ model SaleEdit {
 }
 
 model CashOut {
-  id             String        @id @default(uuid()) @db.Uuid
-  cashUpId       String        @db.Uuid
-  amount         Decimal       @db.Decimal(18, 2)
-  currency       Currency
-  reason         String
-  status         CashOutStatus @default(ACTIVE)
-  cancelReason   String?
-  cancelledAt    DateTime?     @db.Timestamptz(3)
-  cancelledByMembershipId String? @db.Uuid
-  idempotencyKey String?       @db.Uuid
-  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
-  updatedAt      DateTime      @updatedAt @db.Timestamptz(3)
+  id       String @id @default(uuid()) @db.Uuid
+  cashUpId String @db.Uuid
 
-  cashUp CashUp @relation(fields: [cashUpId], references: [id], onDelete: Restrict)
+  amountUsd Decimal @default(0) @db.Decimal(18, 2)
+  amountLbp Decimal @default(0) @db.Decimal(18, 2)
+
+  reason String
+  note   String?
+
+  status CashOutStatus @default(ACTIVE)
+
+  cancelReason            String?
+  cancelledAt             DateTime? @db.Timestamptz(3)
+  cancelledByMembershipId String?   @db.Uuid
+
+  idempotencyKey String? @db.Uuid
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  cashUp      CashUp      @relation(fields: [cashUpId], references: [id], onDelete: Restrict)
   cancelledBy Membership? @relation("CashOutCancelledBy", fields: [cancelledByMembershipId], references: [id], onDelete: Restrict)
 
-  // Edits are recorded in AuditLog (entityType = CASH_OUT, action = CASHOUT_EDITED)
   @@unique([cashUpId, idempotencyKey])
   @@index([cashUpId, status])
   @@map("cash_outs")
 }
 
-// Counted notes by denomination. Saved as the user types.
 model CountEntry {
   id           String   @id @default(uuid()) @db.Uuid
   cashUpId     String   @db.Uuid
   currency     Currency
-  denomination Decimal  @db.Decimal(18, 2) // e.g. 1, 5, 100 (USD) or 1000, 100000 (LBP)
+  denomination Decimal  @db.Decimal(18, 2)
   quantity     Int      @default(0)
   updatedAt    DateTime @updatedAt @db.Timestamptz(3)
 
@@ -382,21 +404,23 @@ model CountEntry {
   @@map("count_entries")
 }
 
-// One open request per target is enforced by partial unique indexes.
+// Partial unique indexes enforce one awaiting request per target.
 model Request {
-  id          String        @id @default(uuid()) @db.Uuid
-  businessId  String        @db.Uuid
-  type        RequestType
-  status      RequestStatus @default(AWAITING_OWNER)
-  reason      String
-  requestedById String      @db.Uuid
+  id            String        @id @default(uuid()) @db.Uuid
+  businessId    String        @db.Uuid
+  type          RequestType
+  status        RequestStatus @default(AWAITING_OWNER)
+  reason        String
+  requestedById String        @db.Uuid
 
-  // Target: exactly one of these is set depending on `type`
-  saleId   String? @db.Uuid // DELETE_SALE
-  cashUpId String  @db.Uuid // always the cash-up it belongs to (also the target for VOID_CASHUP)
+  // cashUpId is always required.
+  // DELETE_SALE also requires saleId.
+  // VOID_CASHUP must have saleId = null.
+  saleId   String? @db.Uuid
+  cashUpId String  @db.Uuid
 
   decidedById    String?   @db.Uuid
-  decisionReason String? // required when rejected
+  decisionReason String?
   selfApproved   Boolean   @default(false)
   decidedAt      DateTime? @db.Timestamptz(3)
   createdAt      DateTime  @default(now()) @db.Timestamptz(3)
@@ -416,16 +440,17 @@ model Request {
 model Amendment {
   id         String          @id @default(uuid()) @db.Uuid
   businessId String          @db.Uuid
-  cashUpId   String          @db.Uuid // the original is never overwritten
+  cashUpId   String          @db.Uuid
   status     AmendmentStatus @default(AWAITING_APPROVAL)
   reason     String
 
   proposedById   String    @db.Uuid
-  decidedById    String?   @db.Uuid // "the other party" approves
+  decidedById    String?   @db.Uuid
   decisionReason String?
   selfApproved   Boolean   @default(false)
   decidedAt      DateTime? @db.Timestamptz(3)
   createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+
   business   Business    @relation(fields: [businessId], references: [id], onDelete: Restrict)
   cashUp     CashUp      @relation(fields: [cashUpId], references: [id], onDelete: Restrict)
   proposedBy Membership  @relation("AmendmentProposer", fields: [proposedById], references: [id], onDelete: Restrict)
@@ -438,7 +463,7 @@ model Amendment {
   @@map("amendments")
 }
 
-// One amendment can change several sale fields and counted notes.
+// One amendment can change several sale fields and counted quantities.
 model AmendmentChange {
   id          String              @id @default(uuid()) @db.Uuid
   amendmentId String              @db.Uuid
@@ -461,15 +486,15 @@ model AmendmentChange {
   @@map("amendment_changes")
 }
 
-// Never updated or deleted. Enforce with a DB trigger / revoked privileges (see bottom of file).
+// Append-only behavior is enforced through a database migration.
 model AuditLog {
   id         String          @id @default(uuid()) @db.Uuid
   businessId String?         @db.Uuid
-  actorId    String?         @db.Uuid // User who did it
+  actorId    String?         @db.Uuid
   action     AuditAction
   entityType AuditEntityType
   entityId   String          @db.Uuid
-  metadata   Json? // old/new values, reasons, etc. (no client numbers)
+  metadata   Json?
   createdAt  DateTime        @default(now()) @db.Timestamptz(3)
 
   business Business? @relation(fields: [businessId], references: [id], onDelete: Restrict)
@@ -480,33 +505,25 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-// ============================================================
-// RAW SQL TO ADD IN A MIGRATION (Prisma cannot express these)
-// Run `prisma migrate dev --create-only`, then paste into the generated migration.sql
-// ============================================================
-//
-// -- 1) One OWNER per business (v1)
-// CREATE UNIQUE INDEX one_owner_per_business
-//   ON memberships ("businessId") WHERE role = 'OWNER';
-//
-// -- 2) One OPEN cash-up per person per business
-// CREATE UNIQUE INDEX one_open_cashup_per_member
-//   ON cash_ups ("membershipId") WHERE status = 'OPEN';
-//
-// -- 3) One awaiting request per target
-// CREATE UNIQUE INDEX one_open_request_per_sale
-//   ON requests ("saleId") WHERE status = 'AWAITING_OWNER' AND "saleId" IS NOT NULL;
-// CREATE UNIQUE INDEX one_open_request_per_cashup
-//   ON requests ("cashUpId") WHERE status = 'AWAITING_OWNER' AND type = 'VOID_CASHUP';
-//
-// -- 4) Money sanity: no negatives
-// ALTER TABLE sales ADD CONSTRAINT sales_non_negative CHECK (
-//   "businessAmount" >= 0 AND "deliveryFee" >= 0 AND "totalCollected" >= 0
-//   AND COALESCE(tip,0) >= 0 AND COALESCE(discount,0) >= 0 AND COALESCE("changeGiven",0) >= 0);
-// ALTER TABLE cash_outs ADD CONSTRAINT cash_outs_positive CHECK (amount > 0);
-//
-// -- 5) Audit log is append-only
-// CREATE OR REPLACE FUNCTION audit_log_immutable() RETURNS trigger AS $$
-// BEGIN RAISE EXCEPTION 'audit_logs is append-only'; END; $$ LANGUAGE plpgsql;
-// CREATE TRIGGER audit_logs_no_update BEFORE UPDATE OR DELETE ON audit_logs
-//   FOR EACH ROW EXECUTE FUNCTION audit_log_immutable();
+model Session {
+  tokenHash String    @id @db.VarChar(64)
+  userId    String    @db.Uuid
+  expiresAt DateTime  @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model AuthAttempt {
+  key       String   @id @db.VarChar(80)
+  attempts  Int
+  expiresAt DateTime @db.Timestamptz(3)
+
+  @@index([expiresAt])
+  @@map("auth_attempts")
+}

@@ -8,16 +8,13 @@ const createJestConfig = nextJest({
 const config: Config = {
   clearMocks: true,
   testEnvironment: "node",
-  testMatch: ["**/*.int.test.ts", "<rootDir>/tests/unit/services/**/*.test.ts"],
+  testMatch: ["<rootDir>/tests/integration/**/*.int.test.ts"],
   testPathIgnorePatterns: ["/node_modules/", "/.next/"],
   maxWorkers: 1,
+  setupFilesAfterEnv: ["<rootDir>/tests/support/integration-service-boundaries.ts"],
   extensionsToTreatAsEsm: [".ts"],
-  collectCoverage: true,
-  collectCoverageFrom: ["src/services/**/*.ts"],
-  coverageThreshold: {
-    global: { lines: 0 },
-    "./src/services": { lines: 90 },
-  },
+  // Coverage thresholds belong to the fast suite; this suite verifies real DB boundaries.
+  collectCoverage: false,
   globalSetup: "<rootDir>/tests/integration/persistence/global-setup.ts",
   setupFiles: ["<rootDir>/tests/integration/persistence/setup-env.ts"],
 };
