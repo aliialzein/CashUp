@@ -5,7 +5,7 @@ import type { Amounts } from "@/lib/format/money";
 import { checkCount } from "@/lib/driver/count-cash/checkCount";
 import type { CashCount } from "@/lib/driver/count-cash/denominations";
 import { closeMockCashUp, saveMockCount, startMockCashUp } from "@/lib/driver/mock/today";
-import { toBackendMoney } from "@/lib/money/toBackendMoney";
+import { toBackendAmounts } from "@/lib/money/toBackendMoney";
 import { USE_MOCKS } from "@/lib/driver/useMocks";
 import { routes } from "@/lib/routes";
 import { getOwnOpenCashUp, openCashUp, voidOwnOpenCashUp } from "@/modules/cash-ups/cash-ups.service";
@@ -81,9 +81,8 @@ export async function submitCashUp(count: CashCount): Promise<ActionResult> {
 /** Creates a cash-up with the opening float the driver confirmed. */
 export async function startCashUp(float: Amounts): Promise<ActionResult> {
     // Normalized here, on the server: anyone can call an action with any string.
-    const floatUsd = toBackendMoney(float.usd, "USD");
-    const floatLbp = toBackendMoney(float.lbp, "LBP");
-    if (floatUsd === null || floatLbp === null) return { ok: false, code: "VALIDATION_ERROR" };
+    const backendFloat = toBackendAmounts(float);
+    if (backendFloat === null) return { ok: false, code: "VALIDATION_ERROR" };
 
     if (USE_MOCKS) {
         startMockCashUp();
@@ -92,7 +91,7 @@ export async function startCashUp(float: Amounts): Promise<ActionResult> {
     }
     try {
         // BACKEND: opens a real cash-up for the logged-in driver. The service checks the float and the session itself.
-        await openCashUp({ floatUsd, floatLbp });
+        await openCashUp({ floatUsd: backendFloat.usd, floatLbp: backendFloat.lbp });
     } catch (error) {
         const code = toErrorCode(error);
         if (code === "INTERNAL_ERROR") console.error("startCashUp failed", error);

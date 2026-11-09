@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import { MONEY_PATTERN } from "@/domain/money/config";
 import type { Currency } from "@/lib/format/money";
-import { toBackendMoney } from "@/lib/money/toBackendMoney";
+import { toBackendAmounts, toBackendMoney } from "@/lib/money/toBackendMoney";
 
 /** Every agreed example: what the driver typed -> what the backend receives. */
 const EXAMPLES: [string, Currency, string][] = [
@@ -45,5 +45,18 @@ describe("toBackendMoney", () => {
     // The frontend must never send a shape the backend rejects ("100.", ".5", "007"...).
     it.each(EXAMPLES)("sends %s (%s) in a shape the backend accepts", (typed, currency) => {
         expect(toBackendMoney(typed, currency)).toMatch(MONEY_PATTERN);
+    });
+});
+
+describe("toBackendAmounts", () => {
+    it("normalizes both currencies with the same rule as toBackendMoney", () => {
+        expect(toBackendAmounts({ usd: "99.5", lbp: "1,000,000" })).toEqual({ usd: "99.50", lbp: "1000000.00" });
+        expect(toBackendAmounts({ usd: "0", lbp: "0" })).toEqual({ usd: "0.00", lbp: "0.00" });
+    });
+
+    it("gives null when either side cannot be read, so the caller sends nothing", () => {
+        expect(toBackendAmounts({ usd: "1.000,50", lbp: "0" })).toBeNull();
+        expect(toBackendAmounts({ usd: "10", lbp: "abc" })).toBeNull();
+        expect(toBackendAmounts({ usd: "", lbp: "0" })).toBeNull();
     });
 });
