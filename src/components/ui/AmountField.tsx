@@ -1,4 +1,7 @@
-import { formatAmountInput, sanitizeAmountInput } from "@/lib/format/amountInput";
+"use client";
+
+import { useState } from "react";
+import { cleanAmountInput, formatAmountInput } from "@/lib/format/amountInput";
 import { capAmountInput } from "@/lib/money/amountLimits";
 import type { Currency } from "@/lib/format/money";
 
@@ -12,15 +15,26 @@ type AmountFieldProps = {
 };
 
 export function AmountField({ currency, value, onChange, label }: AmountFieldProps) {
+    // While typing the field shows plain digits, so a display comma never gets in the way of typing or backspace.
+    // When the driver leaves the field, thousands commas come back for reading ("10005" -> "10,005").
+    const [isFocused, setIsFocused] = useState(false);
+
+    function handleChange(raw: string) {
+        const cleaned = cleanAmountInput(raw, currency);
+        // Refused text (a wrong comma, a letter, a space...) keeps the previous value.
+        if (cleaned === null) return;
+        onChange(capAmountInput(cleaned, value, currency));
+    }
+
     return (
         <div className="relative">
             <input
                 inputMode={currency === "USD" ? "decimal" : "numeric"}
-                value={formatAmountInput(value)}
+                value={isFocused ? value : formatAmountInput(value)}
                 placeholder={currency === "USD" ? "0.00" : "0"}
-                onChange={(event) =>
-                    onChange(capAmountInput(sanitizeAmountInput(event.target.value, currency), value, currency))
-                }
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onChange={(event) => handleChange(event.target.value)}
                 aria-label={label ?? `Amount ${currency}`}
                 className="min-h-16 w-full rounded-xl border border-line-strong bg-surface px-3.5 pt-4 text-right font-mono text-[22px] font-semibold text-ink tabular-nums placeholder:text-line-strong focus-visible:outline-2 focus-visible:outline-ink md:min-h-14 md:rounded-[10px] md:text-xl"
             />

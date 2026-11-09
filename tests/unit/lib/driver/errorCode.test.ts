@@ -41,4 +41,31 @@ describe("errorText", () => {
     it("gives a safe default for an unknown code", () => {
         expect(errorText("SOMETHING_NEW")).toBe("Something went wrong. Please try again.");
     });
+
+    it("talks about amounts in general for a failed validation, not only the opening float", () => {
+        expect(errorText("VALIDATION_ERROR")).toBe("Check the amounts you entered.");
+    });
+
+    // Every backend code a driver can reach has its own text, so the driver never sees only "Something went wrong".
+    it.each([
+        ["CASHUP_NOT_OPEN", "This cash-up is no longer open."],
+        ["CASHUP_NOT_EMPTY", "Only an empty cash-up can be cancelled."],
+        ["CASHUP_HAS_NO_SALES", "Add at least one sale before submitting."],
+        ["SALES_AWAITING_DELIVERY", "Deliver or delete the waiting sales before submitting."],
+        ["REQUESTS_AWAITING_DECISION", "The owner still has to answer a request on this cash-up."],
+        ["SALE_NOT_BALANCED", "The amounts do not add up. Check what the client paid and the change."],
+        ["SALE_NOT_AWAITING_DELIVERY", "This sale was already delivered."],
+        ["SALE_ALREADY_CANCELLED", "This sale was already deleted."],
+        ["SALE_CANNOT_BE_CANCELLED", "This sale can no longer be deleted."],
+        ["CASHOUT_ALREADY_CANCELLED", "This cash-out was already deleted."],
+        ["ENTITY_NOT_FOUND", "We could not find this. Refresh and try again."],
+        ["CONFLICT", "Something changed in the meantime. Refresh and try again."],
+        ["IDEMPOTENCY_KEY_REUSED", "This was already sent. Refresh to see it."],
+        ["IDEMPOTENCY_REPLAY_UNVERIFIABLE", "This was already sent. Refresh to see it."],
+        ["VOID_REASON_INVALID", "This cash-up could not be cancelled. Please try again."],
+        ["LEGACY_AMENDMENT_UNSUPPORTED", "This cash-up has a change the app cannot handle. Ask the owner."],
+        ["AMENDMENT_FIELD_UNSUPPORTED", "This cash-up has a change the app cannot handle. Ask the owner."],
+    ])("gives %s its own text", (code, text) => {
+        expect(errorText(code)).toBe(text);
+    });
 });
