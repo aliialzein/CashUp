@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { Button } from "@/components/ui/driver/Button";
+import { Modal } from "@/components/ui/Modal";
 
 type ConfirmDialogProps = {
     open: boolean;
@@ -16,38 +17,19 @@ type ConfirmDialogProps = {
 
 /** A small "are you sure?" popup. Same on phone and desktop. Esc and a tap outside cancel it. */
 export function ConfirmDialog({ open, title, children, confirmLabel, onConfirm, onCancel, pending = false }: ConfirmDialogProps) {
-    const ref = useRef<HTMLDialogElement>(null);
-
-    useEffect(() => {
-        const dialog = ref.current;
-        if (!dialog) return;
-        if (open && !dialog.open) dialog.showModal();
-        if (!open && dialog.open) dialog.close();
-    }, [open]);
-
-    function cancel() {
-        if (!pending) onCancel();
-    }
+    const titleId = useId();
 
     return (
-        <dialog
-            ref={ref}
-            onCancel={(event) => {
-                event.preventDefault();
-                cancel();
-            }}
-            onClick={(event) => {
-                if (event.target === ref.current) cancel();
-            }}
-            className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-line bg-surface p-0 text-ink shadow-xl backdrop:bg-black/40"
-        >
+        <Modal open={open} labelledBy={titleId} onDismiss={onCancel} pending={pending}>
             <div className="space-y-4 p-5">
                 <div className="space-y-2">
-                    <h2 className="font-heading text-lg font-semibold">{title}</h2>
+                    <h2 id={titleId} className="font-heading text-lg font-semibold">
+                        {title}
+                    </h2>
                     <div className="text-sm leading-relaxed text-muted">{children}</div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                    <Button type="button" variant="secondary" onClick={cancel} disabled={pending}>
+                    <Button type="button" variant="secondary" onClick={onCancel} disabled={pending}>
                         Cancel
                     </Button>
                     <Button type="button" onClick={onConfirm} disabled={pending}>
@@ -55,6 +37,6 @@ export function ConfirmDialog({ open, title, children, confirmLabel, onConfirm, 
                     </Button>
                 </div>
             </div>
-        </dialog>
+        </Modal>
     );
 }

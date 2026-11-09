@@ -3,57 +3,62 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { FilterChips } from "@/components/ui/FilterChips";
-import { activeCashOuts } from "@/lib/driver/cash-out/activeCashOuts";
-import { CASH_OUT_REASONS, type CashOutReason } from "@/lib/driver/cash-out/reasons";
+import { cashOutFilterView, type CashOutFilter } from "@/lib/driver/cash-out/cashOutFilters";
 import { formatAmounts, type Amounts } from "@/lib/format/money";
 import type { CashOut } from "@/types/driver/cash-up";
 import { CashOutsResults } from "./CashOutsResults";
 import { TODAY_EMPTY, type EmptyText } from "./CashOutsTable";
 import { CashOutsTotal } from "./CashOutsTotal";
-
-type Filter = "ALL" | CashOutReason;
-
-const FILTERS: { value: Filter; label: string }[] = [
-    { value: "ALL", label: "All" },
-    ...CASH_OUT_REASONS.map((reason) => ({ value: reason, label: reason })),
-];
+import { DeleteCashOutDialog } from "./DeleteCashOutDialog";
 
 const PHONE_EMPTY: EmptyText = {
     title: "No cash-outs yet",
     text: "Money you take out of the drawer, like fuel or a supplier payment, will show up here.",
 };
 
-function matchesFilter(cashOut: CashOut, filter: Filter): boolean {
-    return filter === "ALL" || cashOut.reason === filter;
-}
-
 type CashOutsListProps = {
+    /** All cash-outs of the open cash-up, deleted ones included. */
     cashOuts: CashOut[];
-    /** Total of all cash-outs per currency, calculated by the server (already negative). */
+    /** Total of the cash-outs that are not deleted, per currency, calculated by the server (already negative). */
     total: Amounts;
 };
 
+/** The open cash-up's cash-outs: chips, the list, and Delete. Only used on /cash-outs, so every row can be deleted. */
 export function CashOutsList({ cashOuts, total }: CashOutsListProps) {
-    const [filter, setFilter] = useState<Filter>("ALL");
+    const [filter, setFilter] = useState<CashOutFilter>("ALL");
+    const [deleting, setDeleting] = useState<CashOut | null>(null);
+    const [showDeletedNotice, setShowDeletedNotice] = useState(false);
 
-    // Deleted cash-outs are hidden everywhere on this screen: the list, the chip counts and the empty state.
-    const shownCashOuts = activeCashOuts(cashOuts);
-    const isEmpty = shownCashOuts.length === 0;
-    const options = FILTERS.map(({ value, label }) => ({
-        value,
-        label,
-        count: shownCashOuts.filter((cashOut) => matchesFilter(cashOut, value)).length,
-    }));
-    const visibleCashOuts = shownCashOuts.filter((cashOut) => matchesFilter(cashOut, filter));
-    const noMatch = !isEmpty && visibleCashOuts.length === 0;
+    const { chips, shown } = cashOutFilterView(cashOuts, filter);
+    // Nothing recorded at all: the chips are greyed out and the list shows its "No cash-outs yet" state.
+    const isEmpty = cashOuts.length === 0;
+    // Nothing went out (no cash-out that is not deleted): the total shows muted.
+    const nothingOut = chips.find((chip) => chip.value === "ALL")?.count === 0;
+    const noMatch = !isEmpty && shown.length === 0;
+
+    function startDelete(cashOut: CashOut) {
+        setShowDeletedNotice(false);
+        setDeleting(cashOut);
+    }
+
+    function finishDelete() {
+        setDeleting(null);
+        setShowDeletedNotice(true);
+    }
 
     return (
         <div className="flex flex-col gap-3 md:gap-5">
-            <CashOutsTotal total={total} none={isEmpty} />
+            {showDeletedNotice && (
+                <p role="status" className="rounded-xl border border-success-line bg-success-bg px-4 py-3 text-sm text-success">
+                    Cash-out deleted. You can find it under Deleted.
+                </p>
+            )}
+
+            <CashOutsTotal total={total} none={nothingOut} />
 
             <div className="flex items-center justify-between gap-4">
-                <FilterChips label="Filter cash-outs" options={options} value={filter} onChange={setFilter} disabled={isEmpty} />
-                {!isEmpty && (
+                <FilterChips label="Filter cash-outs" options={chips} value={filter} onChange={setFilter} disabled={isEmpty} />
+                {!nothingOut && (
                     <span className="hidden font-mono text-sm font-semibold text-danger md:inline">
                         Total out {formatAmounts(total)}
                     </span>
@@ -61,10 +66,12 @@ export function CashOutsList({ cashOuts, total }: CashOutsListProps) {
             </div>
 
             {noMatch ? (
-                <Card className="px-5 py-10 text-center text-sm text-muted">No cash-outs.</Card>
+                <Card className="px-5 py-10 text-center text-sm text-muted">No cash-outs here.</Card>
             ) : (
-                <CashOutsResults cashOuts={visibleCashOuts} empty={TODAY_EMPTY} phoneEmpty={PHONE_EMPTY} />
+                <CashOutsResults cashOuts={shown} empty={TODAY_EMPTY} phoneEmpty={PHONE_EMPTY} onDelete={startDelete} />
             )}
+
+            <DeleteCashOutDialog cashOut={deleting} onClose={() => setDeleting(null)} onDeleted={finishDelete} />
         </div>
     );
 }

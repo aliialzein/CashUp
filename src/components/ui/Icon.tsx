@@ -22,6 +22,7 @@ const PATHS = {
 	tag: "M20 12l-8 8-8-8V4h8l8 8ZM8.5 8.5h.01",
 	minus: "M5 12h14",
 	clock: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM12 7v5l3 2",
+	trash: "M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6",
 } as const;
 
 export type IconName = keyof typeof PATHS;

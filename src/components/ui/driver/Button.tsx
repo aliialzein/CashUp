@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from "react";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "warning";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "warning" | "danger" | "dangerOutline";
 
 const BASE =
 	"inline-flex min-h-12 w-full items-center justify-center rounded-xl px-4 text-[15px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed";
@@ -10,7 +10,14 @@ const VARIANTS: Record<ButtonVariant, string> = {
 	secondary: "border border-ink bg-surface text-ink hover:bg-subtle disabled:border-line-strong disabled:text-muted",
 	ghost: "text-ink hover:bg-subtle disabled:text-muted",
 	warning: "border border-warning-line bg-warning-bg text-warning",
+	danger: "bg-danger text-white hover:bg-danger/90 disabled:bg-line-strong disabled:text-muted",
+	dangerOutline: "border border-danger-line bg-surface text-danger hover:bg-danger-bg disabled:text-muted",
 };
+
+/** Only the colours of a variant, for a button with its own size (e.g. a small icon button in a list). */
+export function buttonVariantClasses(variant: ButtonVariant): string {
+	return VARIANTS[variant];
+}
 
 /** Shared by Button and ButtonLink, so a link can look exactly like a button. */
 export function buttonClasses(variant: ButtonVariant = "primary", className = ""): string {
