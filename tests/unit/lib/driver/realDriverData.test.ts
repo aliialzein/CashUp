@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it, jest } from "@jest/globals";
 import type { DriverDataSource } from "@/lib/driver/data/driverDataSource";
-import { EntityNotFoundError } from "@/shared/errors/service-errors";
+import { EntityNotFoundError, UnauthenticatedError } from "@/shared/errors/service-errors";
 
 /** A fake backend read. It resolves to `unknown` so a test can hand back partial rows like { id, status }. */
 type FakeBackendCall = (...args: unknown[]) => Promise<unknown>;
@@ -9,6 +9,11 @@ const getOwnOpenCashUp = jest.fn<FakeBackendCall>();
 const listOwnCashUps = jest.fn<FakeBackendCall>();
 const getOwnCashUp = jest.fn<FakeBackendCall>();
 const getOwnCounts = jest.fn<FakeBackendCall>();
+const getCurrentUser = jest.fn<FakeBackendCall>();
+/** Like the real redirect(): it never returns, it throws. */
+const redirect = jest.fn((url: string) => {
+    throw new Error(`NEXT_REDIRECT ${url}`);
+});
 
 let realDriverData: DriverDataSource;
 
@@ -23,7 +28,24 @@ beforeAll(async () => {
         getOwnCashUp,
         getOwnCounts,
     }));
+    // The session redirect (sessionRedirect.ts) is tested on its own; here only its wiring.
+    jest.doMock("next/navigation", () => ({ redirect }));
+    jest.doMock("../../../../src/modules/auth/auth.service", () => ({ getCurrentUser }));
     ({ realDriverData } = await import("../../../../src/lib/driver/data/realDriverData"));
+});
+
+describe("realDriverData without a session", () => {
+    it("sends every read to the login page instead of crashing", async () => {
+        getCurrentUser.mockResolvedValue(null);
+        getOwnOpenCashUp.mockRejectedValue(new UnauthenticatedError());
+        listOwnCashUps.mockRejectedValue(new UnauthenticatedError());
+        getOwnCashUp.mockRejectedValue(new UnauthenticatedError());
+
+        await expect(realDriverData.getOpenCashUp()).rejects.toThrow("NEXT_REDIRECT /login");
+        await expect(realDriverData.getHistory()).rejects.toThrow("NEXT_REDIRECT /login");
+        await expect(realDriverData.getCashUpDetail("3f2b8c1e-5a4d-4c7b-9e2f-1a2b3c4d5e6f")).rejects.toThrow("NEXT_REDIRECT /login");
+        expect(redirect).toHaveBeenCalledTimes(3);
+    });
 });
 
 const VALID_ID = "3f2b8c1e-5a4d-4c7b-9e2f-1a2b3c4d5e6f";

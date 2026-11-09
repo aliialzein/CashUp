@@ -13,6 +13,7 @@ import { EntityNotFoundError } from "@/shared/errors/service-errors";
 import { pageQuery, uuid } from "@/shared/validation/common";
 import type { CashUpSummary } from "@/types/driver/cash-up";
 import type { DriverDataSource } from "./driverDataSource";
+import { withSessionRedirect } from "./sessionRedirect";
 
 /** Only submitted and approved cash-ups have a detail page. Open ones live on Today; VOID never shows. */
 function isLocked(status: CashUpDto["status"]): boolean {
@@ -23,7 +24,7 @@ function isLocked(status: CashUpDto["status"]): boolean {
  * Reads from the backend services. No mock data here.
  * Each service finds the logged-in driver itself from the session cookie, so nothing is passed in.
  */
-export const realDriverData: DriverDataSource = {
+const backendReads: DriverDataSource = {
     async getOpenCashUp() {
         // BACKEND: the driver's open cash-up (a returned one counts as open), with sales, cash-outs and ledger.
         const own = await getOwnOpenCashUp();
@@ -70,4 +71,11 @@ export const realDriverData: DriverDataSource = {
         // NEXT STEP: CashUpOwnDto now has `number` and USD/LBP pair columns. Map it to a CashUpDetail, then remove this line.
         throw new Error("CASH_UP_DETAIL_NOT_MAPPED");
     },
+};
+
+/** The backend reads, each sending a driver without a usable session to /login or /onboarding instead of crashing the page. */
+export const realDriverData: DriverDataSource = {
+    getOpenCashUp: () => withSessionRedirect(() => backendReads.getOpenCashUp()),
+    getHistory: () => withSessionRedirect(() => backendReads.getHistory()),
+    getCashUpDetail: (id) => withSessionRedirect(() => backendReads.getCashUpDetail(id)),
 };

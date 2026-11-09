@@ -1,5 +1,6 @@
 export const routes = {
 	login: "/login",
+	onboarding: "/onboarding",
 	driver: {
 		today: "/today",
 		history: "/history",
