@@ -60,12 +60,21 @@ describe("mapCashOut", () => {
         createdAt: "2026-10-28T06:30:00.000Z",
     };
 
-    it("keeps a known reason", () => {
+    it("keeps a known reason, with no detail", () => {
         expect(mapCashOut(base).reason).toBe("Fuel");
+        expect(mapCashOut(base)).not.toHaveProperty("detail");
     });
 
-    it("turns an unknown reason into Other", () => {
-        expect(mapCashOut({ ...base, reason: "Shop supplies" }).reason).toBe("Other");
+    it("turns an unknown reason into Other and keeps the whole text as the detail", () => {
+        const result = mapCashOut({ ...base, reason: "Shop supplies" });
+        expect(result.reason).toBe("Other");
+        expect(result.detail).toBe("Shop supplies");
+    });
+
+    it("splits \"Other: <detail>\" into the category and the driver's words", () => {
+        const result = mapCashOut({ ...base, reason: "Other: Car wash" });
+        expect(result.reason).toBe("Other");
+        expect(result.detail).toBe("Car wash");
     });
 
     it("sets the note only when there is one", () => {

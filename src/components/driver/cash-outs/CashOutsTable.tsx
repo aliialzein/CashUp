@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { cashOutReasonLabel } from "@/lib/driver/cash-out/reasonText";
 import { formatOutflow } from "@/lib/format/money";
 import type { CashOut } from "@/types/driver/cash-up";
 
@@ -42,7 +43,7 @@ export function CashOutsTable({ cashOuts, empty = TODAY_EMPTY }: CashOutsTablePr
                     )}
                     {cashOuts.map((cashOut) => (
                         <tr key={cashOut.id} className="border-b border-subtle last:border-b-0">
-                            <td className={`${TD} font-heading font-semibold`}>{cashOut.reason}</td>
+                            <td className={`${TD} font-heading font-semibold`}>{cashOutReasonLabel(cashOut)}</td>
                             <td className={`${TD} font-mono text-[13px] text-muted`}>{cashOut.time}</td>
                             <td className={`${TD} text-muted`}>{cashOut.note ?? "—"}</td>
                             <td className={`${TD} text-right font-mono font-semibold whitespace-nowrap text-danger`}>

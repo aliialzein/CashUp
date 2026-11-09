@@ -50,7 +50,10 @@ export type Ledger = {
 
 export type CashOut = {
     id: string;
+    /** The category, used by the filter chips. */
     reason: CashOutReason;
+    /** The driver's own words after the category, e.g. "Car wash" in "Other: Car wash". See reasonText.ts. */
+    detail?: string;
     /** Time only (HH:mm). */
     time: string;
     /** Optional free text the driver typed. Stored in the cash-out's note column. */

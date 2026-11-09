@@ -1,3 +1,4 @@
+import { cashOutReasonLabel } from "@/lib/driver/cash-out/reasonText";
 import { formatOutflow } from "@/lib/format/money";
 import type { CashOut } from "@/types/driver/cash-up";
 
@@ -8,7 +9,7 @@ export function CashOutCards({ cashOuts }: { cashOuts: CashOut[] }) {
             {cashOuts.map((cashOut) => (
                 <li key={cashOut.id} className="flex flex-col gap-1 rounded-xl border border-line bg-surface px-4 py-3">
                     <div className="flex items-baseline justify-between gap-3">
-                        <span className="font-heading text-[15px] font-semibold">{cashOut.reason}</span>
+                        <span className="font-heading text-[15px] font-semibold">{cashOutReasonLabel(cashOut)}</span>
                         <span className="text-right font-mono text-sm font-semibold whitespace-nowrap text-danger">
                             {formatOutflow(cashOut.amount)}
                         </span>
