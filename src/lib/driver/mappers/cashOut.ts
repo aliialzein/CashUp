@@ -1,18 +1,17 @@
 import { CASH_OUT_REASONS, type CashOutReason } from "@/lib/driver/cash-out/reasons";
+import type { CashOutDto } from "@/modules/cash-outs/cash-outs.types";
 import type { CashOut } from "@/types/driver/cash-up";
 import { formatTime } from "./businessTime";
 import { pair } from "./sale";
 
-/** What the backend sends for one cash-out. Swap for CashOutDto once the backend has pair columns. */
-export type CashOutInput = {
-    id: string;
-    amountUsd: string;
-    amountLbp: string;
-    /** Free text on the backend. */
-    reason: string;
-    note: string | null;
-    createdAt: string;
-};
+/**
+ * The fields of the backend cash-out that the screens need. Taken from CashOutDto, so a backend rename
+ * is a compile error here. `reason` is free text on the backend; `status` CANCELLED means soft-deleted.
+ */
+export type CashOutInput = Pick<
+    CashOutDto,
+    "id" | "amountUsd" | "amountLbp" | "reason" | "note" | "status" | "cancelReason" | "createdAt"
+>;
 
 const FALLBACK_REASON: CashOutReason = "Other";
 
@@ -26,7 +25,9 @@ export function mapCashOut(dto: CashOutInput): CashOut {
         reason: toCashOutReason(dto.reason),
         time: formatTime(dto.createdAt),
         amount: pair(dto.amountUsd, dto.amountLbp),
+        isDeleted: dto.status === "CANCELLED",
     };
     if (dto.note !== null) cashOut.note = dto.note;
+    if (dto.cancelReason !== null) cashOut.cancelReason = dto.cancelReason;
     return cashOut;
 }

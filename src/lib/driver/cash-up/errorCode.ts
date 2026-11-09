@@ -1,6 +1,5 @@
 import { ZodError } from "zod";
-import { UnauthenticatedError } from "@/http/errors";
-import { ServiceError } from "@/services/errors";
+import { ServiceError, UnauthenticatedError } from "@/shared/errors/service-errors";
 
 /** Turns anything thrown into a short code the screens understand. */
 export function toErrorCode(error: unknown): string {

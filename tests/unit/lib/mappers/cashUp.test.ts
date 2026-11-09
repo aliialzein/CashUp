@@ -1,4 +1,4 @@
-import { mapCashOut } from "@/lib/driver/mappers/cashOut";
+import { mapCashOut, type CashOutInput } from "@/lib/driver/mappers/cashOut";
 import { mapCashUp, type CashUpInput } from "@/lib/driver/mappers/cashUp";
 import type { SaleLineInput } from "@/lib/driver/mappers/sale";
 import { expect, describe, it } from "@jest/globals"
@@ -54,9 +54,10 @@ function cashUp(overrides: Partial<CashUpInput> = {}): CashUpInput {
 }
 
 describe("mapCashOut", () => {
-    const base = {
+    const base: CashOutInput = {
         id: "out-1", amountUsd: "2.00", amountLbp: "0.00",
-        reason: "Fuel", note: null, createdAt: "2026-10-28T06:30:00.000Z",
+        reason: "Fuel", note: null, status: "ACTIVE", cancelReason: null,
+        createdAt: "2026-10-28T06:30:00.000Z",
     };
 
     it("keeps a known reason", () => {
@@ -70,6 +71,19 @@ describe("mapCashOut", () => {
     it("sets the note only when there is one", () => {
         expect(mapCashOut(base).note).toBeUndefined();
         expect(mapCashOut({ ...base, note: "Diesel" }).note).toBe("Diesel");
+    });
+
+    it("marks an active cash-out as not deleted, without a cancel reason", () => {
+        const result = mapCashOut(base);
+        expect(result.isDeleted).toBe(false);
+        expect(result).not.toHaveProperty("cancelReason");
+    });
+
+    it("keeps a cancelled cash-out, marked deleted, with its reason", () => {
+        const result = mapCashOut({ ...base, status: "CANCELLED", cancelReason: "Typed twice" });
+        expect(result.isDeleted).toBe(true);
+        expect(result.cancelReason).toBe("Typed twice");
+        expect(result.amount).toEqual({ usd: "2.00", lbp: "0.00" });
     });
 });
 

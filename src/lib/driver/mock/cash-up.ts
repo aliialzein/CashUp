@@ -66,8 +66,8 @@ const fullOpenCashUp: CashUp = {
     waitingTotal,
     sales,
     cashOuts: [
-        { id: "co-2", reason: "Fuel", time: "10:20", note: "Filled the motorbike", amount: { usd: "0", lbp: "200000" } },
-        { id: "co-1", reason: "Supplier", time: "09:40", note: "Water bottles", amount: { usd: "5", lbp: "0" } },
+        { id: "co-2", reason: "Fuel", time: "10:20", note: "Filled the motorbike", amount: { usd: "0", lbp: "200000" }, isDeleted: false },
+        { id: "co-1", reason: "Supplier", time: "09:40", note: "Water bottles", amount: { usd: "5", lbp: "0" }, isDeleted: false },
     ],
 };
 

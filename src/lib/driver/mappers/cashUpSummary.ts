@@ -1,13 +1,15 @@
+import type { CashUpHistoryRowDto } from "@/modules/cash-ups/cash-ups.types";
 import type { CashUpSummary } from "@/types/driver/cash-up";
 import { formatDay, formatIsoDay } from "./businessTime";
-import { toStatus, type CashUpInput } from "./cashUp";
+import { toStatus, type OwnCashUpStatus } from "./cashUp";
 import { pair } from "./sale";
 
-/** What the backend sends for one row of the cash-up list. */
-export type CashUpSummaryInput = Pick<CashUpInput, "id" | "number" | "status" | "returnReason" | "openedAt"> & {
-    salesCount: number;
-    gapUsd: string | null;
-    gapLbp: string | null;
+/** The fields of one backend history row that the list needs, taken from CashUpHistoryRowDto. VOID rows are dropped before this. */
+export type CashUpSummaryInput = Pick<
+    CashUpHistoryRowDto,
+    "id" | "number" | "returnReason" | "openedAt" | "salesCount" | "gapUsd" | "gapLbp"
+> & {
+    status: OwnCashUpStatus;
 };
 
 export function mapCashUpSummary(dto: CashUpSummaryInput): CashUpSummary {

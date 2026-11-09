@@ -10,7 +10,7 @@ const sale: Sale = {
     status: "DELETED",
     amount: { usd: "1", lbp: "0" },
 };
-const cashOut: CashOut = { id: "o-1", reason: "Fuel", time: "09:00", amount: { usd: "5", lbp: "0" } };
+const cashOut: CashOut = { id: "o-1", reason: "Fuel", time: "09:00", amount: { usd: "5", lbp: "0" }, isDeleted: false };
 
 describe("canCancelCashUp", () => {
     it("allows an open cash-up with nothing recorded", () => {

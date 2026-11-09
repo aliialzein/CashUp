@@ -53,10 +53,14 @@ export type CashOut = {
     reason: CashOutReason;
     /** Time only (HH:mm). */
     time: string;
-    /** Optional free text. The database has no note column yet, so the team has to decide. */
+    /** Optional free text the driver typed. Stored in the cash-out's note column. */
     note?: string;
     /** Positive amounts in USD and LBP, like the cash-up lines. Shown as money leaving the drawer. */
     amount: Amounts;
+    /** Cancelled on the backend (soft-deleted). Kept so a screen can show it later; hidden for now. */
+    isDeleted: boolean;
+    /** Why it was cancelled. Only set on a deleted cash-out that has a reason. */
+    cancelReason?: string;
 };
 
 export type CashUp = {

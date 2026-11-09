@@ -1,6 +1,5 @@
-import { openCashUpSchema } from "@/validation";
-import { UnauthenticatedError } from "@/http/errors";
-import { ConflictError, ForbiddenError } from "@/services/errors";
+import { openCashUpSchema } from "@/modules/cash-ups/cash-ups.validation";
+import { ConflictError, ForbiddenError, UnauthenticatedError } from "@/shared/errors/service-errors";
 import { errorText } from "@/lib/driver/cash-up/actionResult";
 import { toErrorCode } from "@/lib/driver/cash-up/errorCode";
 import { describe, it, expect } from "@jest/globals"

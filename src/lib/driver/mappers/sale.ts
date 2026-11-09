@@ -1,39 +1,39 @@
 import type { Amounts } from "@/lib/format/money";
+import type { SaleLineDto } from "@/modules/sales/sales.types";
 import type { Sale } from "@/types/driver/cash-up";
 import { formatDay, formatTime } from "./businessTime";
 
 /**
- * A sale line as the backend will send it: one value per currency, named like the cash-up
- * (floatUsd / floatLbp). "0.00" means "none". This is the agreed contract.
- * When the backend ships it, replace this type with `SaleLineDto` from "@/services/dto";
- * the compiler then shows any name that differs.
+ * The fields of the backend sale line that mapSale reads. Taken from SaleLineDto, so a backend rename
+ * is a compile error here. Money is one string per currency ("0.00" means "none").
+ * - moneyTaken: COLLECTED = the money is in the drawer, NOT_YET = still to collect, CANCELLED = deleted.
+ * - totalCollectedUsd/Lbp: what the sale collects, or will collect. Only a COLLECTED sale really holds it.
  */
-export type SaleLineInput = {
-    id: string;
-    saleNumber: number;
-    status: Sale["status"];
-    /** COLLECTED: the money is in the drawer. NOT_YET: still to collect. CANCELLED: deleted. */
-    moneyTaken: "COLLECTED" | "NOT_YET" | "CANCELLED";
-    businessAmountUsd: string;
-    businessAmountLbp: string;
-    deliveryFeeUsd: string;
-    deliveryFeeLbp: string;
-    tipUsd: string;
-    tipLbp: string;
-    discountUsd: string;
-    discountLbp: string;
-    /** What the sale collects, or will collect. Only a COLLECTED sale really holds it. */
-    totalCollectedUsd: string;
-    totalCollectedLbp: string;
-    changeGivenUsd: string;
-    changeGivenLbp: string;
-    method: NonNullable<Sale["method"]>;
-    clientNumber: string | null;
-    note: string | null;
-    createdAt: string;
-    isEdited: boolean;
-    amountDiffers: boolean;
-};
+export type SaleLineInput = Pick<
+    SaleLineDto,
+    | "id"
+    | "saleNumber"
+    | "status"
+    | "moneyTaken"
+    | "businessAmountUsd"
+    | "businessAmountLbp"
+    | "deliveryFeeUsd"
+    | "deliveryFeeLbp"
+    | "tipUsd"
+    | "tipLbp"
+    | "discountUsd"
+    | "discountLbp"
+    | "totalCollectedUsd"
+    | "totalCollectedLbp"
+    | "changeGivenUsd"
+    | "changeGivenLbp"
+    | "method"
+    | "clientNumber"
+    | "note"
+    | "createdAt"
+    | "isEdited"
+    | "amountDiffers"
+>;
 
 export function pair(usd: string, lbp: string): Amounts {
     return { usd, lbp };

@@ -1,9 +1,17 @@
 import "server-only";
-import { currentActor } from "@/server/context";
-import { findOwnOpenCashUp } from "@/server/driver/ownOpenCashUp";
-import type { CashUpDto } from "@/services/dto";
-import { EntityNotFoundError } from "@/services/errors";
-import { pageQuery, uuid } from "@/validation";
+import { mapCashUp } from "@/lib/driver/mappers/cashUp";
+import { mapCashUpSummary } from "@/lib/driver/mappers/cashUpSummary";
+import { mapSavedCount } from "@/lib/driver/mappers/savedCount";
+import {
+    getOwnCashUp,
+    getOwnCounts,
+    getOwnOpenCashUp,
+    listOwnCashUps,
+} from "@/modules/cash-ups/cash-ups.service";
+import type { CashUpDto } from "@/modules/cash-ups/cash-ups.types";
+import { EntityNotFoundError } from "@/shared/errors/service-errors";
+import { pageQuery, uuid } from "@/shared/validation/common";
+import type { CashUpSummary } from "@/types/driver/cash-up";
 import type { DriverDataSource } from "./driverDataSource";
 
 /** Only submitted and approved cash-ups have a detail page. Open ones live on Today; VOID never shows. */
@@ -11,46 +19,55 @@ function isLocked(status: CashUpDto["status"]): boolean {
     return status === "SUBMITTED" || status === "APPROVED";
 }
 
-/** Reads from the backend services. No mock data here. */
+/**
+ * Reads from the backend services. No mock data here.
+ * Each service finds the logged-in driver itself from the session cookie, so nothing is passed in.
+ */
 export const realDriverData: DriverDataSource = {
     async getOpenCashUp() {
-        // BACKEND: asks the services for the driver's newest cash-ups and keeps the open one.
-        const { deps, actor } = await currentActor();
-        const openCashUp = await findOwnOpenCashUp(deps.queries, actor);
-        if (openCashUp === null) return null;
+        // BACKEND: the driver's open cash-up (a returned one counts as open), with sales, cash-outs and ledger.
+        const own = await getOwnOpenCashUp();
+        if (own === null) return null;
 
-        // BACKEND GAP: CashUpOwnDto has no USD/LBP pair columns yet, so mapCashUp cannot read it.
-        // When it has them: deps.queries.getOwn(actor, openCashUp.id), then mapCashUp(...).
-        throw new Error("OPEN_CASH_UP_NOT_MAPPED");
+        // The backend fills the ledger for every OPEN cash-up. Anything else is a backend bug: fail loudly.
+        // This one check also narrows `status` and `ledger` for TypeScript, so no cast is needed.
+        if (own.status !== "OPEN" || own.ledger === null) throw new Error("OPEN_CASH_UP_WITHOUT_LEDGER");
+
+        // BACKEND: the count saved so far, so Count cash can show it again.
+        const saved = await getOwnCounts(own.id);
+
+        // Cash-outs keep their deleted flag here; screens decide what to hide.
+        return mapCashUp({ ...own, status: own.status, ledger: own.ledger, savedCounts: mapSavedCount(saved) });
     },
 
     async getHistory() {
-        // BACKEND: asks the services for the driver's own cash-ups, newest first (first page only).
-        const { deps, actor } = await currentActor();
-        const rows = await deps.queries.listOwn(actor, pageQuery.parse({}));
-        if (rows.length === 0) return [];
+        // BACKEND: the driver's own cash-ups, newest first (first page only).
+        const rows = await listOwnCashUps(pageQuery.parse({}));
 
-        // BACKEND GAP: CashUpDto has no `number` or `salesCount`, so mapCashUpSummary cannot read it.
-        // When it has them: drop VOID rows, then rows.map(mapCashUpSummary).
-        throw new Error("HISTORY_NOT_MAPPED");
+        const summaries: CashUpSummary[] = [];
+        for (const row of rows) {
+            // VOID cash-ups never show on the driver's screens.
+            if (row.status === "VOID") continue;
+            summaries.push(mapCashUpSummary({ ...row, status: row.status }));
+        }
+        return summaries;
     },
 
-    async getCashUpDetail(id) {
+    async getCashUpDetail(id: string) {
         // The id comes from the URL, so anyone can type anything. Check it before the backend sees it.
         if (!uuid.safeParse(id).success) return null;
 
-        // BACKEND: asks the services for one of the driver's own cash-ups, with its sales and cash-outs.
-        const { deps, actor } = await currentActor();
+        // BACKEND: one of the driver's own cash-ups, with its sales and cash-outs.
         let ownCashUp;
         try {
-            ownCashUp = await deps.queries.getOwn(actor, id);
+            ownCashUp = await getOwnCashUp(id);
         } catch (error) {
             if (error instanceof EntityNotFoundError) return null;
             throw error;
         }
         if (!isLocked(ownCashUp.status)) return null;
 
-        // BACKEND GAP: CashUpOwnDto has no `number` and no USD/LBP pair columns, so it cannot become a CashUpDetail.
+        // NEXT STEP: CashUpOwnDto now has `number` and USD/LBP pair columns. Map it to a CashUpDetail, then remove this line.
         throw new Error("CASH_UP_DETAIL_NOT_MAPPED");
     },
 };

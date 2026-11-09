@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { FilterChips } from "@/components/ui/FilterChips";
+import { activeCashOuts } from "@/lib/driver/cash-out/activeCashOuts";
 import { CASH_OUT_REASONS, type CashOutReason } from "@/lib/driver/cash-out/reasons";
 import { formatAmounts, type Amounts } from "@/lib/format/money";
 import type { CashOut } from "@/types/driver/cash-up";
@@ -35,13 +36,15 @@ type CashOutsListProps = {
 export function CashOutsList({ cashOuts, total }: CashOutsListProps) {
     const [filter, setFilter] = useState<Filter>("ALL");
 
-    const isEmpty = cashOuts.length === 0;
+    // Deleted cash-outs are hidden everywhere on this screen: the list, the chip counts and the empty state.
+    const shownCashOuts = activeCashOuts(cashOuts);
+    const isEmpty = shownCashOuts.length === 0;
     const options = FILTERS.map(({ value, label }) => ({
         value,
         label,
-        count: cashOuts.filter((cashOut) => matchesFilter(cashOut, value)).length,
+        count: shownCashOuts.filter((cashOut) => matchesFilter(cashOut, value)).length,
     }));
-    const visibleCashOuts = cashOuts.filter((cashOut) => matchesFilter(cashOut, filter));
+    const visibleCashOuts = shownCashOuts.filter((cashOut) => matchesFilter(cashOut, filter));
     const noMatch = !isEmpty && visibleCashOuts.length === 0;
 
     return (

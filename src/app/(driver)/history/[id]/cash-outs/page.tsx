@@ -5,6 +5,7 @@ import { type EmptyText } from "@/components/driver/cash-outs/CashOutsTable";
 import { CashOutsTotal } from "@/components/driver/cash-outs/CashOutsTotal";
 import { LockedBadge } from "@/components/driver/history/LockedBadge";
 import { PageHeader } from "@/components/driver/layout/PageHeader";
+import { activeCashOuts } from "@/lib/driver/cash-out/activeCashOuts";
 import { cashUpLabel } from "@/lib/driver/cash-up/cashUpLabel";
 import { driverData } from "@/lib/driver/data/driverData";
 import { historyOrigin } from "@/lib/driver/navigation/historyOrigin";
@@ -27,6 +28,7 @@ async function LockedCashOuts({ params, searchParams }: LockedCashOutsPageProps)
     // BACKEND: one locked cash-up with its cash-outs. Real or mock is decided in src/lib/driver/data/driverData.ts.
     const detail = await driverData.getCashUpDetail(id);
     if (!detail) notFound();
+    const shownCashOuts = activeCashOuts(detail.cashOuts);
 
     return (
         <>
@@ -39,8 +41,8 @@ async function LockedCashOuts({ params, searchParams }: LockedCashOutsPageProps)
                 subtitle={cashUpLabel(detail.number)}
                 badge={<LockedBadge />}
             />
-            <CashOutsTotal total={detail.ledger.cashOuts} none={detail.cashOuts.length === 0} />
-            <CashOutsResults cashOuts={detail.cashOuts} empty={EMPTY} />
+            <CashOutsTotal total={detail.ledger.cashOuts} none={shownCashOuts.length === 0} />
+            <CashOutsResults cashOuts={shownCashOuts} empty={EMPTY} />
             <p className="text-center text-[13px] text-muted md:text-sm">Cash-outs are read-only after the cash-up is submitted.</p>
         </>
     );

@@ -17,7 +17,7 @@ function delivered(
 }
 
 function cashOut(id: string, reason: CashOut["reason"], time: string, usd: string, lbp: string, note?: string): CashOut {
-    return { id, reason, time, note, amount: { usd, lbp } };
+    return { id, reason, time, note, amount: { usd, lbp }, isDeleted: false };
 }
 
 const LEDGER = {

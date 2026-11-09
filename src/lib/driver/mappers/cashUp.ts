@@ -1,36 +1,29 @@
+import type { CashCount } from "@/lib/driver/count-cash/denominations";
 import { addAmounts } from "@/lib/money/amounts";
 import type { Amounts } from "@/lib/format/money";
+import type { CashUpDto, CashUpLedgerDto, CashUpOwnDto } from "@/modules/cash-ups/cash-ups.types";
 import type { CashUp, CashUpStatus, Ledger, Sale } from "@/types/driver/cash-up";
 import { formatDay, formatTime } from "./businessTime";
 import { mapCashOut, type CashOutInput } from "./cashOut";
 import { mapSale, pair, type SaleLineInput } from "./sale";
 
-/** The drawer lines the backend computes (section 9.3 of the team notes). */
-export type LedgerInput = {
-    floatUsd: string;
-    floatLbp: string;
-    receivedUsd: string;
-    receivedLbp: string;
-    changeGivenUsd: string;
-    changeGivenLbp: string;
-    cashOutsUsd: string;
-    cashOutsLbp: string;
-    expectedUsd: string;
-    expectedLbp: string;
-};
+/** The statuses a driver's own cash-up can have on screen. VOID never shows. */
+export type OwnCashUpStatus = Exclude<CashUpDto["status"], "VOID">;
 
-/** What the backend sends for the driver's own cash-up. VOID never reaches the screens. */
-export type CashUpInput = {
-    id: string;
-    number: number;
-    status: "OPEN" | "SUBMITTED" | "APPROVED";
-    returnReason: string | null;
-    openedAt: string;
+/** The drawer lines the backend computes (section 9.3 of the team notes). */
+export type LedgerInput = CashUpLedgerDto;
+
+/**
+ * The fields of the driver's own cash-up that mapCashUp reads, taken from CashUpOwnDto.
+ * Narrower than the backend on purpose: no VOID status, and the ledger is never null (the backend fills it while OPEN).
+ */
+export type CashUpInput = Pick<CashUpOwnDto, "id" | "number" | "returnReason" | "openedAt" | "countedUsd" | "countedLbp"> & {
+    status: OwnCashUpStatus;
     ledger: LedgerInput;
-    countedUsd: string | null;
-    countedLbp: string | null;
-    sales: SaleLineInput[];
-    cashOuts: CashOutInput[];
+    sales: readonly SaleLineInput[];
+    cashOuts: readonly CashOutInput[];
+    /** The saved count, already turned into screen note names by mapSavedCount. Left out = no count yet. */
+    savedCounts?: CashCount | null;
 };
 
 const NO_MONEY: Amounts = pair("0.00", "0.00");
@@ -74,8 +67,7 @@ export function mapCashUp(dto: CashUpInput): CashUp {
         salesCount: keptSales.length,
         salesTotal: sumAsked(keptSales),
         counted: hasCount ? pair(dto.countedUsd ?? "0.00", dto.countedLbp ?? "0.00") : null,
-        // BACKEND GAP: the cash-up read has no count lines yet, so Count cash starts empty with real data.
-        savedCounts: null,
+        savedCounts: dto.savedCounts ?? null,
         deliveredTotal: sumAsked(keptSales.filter((sale) => sale.status === "DELIVERED")),
         waitingTotal: sumAsked(keptSales.filter((sale) => sale.status === "TO_DELIVER")),
         sales,
