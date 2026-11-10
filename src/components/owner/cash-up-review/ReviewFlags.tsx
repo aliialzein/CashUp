@@ -11,7 +11,7 @@ interface Props {
 export default function ReviewFlags({ requests }: Props) {
   return (
     <section className="rounded-2xl border border-[#E5EEE8] bg-white p-5 shadow-sm">
-      <h2 className="mb-4 font-semibold text-[#145B37]">Requests & Flags</h2>
+      <h2 className="mb-4 font-semibold text-[#0f172a]">Requests & Flags</h2>
 
       {requests.length === 0 ? (
         <p className="text-sm text-[#718078]">No requests for this cash-up.</p>

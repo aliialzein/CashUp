@@ -31,7 +31,7 @@ export default function CashSummary({ cashUp }: Props) {
   return (
     <section className="overflow-hidden rounded-2xl border border-[#E2EBE5] bg-white shadow-sm">
       <div className="border-b border-[#E5EEE8] bg-[#F7FAF8] px-5 py-4">
-        <h2 className="font-semibold text-[#145B37]">Cash Summary</h2>
+        <h2 className="font-semibold text-[#0f172a]">Cash Summary</h2>
         <p className="mt-1 text-xs text-[#718078]">Expected vs. counted cash</p>
       </div>
 

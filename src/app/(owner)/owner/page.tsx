@@ -1,82 +1,43 @@
-import Link from "next/link";
+"use client";
 
-const stats = [
-  {
-    title: "Open Cash-ups",
-    description: "Currently in progress",
-    icon: "◷",
-  },
-  {
-    title: "Awaiting Review",
-    description: "Submitted for review",
-    icon: "▤",
-  },
-  {
-    title: "Approved",
-    description: "Successfully reviewed",
-    icon: "✓",
-  },
-];
+import React from "react";
+import DoneSection from "@/components/owner/home-dashboard/DoneSection";
+import NeedsDecisionSection from "@/components/owner/home-dashboard/NeedsDecisionSection";
+import OpenNowSection from "@/components/owner/home-dashboard/OpenNowSection";
+import TopStatsCards from "@/components/owner/home-dashboard/TopStatsCards";
+import { mockHomeData } from "@/data/mock/owner-dashboard";
 
-export default function OwnerDashboardPage() {
+export default function OwnerHomePage() {
+  const data = mockHomeData;
+
   return (
-    <div className="space-y-8">
-      {/* Welcome */}
-      <section>
-        <p className="text-sm font-medium text-[#218653]">OWNER WORKSPACE</p>
+    <div className="space-y-8 bg-[#f8fafc] min-h-screen text-[#0f172a] pb-12">
+      {/* Page Title */}
+      <div>
+        <h1 className="text-2xl font-bold text-[#0f172a] sm:text-3xl">Home</h1>
+      </div>
 
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#145B37] sm:text-3xl">
-          Dashboard Overview
-        </h1>
+      {/* Top 3 Stat Blocks */}
+      <TopStatsCards
+        toReview={data.stats.toReview}
+        requestsWaiting={data.stats.requestsWaiting}
+        openNow={data.stats.openNow}
+      />
 
-        <p className="mt-2 text-sm text-[#718077]">
-          Manage your cash-ups and keep track of your business cash flow.
-        </p>
-      </section>
+      {/* Middle Grid Section: Needs Decision & Open Now */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <NeedsDecisionSection
+          cashUpsCount={data.cashUpsToReview.count}
+          cashUpNames={data.cashUpsToReview.names}
+          requestsCount={data.requests.count}
+          requestsDescription={data.requests.description}
+        />
 
-      {/* Statistics */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {stats.map((stat) => (
-          <div
-            key={stat.title}
-            className="rounded-2xl border border-[#E5EEE8] bg-white p-5 shadow-sm"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-[#718077]">
-                {stat.title}
-              </span>
+        <OpenNowSection items={data.openCashUps} />
+      </div>
 
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF5ED] text-lg text-[#167344]">
-                {stat.icon}
-              </span>
-            </div>
-
-            <p className="mt-4 text-sm text-[#718077]">{stat.description}</p>
-          </div>
-        ))}
-      </section>
-
-      {/* Cash-ups Section */}
-      <section className="rounded-2xl border border-[#E5EEE8] bg-white p-6 shadow-sm">
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div>
-            <h2 className="text-lg font-bold text-[#145B37]">
-              Cash-up Management
-            </h2>
-
-            <p className="mt-1 text-sm text-[#718077]">
-              {"Review and manage your team's cash handling periods."}
-            </p>
-          </div>
-
-          <Link
-            href="/owner/cash-ups"
-            className="inline-flex items-center justify-center rounded-xl bg-[#167344] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#145B37]"
-          >
-            View Cash-ups →
-          </Link>
-        </div>
-      </section>
+      {/* Bottom Section: Done */}
+      <DoneSection />
     </div>
   );
 }
