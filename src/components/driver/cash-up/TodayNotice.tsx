@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { SuccessNotice } from "@/components/ui/SuccessNotice";
+import { UrlSuccessNotice } from "@/components/ui/UrlSuccessNotice";
 import { todayNotice } from "@/lib/driver/count-cash/todayNotice";
 
 type TodayNoticeProps = {
@@ -8,11 +8,17 @@ type TodayNoticeProps = {
     className?: string;
 };
 
-/** Reads `done` and shows the matching green line, or nothing. */
+/** Reads `done` and shows the matching green line, or nothing. When the line hides, `done` leaves the address. */
 async function TodayNoticeLine({ searchParams, className }: TodayNoticeProps) {
     const { done } = await searchParams;
     const notice = todayNotice(done);
-    return notice && <SuccessNotice className={className}>{notice}</SuccessNotice>;
+    return (
+        notice && (
+            <UrlSuccessNotice param="done" className={className}>
+                {notice}
+            </UrlSuccessNotice>
+        )
+    );
 }
 
 /**
