@@ -44,8 +44,8 @@ export interface CashUpWithSalesDto extends CashUpDto {
     readonly salesSummary: SalesSummaryDto;
 }
 export interface CashUpOwnDto extends CashUpWithSalesDto {
-    /** Live only while OPEN; frozen reconciliation stays in the existing snapshot fields. */
-    readonly ledger: CashUpLedgerDto | null;
+    /** Recalculated from current delivered rows; persisted reconciliation stays in snapshot fields. */
+    readonly ledger: CashUpLedgerDto;
     readonly cashOuts: readonly CashOutDto[];
 }
 export interface CountDto {

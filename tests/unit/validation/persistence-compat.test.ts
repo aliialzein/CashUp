@@ -45,7 +45,13 @@ describe('validation output remains persistence-compatible', () => {
         });
         const confirmationInput = {
             ...confirmation,
-            ...computeDeliveryFlags({ totalCollectedLbp: '0.00', totalCollectedUsd: '10', method: 'CASH' }, confirmation),
+            ...computeDeliveryFlags({
+                totalCollectedLbp: '0.00',
+                totalCollectedUsd: '10',
+                changeGivenLbp: '0.00',
+                changeGivenUsd: '0.00',
+                method: 'CASH',
+            }, confirmation),
         } satisfies PersistenceConfirmDeliveryInput;
         const cashOut = createCashOutSchema.parse({
             amountLbp: '0.00', note: null,

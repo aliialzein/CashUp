@@ -101,7 +101,14 @@ export async function logout(): Promise<void> {
 }
 
 export function authDestination(user: CurrentUser): string {
-  return user.membership?.status === 'ACTIVE' && user.membership.role === 'OWNER' ? '/owner' : '/onboarding';
+  if (!user.membership || user.membership.status !== 'ACTIVE') return '/onboarding';
+  switch (user.membership.role) {
+    case 'OWNER':
+      return '/owner';
+    case 'MANAGER':
+    case 'STAFF':
+      return '/onboarding';
+  }
 }
 
 export async function requireCurrentMember(): Promise<CurrentMember> {

@@ -4,7 +4,7 @@ export const CREATE_SALE_STATUSES = ['DELIVERED', 'TO_DELIVER'] as const;
 export const SALE_STATUSES = ['TO_DELIVER', 'DELIVERED', 'DELETED'] as const;
 
 export const DENOMINATIONS = {
-  USD: ['1', '2', '5', '10', '20', '50', '100'],
+  USD: ['0.10', '1', '5', '10', '20', '50', '100'],
   LBP: ['1000', '5000', '10000', '20000', '50000', '100000'],
 } as const;
 

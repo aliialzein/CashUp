@@ -1,12 +1,14 @@
 'use server';
 
-import { redirect } from 'next/navigation';
+import { redirect, unstable_rethrow } from 'next/navigation';
 import { ZodError } from 'zod';
 import { signup, login, logout, getCurrentUser, authDestination } from '../../modules/auth/auth.service';
 import { AuthFailure, type AuthActionResult } from '../../modules/auth/auth.types';
 import type { SignupInput, LoginInput } from '../../modules/auth/auth.validation';
+import { reportUnexpectedAuthFailure } from '../../modules/auth/auth-diagnostics';
 
-function failure(error: unknown): AuthActionResult {
+function failure(error: unknown, operation: 'signup' | 'login'): AuthActionResult {
+  unstable_rethrow(error);
   if (error instanceof ZodError) {
     const fields: Partial<Record<'email' | 'password' | 'fullName', string>> = {};
     for (const issue of error.issues) {
@@ -24,6 +26,7 @@ function failure(error: unknown): AuthActionResult {
     };
     return { ok: false, message: messages[error.code], code: error.code };
   }
+  reportUnexpectedAuthFailure(operation, error);
   return { ok: false, message: 'Something went wrong. Please try again.' };
 }
 
@@ -31,20 +34,24 @@ export async function signupAction(input: SignupInput): Promise<AuthActionResult
   try {
     await signup(input);
     return { ok: true, destination: '/onboarding' };
-  } catch (error) { return failure(error); }
+  } catch (error) { return failure(error, 'signup'); }
 }
 
 export async function loginAction(input: LoginInput): Promise<AuthActionResult> {
   try {
     await login(input);
     const user = await getCurrentUser();
-    if (!user) throw new Error('Session unavailable');
+    if (!user) throw new AuthFailure('AUTH_UNAVAILABLE');
     return { ok: true, destination: authDestination(user) };
-  } catch (error) { return failure(error); }
+  } catch (error) { return failure(error, 'login'); }
 }
 
 export async function logoutAction(): Promise<void> {
   try { await logout(); }
-  catch { throw new Error('Unable to sign out. Please try again.'); }
+  catch (error) {
+    unstable_rethrow(error);
+    reportUnexpectedAuthFailure('logout', error);
+    throw new Error('Unable to sign out. Please try again.');
+  }
   redirect('/login');
 }

@@ -1,4 +1,4 @@
-import { add, compare, MoneyError, parseMoney, sub, toMoneyString, type MoneyLike } from './money';
+import { add, compare, isCurrencyDifferenceBalanced, MoneyError, parseMoney, sub, toMoneyString, type MoneyLike } from './money';
 export interface SaleBalanceInput {
   businessAmountUsd: MoneyLike;
   businessAmountLbp: MoneyLike;
@@ -16,7 +16,7 @@ export interface SaleBalanceInput {
 export function assertDiscountWithinDue(due: MoneyLike): void {
   if (compare(due, '0') < 0) throw new MoneyError('NEGATIVE_DUE');
 }
-export function checkSaleBalance(input: SaleBalanceInput) {
+export function checkSaleBalance(input: SaleBalanceInput, referenceRate?: MoneyLike) {
   const calculate = (suffix: 'Usd' | 'Lbp') => {
     const due = sub(add(add(input[`businessAmount${suffix}`], input[`deliveryFee${suffix}`]), input[`tip${suffix}`]), input[`discount${suffix}`]);
     assertDiscountWithinDue(due);
@@ -33,5 +33,29 @@ export function checkSaleBalance(input: SaleBalanceInput) {
   };
   const USD = calculate('Usd');
   const LBP = calculate('Lbp');
-  return { balanced: USD.balanced && LBP.balanced, USD, LBP };
+  const usdDifference = parseMoney(input.totalCollectedUsd)
+    .minus(parseMoney(input.changeGivenUsd))
+    .minus(parseMoney(USD.due));
+  const lbpDifference = parseMoney(input.totalCollectedLbp)
+    .minus(parseMoney(input.changeGivenLbp))
+    .minus(parseMoney(LBP.due));
+  const usdSign = usdDifference.comparedTo(0);
+  const lbpSign = lbpDifference.comparedTo(0);
+  const requiresReferenceRate =
+    (usdSign > 0 && lbpSign < 0) ||
+    (usdSign < 0 && lbpSign > 0);
+  if (referenceRate === undefined) {
+    return {
+      balanced: USD.balanced && LBP.balanced,
+      requiresReferenceRate,
+      USD,
+      LBP,
+    };
+  }
+  return {
+    balanced: isCurrencyDifferenceBalanced(usdDifference, lbpDifference, referenceRate),
+    requiresReferenceRate: false,
+    USD,
+    LBP,
+  };
 }

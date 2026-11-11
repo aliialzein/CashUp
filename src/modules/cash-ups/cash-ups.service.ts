@@ -222,6 +222,14 @@ export async function voidOwnOpenCashUp(cashUpId: string, reason: string): Promi
             const businesses = new BusinessRepository(actor.businessId, tx);
             const audit = new AuditRepository(actor.businessId, tx);
             await lockOwnOpenCashUp(businesses, cashUps, actor, cashUpId);
+            const sale = await tx.sale.findFirst({
+                where: {
+                    businessId: actor.businessId,
+                    cashUpId,
+                }, select: { id: true },
+            });
+            if (sale)
+                throw new BusinessRuleError('CASHUP_NOT_EMPTY');
             const voided = await cashUps.voidCashUp(cashUpId, parsed.data.reason);
             await recordAudit(audit, actor, {
                 action: AuditAction.CASHUP_VOIDED, entityType: CASH_UP_ENTITY,

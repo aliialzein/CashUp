@@ -1,6 +1,6 @@
 import { uuid } from '../../shared/validation/common';
 import { editSaleSchema, confirmDeliverySchema, cancelSaleSchema } from './sales.validation';
-import { checkSaleBalance } from '../../domain/money/sale-balance';
+import { checkSaleBalance, type SaleBalanceInput } from '../../domain/money/sale-balance';
 import type { SaleRecord } from './sales.repository';
 import { idempotencyKey as idempotencyKeySchema } from '../../shared/validation/common';
 import type { CreateSaleCommand } from './sales.types';
@@ -13,7 +13,7 @@ import { BusinessRepository } from '../business/business.repository';
 import { CashUpRepository } from '../cash-ups/cash-ups.repository';
 import { AuditRepository } from '../audit/audit.repository';
 import { AuditAction, AuditEntityType, SaleStatus } from '../../generated/prisma/enums';
-import { compare } from '../../domain/money/money';
+import { compare, type MoneyLike } from '../../domain/money/money';
 import { computeDeliveryFlags } from '../../domain/money/delivery';
 import type { ConfirmDelivery } from './sales.validation';
 import type { CreateSale, EditSale } from './sales.validation';
@@ -25,6 +25,16 @@ import { lockOwnOpenCashUp } from '../cash-ups/cash-ups.workflow';
 import { createSaleSchema, validateMergedSale } from './sales.validation';
 const SALE_MONEY_FIELDS = ["businessAmountUsd","businessAmountLbp","deliveryFeeUsd","deliveryFeeLbp","tipUsd","tipLbp","discountUsd","discountLbp","totalCollectedUsd","totalCollectedLbp","changeGivenUsd","changeGivenLbp"] as const satisfies readonly (keyof SaleRecord & keyof CreateSale)[];
 const SALE_ENTITY = AuditEntityType.SALE;
+function assertSaleBalance(input: SaleBalanceInput, referenceRate?: MoneyLike): void {
+    const balance = checkSaleBalance(input, referenceRate);
+    if (!balance.balanced) {
+        throw new BusinessRuleError(
+            referenceRate === undefined && balance.requiresReferenceRate
+                ? 'SALE_REQUIRES_REFERENCE_RATE'
+                : 'SALE_NOT_BALANCED',
+        );
+    }
+}
 export async function createSale(cashUpId: string, command: CreateSaleCommand): Promise<SaleCreateResultDto> {
     const actor = await requireCurrentMember();
     cashUpId = uuid.parse(cashUpId);
@@ -33,7 +43,6 @@ export async function createSale(cashUpId: string, command: CreateSaleCommand): 
     const { idempotencyKey, ...payload } = command;
     const parsed = createSaleSchema.safeParse(payload);
     if (!parsed.success) {
-        if (parsed.error.issues.some(issue => issue.message === 'SALE_NOT_BALANCED')) throw new BusinessRuleError('SALE_NOT_BALANCED');
         throw parsed.error;
     }
     const input = parsed.data;
@@ -45,6 +54,10 @@ export async function createSale(cashUpId: string, command: CreateSaleCommand): 
             const cashUpRepository = new CashUpRepository(actor.businessId, tx);
             const auditRepository = new AuditRepository(actor.businessId, tx);
             await lockOwnOpenCashUp(businessRepository, cashUpRepository, actor, cashUpId);
+            const cashUp = await cashUpRepository.findById(cashUpId);
+            if (!cashUp)
+                throw new EntityNotFoundError();
+            assertSaleBalance(input, cashUp.referenceRate?.toString());
             const result = await saleRepository.create({
                 ...input,
                 cashUpId,
@@ -102,6 +115,9 @@ export async function editSale(cashUpId: string, saleId: string, input: EditSale
             }
             if (current.deletionAwaiting)
                 throw new ConflictError();
+            const cashUp = await cashUpRepository.findById(cashUpId);
+            if (!cashUp)
+                throw new EntityNotFoundError();
             const merged = validateMergedSale({
                 businessAmountUsd: current.businessAmountUsd.toString(),
                 businessAmountLbp: current.businessAmountLbp.toString(),
@@ -122,9 +138,7 @@ export async function editSale(cashUpId: string, saleId: string, input: EditSale
             }, input);
             if (!merged.success)
                 throw new BusinessRuleError('SALE_NOT_BALANCED');
-            const balance = checkSaleBalance(merged.data);
-            if (!balance.balanced)
-                throw new BusinessRuleError('SALE_NOT_BALANCED');
+            assertSaleBalance(merged.data, cashUp.referenceRate?.toString());
             const updated = await saleRepository.edit(saleId, input, actor.membershipId);
             if (saleChanged(current, updated)) {
                 await recordAudit(auditRepository, actor, {
@@ -167,11 +181,32 @@ export async function confirmSaleDelivery(cashUpId: string, saleId: string, inpu
             if (current.status !== SaleStatus.TO_DELIVER) {
                 throw new BusinessRuleError('SALE_NOT_AWAITING_DELIVERY');
             }
+            const cashUp = await cashUpRepository.findById(cashUpId);
+            if (!cashUp)
+                throw new EntityNotFoundError();
+            const actualBalance = checkSaleBalance({
+                businessAmountUsd: current.businessAmountUsd.toString(),
+                businessAmountLbp: current.businessAmountLbp.toString(),
+                deliveryFeeUsd: current.deliveryFeeUsd.toString(),
+                deliveryFeeLbp: current.deliveryFeeLbp.toString(),
+                tipUsd: current.tipUsd.toString(),
+                tipLbp: current.tipLbp.toString(),
+                discountUsd: current.discountUsd.toString(),
+                discountLbp: current.discountLbp.toString(),
+                totalCollectedUsd: input.totalCollectedUsd,
+                totalCollectedLbp: input.totalCollectedLbp,
+                changeGivenUsd: input.changeGivenUsd,
+                changeGivenLbp: input.changeGivenLbp,
+            }, cashUp.referenceRate?.toString());
+            if (!cashUp.referenceRate && actualBalance.requiresReferenceRate)
+                throw new BusinessRuleError('SALE_REQUIRES_REFERENCE_RATE');
             const flags = computeDeliveryFlags({
                 totalCollectedUsd: current.totalCollectedUsd.toString(),
                 totalCollectedLbp: current.totalCollectedLbp.toString(),
+                changeGivenUsd: current.changeGivenUsd.toString(),
+                changeGivenLbp: current.changeGivenLbp.toString(),
                 method: current.method,
-            }, input);
+            }, input, cashUp.referenceRate?.toString());
             const updated = await saleRepository.markDelivered(saleId, {
                 ...input,
                 ...flags,
@@ -253,4 +288,3 @@ function saleChanged(before: SaleRecord, after: SaleRecord): boolean {
 function sameMoney(left: string, right: string): boolean {
     return compare(left, right) === 0;
 }
-

@@ -24,7 +24,10 @@ it('reads the own open cash-up and zero counts, then freezes the same ledger on 
     expect(submitted.expectedUsd).toBe(preview.ledger?.expectedUsd);
     expect(submitted).toMatchObject({ countedUsd: '0.00', gapUsd: '-30.00' });
     expect(await services.queries.getOwnOpen(actor)).toBeNull();
-    expect((await services.queries.getOwn(actor, opened.id)).ledger).toBeNull();
+    expect((await services.queries.getOwn(actor, opened.id)).ledger).toMatchObject({
+        expectedUsd: preview.ledger?.expectedUsd,
+        expectedLbp: preview.ledger?.expectedLbp,
+    });
     await expect(services.lifecycle.voidOwnOpen(actor, opened.id, 'Cannot void submitted')).rejects.toMatchObject({ code: 'CASHUP_NOT_OPEN' });
     await services.lifecycle.approve(await managerActor(businessA), opened.id);
     await expect(services.lifecycle.voidOwnOpen(actor, opened.id, 'Cannot void approved')).rejects.toMatchObject({ code: 'CASHUP_NOT_OPEN' });

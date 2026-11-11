@@ -15,7 +15,7 @@ import { AuditAction, AuditEntityType } from '../../generated/prisma/enums';
 import { compare } from '../../domain/money/money';
 import { recordAudit } from '../audit/audit.service';
 import type { CashOutCreateResultDto } from './cash-outs.types';
-import { ConflictError, EntityNotFoundError } from '../../shared/errors/service-errors';
+import { BusinessRuleError, ConflictError, EntityNotFoundError } from '../../shared/errors/service-errors';
 import { mapCashOut } from './cash-outs.mapper';
 import { lockOwnOpenCashUp } from '../cash-ups/cash-ups.workflow';
 export async function createCashOut(cashUpId: string, command: CreateCashOutCommand): Promise<CashOutCreateResultDto> {
@@ -79,9 +79,11 @@ export async function cancelCashOut(cashUpId: string, cashOutId: string, reason:
             const cashUpRepository = new CashUpRepository(actor.businessId, tx);
             const auditRepository = new AuditRepository(actor.businessId, tx);
             const existing = await cashOutRepository.findById(cashOutId);
+            await lockOwnOpenCashUp(businessRepository, cashUpRepository, actor, cashUpId);
             if (!existing || existing.cashUpId !== cashUpId)
                 throw new EntityNotFoundError();
-            await lockOwnOpenCashUp(businessRepository, cashUpRepository, actor, cashUpId);
+            if (existing.cancelledAt != null)
+                throw new BusinessRuleError('CASHOUT_ALREADY_CANCELLED');
             const updated = await cashOutRepository.cancel(cashOutId, reason, actor.membershipId);
             await recordAudit(auditRepository, actor, {
                 action: AuditAction.CASHOUT_CANCELLED,

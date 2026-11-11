@@ -1,5 +1,6 @@
 import {
   buildSubmitSnapshot,
+  buildCashLedger,
   computeExpectedAndGap,
   summarizeSales,
   walletTotals,
@@ -50,6 +51,35 @@ const sales: SaleTotalsRowInput[] = [
 ];
 
 describe('cash-up totals', () => {
+  it('keeps mixed-currency drawer collections and change in their actual currencies', () => {
+    expect(buildCashLedger({
+      floatUsd: '0',
+      floatLbp: '0',
+      sales: [{
+        currency: 'USD',
+        method: 'CASH',
+        count: 1,
+        businessAmount: '12',
+        deliveryFee: '0',
+        totalCollected: '20',
+        tip: '0',
+        discount: '0',
+      }],
+      change: [
+        { currency: 'USD', total: '5' },
+        { currency: 'LBP', total: '268500' },
+      ],
+      cashOuts: [],
+    })).toMatchObject({
+      receivedUsd: '20.00',
+      receivedLbp: '0.00',
+      changeGivenUsd: '5.00',
+      changeGivenLbp: '268500.00',
+      expectedUsd: '15.00',
+      expectedLbp: '-268500.00',
+    });
+  });
+
   it('summarizes sales by currency and wallet without combining currencies', () => {
     expect(summarizeSales(sales, [{ currency: 'LBP', total: '500.00' }])).toEqual({
       USD: {
