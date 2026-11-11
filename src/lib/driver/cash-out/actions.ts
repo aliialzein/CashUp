@@ -2,15 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/driver/cash-up/actionResult";
-import { toErrorCode } from "@/lib/driver/cash-up/errorCode";
+import { runAction } from "@/lib/driver/runAction";
 import { toNote } from "@/lib/driver/toNote";
-import { USE_MOCKS } from "@/lib/driver/useMocks";
 import type { Amounts } from "@/lib/format/money";
 import { toBackendAmounts } from "@/lib/money/toBackendMoney";
 import { routes } from "@/lib/routes";
-import { getOwnOpenCashUp } from "@/modules/cash-ups/cash-ups.service";
-import { cancelCashOut as cancelBackendCashOut, createCashOut } from "@/modules/cash-outs/cash-outs.service";
+import { cashOutWrites } from "./cashOutWrites";
 import { toReasonText } from "./reasonText";
+
+/**
+ * The driver's cash-out writes. Each action normalizes what the form typed, then calls the cash-out gateway
+ * (cashOutWrites: mock or real). Nothing here knows the backend: only realCashOutWrites.ts does.
+ */
 
 /** What the Add cash-out form sends. Plain typed text: the action normalizes it. */
 export type AddCashOutInput = {
@@ -38,50 +41,11 @@ export async function addCashOut(input: AddCashOutInput): Promise<ActionResult> 
     const reason = toReasonText(input.reason, input.detail);
     if (amount === null || reason === null) return VALIDATION_ERROR;
 
-    if (USE_MOCKS) {
-        refreshCashOutPages();
-        return { ok: true };
-    }
-    try {
-        // BACKEND: the driver's own open cash-up. Its id comes from the session, never from the browser.
-        const own = await getOwnOpenCashUp();
-        if (own === null) return { ok: false, code: "CASHUP_NOT_OPEN" };
-
-        // BACKEND: saves the cash-out. A repeat of the same key and data returns the first one (replayed), which is a success too.
-        await createCashOut(own.id, {
-            idempotencyKey: input.saveKey,
-            amountUsd: amount.usd,
-            amountLbp: amount.lbp,
-            reason,
-            note: toNote(input.note),
-        });
-    } catch (error) {
-        const code = toErrorCode(error);
-        if (code === "INTERNAL_ERROR") console.error("addCashOut failed", error);
-        return { ok: false, code };
-    }
-    refreshCashOutPages();
-    return { ok: true };
+    const details = { amount, reason, note: toNote(input.note) };
+    return runAction("addCashOut", () => cashOutWrites.addCashOut(details, input.saveKey), refreshCashOutPages);
 }
 
-/** Cancels one cash-out of the open cash-up. No screen calls it yet. The backend needs a reason of 3 to 200 characters. */
+/** Cancels one cash-out of the open cash-up. The backend needs a reason of 3 to 200 characters. */
 export async function cancelCashOut(cashOutId: string, reason: string): Promise<ActionResult> {
-    if (USE_MOCKS) {
-        refreshCashOutPages();
-        return { ok: true };
-    }
-    try {
-        // BACKEND: the driver's own open cash-up. The backend checks that the cash-out belongs to it.
-        const own = await getOwnOpenCashUp();
-        if (own === null) return { ok: false, code: "CASHUP_NOT_OPEN" };
-
-        // BACKEND: soft-deletes the cash-out with the driver's reason.
-        await cancelBackendCashOut(own.id, cashOutId, reason);
-    } catch (error) {
-        const code = toErrorCode(error);
-        if (code === "INTERNAL_ERROR") console.error("cancelCashOut failed", error);
-        return { ok: false, code };
-    }
-    refreshCashOutPages();
-    return { ok: true };
+    return runAction("cancelCashOut", () => cashOutWrites.cancelCashOut(cashOutId, reason), refreshCashOutPages);
 }
