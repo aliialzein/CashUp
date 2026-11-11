@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/driver/cash-up/actionResult";
-import { toErrorCode } from "@/lib/driver/cash-up/errorCode";
+import { runAction } from "@/lib/driver/runAction";
 import { routes } from "@/lib/routes";
 import { checkCount } from "./checkCount";
 import { countWrites } from "./countWrites";
@@ -13,33 +13,22 @@ import type { CashCount } from "./denominations";
  * count gateway (countWrites: mock or real). Nothing here knows the backend: only realCountWrites.ts does.
  */
 
-/** Runs one gateway write: thrown errors become codes (only unknown ones are logged), a success refreshes the pages. */
-async function runCountWrite(actionName: string, write: () => Promise<ActionResult>): Promise<ActionResult> {
-    let result: ActionResult;
-    try {
-        result = await write();
-    } catch (error) {
-        const code = toErrorCode(error);
-        if (code === "INTERNAL_ERROR") console.error(`${actionName} failed`, error);
-        return { ok: false, code };
-    }
-    if (result.ok) {
-        revalidatePath(routes.driver.today);
-        revalidatePath(routes.driver.countCash);
-    }
-    return result;
+/** The count shows on its own page and on Today. */
+function refreshCountPages(): void {
+    revalidatePath(routes.driver.today);
+    revalidatePath(routes.driver.countCash);
 }
 
 /** Saves the drawer count so the driver can finish later. */
 export async function saveCount(count: CashCount): Promise<ActionResult> {
     const problem = checkCount(count);
     if (problem) return { ok: false, code: problem };
-    return runCountWrite("saveCount", () => countWrites.saveCount(count));
+    return runAction("saveCount", () => countWrites.saveCount(count), refreshCountPages);
 }
 
 /** Saves the count, then submits the cash-up. A refused submit keeps the count saved and returns its code. */
 export async function submitCashUpWithCount(count: CashCount): Promise<ActionResult> {
     const problem = checkCount(count);
     if (problem) return { ok: false, code: problem };
-    return runCountWrite("submitCashUpWithCount", () => countWrites.submitCashUpWithCount(count));
+    return runAction("submitCashUpWithCount", () => countWrites.submitCashUpWithCount(count), refreshCountPages);
 }

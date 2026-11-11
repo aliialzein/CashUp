@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { FilterChips } from "@/components/ui/FilterChips";
+import { SuccessNotice } from "@/components/ui/SuccessNotice";
 import { cashOutFilterView, type CashOutFilter } from "@/lib/driver/cash-out/cashOutFilters";
 import { formatAmounts, type Amounts } from "@/lib/format/money";
 import type { CashOut } from "@/types/driver/cash-up";
@@ -48,11 +49,7 @@ export function CashOutsList({ cashOuts, total }: CashOutsListProps) {
 
     return (
         <div className="flex flex-col gap-3 md:gap-5">
-            {showDeletedNotice && (
-                <p role="status" className="rounded-xl border border-success-line bg-success-bg px-4 py-3 text-sm text-success">
-                    Cash-out deleted. You can find it under Deleted.
-                </p>
-            )}
+            {showDeletedNotice && <SuccessNotice>Cash-out deleted. You can find it under Deleted.</SuccessNotice>}
 
             <CashOutsTotal total={total} none={nothingOut} />
 

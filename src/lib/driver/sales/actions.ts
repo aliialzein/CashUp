@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { PAYMENT_METHODS } from "@/domain/money/config";
 import type { ActionResult } from "@/lib/driver/cash-up/actionResult";
-import { toErrorCode } from "@/lib/driver/cash-up/errorCode";
+import { runAction } from "@/lib/driver/runAction";
 import type { PaymentMethod } from "@/lib/driver/delivery/summarizeSinglePayment";
 import { toNote } from "@/lib/driver/toNote";
 import type { Amounts } from "@/lib/format/money";
@@ -51,20 +51,6 @@ function refreshSalePages(): void {
     revalidatePath(routes.driver.today);
 }
 
-/** Runs one gateway write: thrown errors become codes (only unknown ones are logged), a success refreshes the pages. */
-async function runSaleWrite(actionName: string, write: () => Promise<ActionResult>): Promise<ActionResult> {
-    let result: ActionResult;
-    try {
-        result = await write();
-    } catch (error) {
-        const code = toErrorCode(error);
-        if (code === "INTERNAL_ERROR") console.error(`${actionName} failed`, error);
-        return { ok: false, code };
-    }
-    if (result.ok) refreshSalePages();
-    return result;
-}
-
 /** The typed sale fields in the backend form, or `null` if an amount cannot be read. */
 function toSaleDetails(input: SaleFormValues): SaleDetails | null {
     const amount = toBackendAmounts(input.amount);
@@ -78,7 +64,7 @@ function toSaleDetails(input: SaleFormValues): SaleDetails | null {
 export async function addSale(input: AddSaleInput): Promise<ActionResult> {
     const details = toSaleDetails(input);
     if (details === null) return VALIDATION_ERROR;
-    return runSaleWrite("addSale", () => saleWrites.addSale(details, input.saveKey));
+    return runAction("addSale", () => saleWrites.addSale(details, input.saveKey), refreshSalePages);
 }
 
 /** Changes a "to deliver" sale. Only the fields that changed are sent; with none, nothing is sent. */
@@ -95,7 +81,7 @@ export async function editSale(saleId: string, changes: EditSaleInput): Promise<
     if (changes.note !== undefined) details.note = toNote(changes.note);
 
     if (Object.keys(details).length === 0) return { ok: false, code: "EDIT_FIELD_REQUIRED" };
-    return runSaleWrite("editSale", () => saleWrites.editSale(saleId, details));
+    return runAction("editSale", () => saleWrites.editSale(saleId, details), refreshSalePages);
 }
 
 /** Marks a sale delivered, in one call: fee, tip, payment method, what was collected and the change. */
@@ -108,15 +94,15 @@ export async function completeDelivery(saleId: string, input: CompleteDeliveryIn
     if (!isPaymentMethod(input.method)) return VALIDATION_ERROR;
 
     const delivery: DeliveryDetails = { deliveryFee, tip, method: input.method, collected, change };
-    return runSaleWrite("completeDelivery", () => saleWrites.completeDelivery(saleId, delivery));
+    return runAction("completeDelivery", () => saleWrites.completeDelivery(saleId, delivery), refreshSalePages);
 }
 
 /** Deletes a "to deliver" sale. The backend judges the reason (3 to 200 characters). */
 export async function deleteSale(saleId: string, reason: string): Promise<ActionResult> {
-    return runSaleWrite("deleteSale", () => saleWrites.deleteSale(saleId, reason));
+    return runAction("deleteSale", () => saleWrites.deleteSale(saleId, reason), refreshSalePages);
 }
 
 /** Asks the owner to delete a delivered sale. */
 export async function requestSaleDeletion(saleId: string, reason: string): Promise<ActionResult> {
-    return runSaleWrite("requestSaleDeletion", () => saleWrites.requestSaleDeletion(saleId, reason));
+    return runAction("requestSaleDeletion", () => saleWrites.requestSaleDeletion(saleId, reason), refreshSalePages);
 }

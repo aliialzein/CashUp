@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { FilterChips } from "@/components/ui/FilterChips";
 import { Icon } from "@/components/ui/Icon";
 import { SearchField } from "@/components/ui/SearchField";
+import { SuccessNotice } from "@/components/ui/SuccessNotice";
 import { withOrigin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";
 import { LOCKED_SALE_SUMMARY } from "@/lib/driver/sales/lockedSaleSummary";
@@ -132,11 +133,7 @@ export function SalesList({ sales }: { sales: Sale[] }) {
 
     return (
         <div className="flex flex-col gap-3 md:gap-5">
-            {notice && (
-                <p role="status" className="rounded-xl border border-success-line bg-success-bg px-4 py-3 text-sm text-success">
-                    {notice}
-                </p>
-            )}
+            {notice && <SuccessNotice>{notice}</SuccessNotice>}
 
             {toolbar}
 

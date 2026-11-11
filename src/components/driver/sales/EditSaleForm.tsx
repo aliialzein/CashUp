@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { FormActions } from "@/components/ui/FormActions";
+import { SuccessNotice } from "@/components/ui/SuccessNotice";
 import { errorText } from "@/lib/driver/cash-up/actionResult";
 import { editSale } from "@/lib/driver/sales/actions";
 import { isClientNumberError } from "@/lib/driver/sales/clientNumber";
@@ -57,11 +58,7 @@ export function EditSaleForm({ sale, returnHref }: EditSaleFormProps) {
             onSubmit={handleSubmit}
             className="mx-auto w-full max-w-[640px] space-y-5 md:rounded-xl md:border md:border-line md:bg-surface md:p-7"
         >
-            {showUpdated && (
-                <p role="status" className="rounded-xl border border-success-line bg-success-bg px-4 py-3 text-sm text-success">
-                    Sale updated.
-                </p>
-            )}
+            {showUpdated && <SuccessNotice>Sale updated.</SuccessNotice>}
 
             <p className="text-sm text-muted">
                 You can change this sale until it is delivered. After you confirm the delivery, it is final.
