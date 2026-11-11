@@ -3,13 +3,12 @@ import { CashUpActions } from "@/components/driver/cash-up/CashUpActions";
 import { CashUpLedger } from "@/components/driver/cash-up/CashUpLedger";
 import { NoOpenCashUp } from "@/components/driver/cash-up/NoOpenCashUp";
 import { ReturnedBanner } from "@/components/driver/cash-up/ReturnedBanner";
+import { TodayNotice } from "@/components/driver/cash-up/TodayNotice";
 import { SubmitCashUp } from "@/components/driver/cash-up/SubmitCashUp";
 import { SalesSummaryCard } from "@/components/driver/sales/SalesSummaryCard";
 import { WaitingSales } from "@/components/driver/sales/WaitingSales";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { SuccessNotice } from "@/components/ui/SuccessNotice";
-import { todayNotice } from "@/lib/driver/count-cash/todayNotice";
 import { canCancelCashUp } from "@/lib/driver/cash-up/canCancelCashUp";
 import { lastClosedCashUp } from "@/lib/driver/history/lastClosedCashUp";
 import { driverData } from "@/lib/driver/data/driverData";
@@ -21,15 +20,15 @@ type TodayPageProps = {
 
 export default async function TodayPage({ searchParams }: TodayPageProps) {
     // BACKEND: the open cash-up. Real or mock is decided in src/lib/driver/data/driverData.ts.
-    const [cashUp, { done }] = await Promise.all([driverData.getOpenCashUp(), searchParams]);
-    const notice = todayNotice(done);
+    // searchParams is NOT awaited here: TodayNotice reads it inside its own <Suspense>.
+    const cashUp = await driverData.getOpenCashUp();
 
     if (!cashUp) {
         // BACKEND: the history, only needed here to show the last closed cash-up.
         const history = await driverData.getHistory();
         return (
             <>
-                {notice && <SuccessNotice className="mx-auto mb-5 w-full max-w-160">{notice}</SuccessNotice>}
+                <TodayNotice searchParams={searchParams} className="mx-auto mb-5 w-full max-w-160" />
                 <NoOpenCashUp last={lastClosedCashUp(history)} />
             </>
         );
@@ -40,7 +39,7 @@ export default async function TodayPage({ searchParams }: TodayPageProps) {
 
     return (
         <>
-            {notice && <SuccessNotice className="mb-5">{notice}</SuccessNotice>}
+            <TodayNotice searchParams={searchParams} className="mb-5" />
             <div className="mb-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <h1 className="font-heading text-xl font-bold tracking-tight md:text-2xl">Cash-up #{cashUp.number}</h1>
