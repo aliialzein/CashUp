@@ -32,22 +32,45 @@ it('reads the own open cash-up and zero counts, then freezes the same ledger on 
     await services.lifecycle.approve(await managerActor(businessA), opened.id);
     await expect(services.lifecycle.voidOwnOpen(actor, opened.id, 'Cannot void approved')).rejects.toMatchObject({ code: 'CASHUP_NOT_OPEN' });
 });
-it('voids only an own OPEN cash-up, retains child records and rejects later mutations', async () => {
+it('voids only an own empty OPEN cash-up and rejects later mutations', async () => {
     const { businessA, businessB } = await seedBusinesses();
     const actor = await staffActor(businessA);
     const opened = await services.lifecycle.open(actor, {});
-    await services.sales.create(actor, opened.id, saleInput, randomUUID());
     for (const other of [await staffActor(businessA, 2), await staffActor(businessB)]) {
         await expect(services.queries.getOwn(other, opened.id)).rejects.toMatchObject({ code: 'ENTITY_NOT_FOUND' });
         await expect(services.counts.getOwn(other, opened.id)).rejects.toMatchObject({ code: 'ENTITY_NOT_FOUND' });
         await expect(services.lifecycle.voidOwnOpen(other, opened.id, 'Hidden')).rejects.toMatchObject({ code: 'ENTITY_NOT_FOUND' });
     }
     expect(await services.lifecycle.voidOwnOpen(actor, opened.id, '  Shift cancelled  ')).toMatchObject({ status: 'VOID', voidReason: 'Shift cancelled' });
-    expect(await prisma.sale.count({ where: { cashUpId: opened.id, status: 'DELIVERED' } })).toBe(1);
+    expect(await prisma.sale.count({ where: { cashUpId: opened.id } })).toBe(0);
     await expect(services.counts.replace(actor, opened.id, { lines: [] })).rejects.toMatchObject({ code: 'CASHUP_NOT_OPEN' });
     await expect(services.sales.create(actor, opened.id, saleInput, randomUUID())).rejects.toMatchObject({ code: 'CASHUP_NOT_OPEN' });
-    expect((await services.queries.listOwn(actor, { take: 10 }))[0]).toMatchObject({ number: 1, salesCount: 1, status: 'VOID' });
+    await expect(services.lifecycle.voidOwnOpen(actor, opened.id, 'Again')).rejects.toMatchObject({ code: 'CASHUP_NOT_OPEN' });
+    expect((await services.queries.listOwn(actor, { take: 10 }))[0]).toMatchObject({ number: 1, salesCount: 0, status: 'VOID' });
     expect(await prisma.auditLog.count({ where: { entityId: opened.id, action: 'CASHUP_VOIDED' } })).toBe(1);
+});
+it.each(['DELIVERED', 'DELETED'] as const)('rejects voiding with a %s sale and preserves cash-up and child records', async (status) => {
+    const { businessA } = await seedBusinesses();
+    const actor = await staffActor(businessA);
+    const opened = await services.lifecycle.open(actor, {});
+    const input = status === 'DELETED'
+        ? createSaleSchema.parse({ ...saleInput, status: 'TO_DELIVER', clientNumber: '+961123456' })
+        : saleInput;
+    const { sale } = await services.sales.create(actor, opened.id, input, randomUUID());
+    if (status === 'DELETED') await services.sales.cancel(actor, opened.id, sale.id, 'Customer cancelled');
+    await services.cashOuts.create(actor, opened.id, { amountUsd: '1.00', amountLbp: '0.00', reason: 'Supplies', note: null }, randomUUID());
+    await services.counts.replace(actor, opened.id, { lines: [{ currency: 'USD', denomination: '1.00', quantity: 1 }] });
+    const before = await prisma.cashUp.findUniqueOrThrow({
+        where: { id: opened.id }, include: { sales: true, cashOuts: true, countEntries: true },
+    });
+    expect(before.sales).toEqual([expect.objectContaining({ id: sale.id, status })]);
+    await expect(services.lifecycle.voidOwnOpen(actor, opened.id, 'Cannot void sales'))
+        .rejects.toMatchObject({ code: 'CASHUP_NOT_EMPTY' });
+    expect(await prisma.cashUp.findUniqueOrThrow({
+        where: { id: opened.id }, include: { sales: true, cashOuts: true, countEntries: true },
+    })).toEqual(before);
+    expect(before.status).toBe('OPEN');
+    expect(await prisma.auditLog.count({ where: { entityId: opened.id, action: 'CASHUP_VOIDED' } })).toBe(0);
 });
 it('inventories legacy pending changes and blocks writes without rewriting records', async () => {
     const { businessA } = await seedBusinesses();

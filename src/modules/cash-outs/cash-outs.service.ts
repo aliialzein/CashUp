@@ -78,8 +78,8 @@ export async function cancelCashOut(cashUpId: string, cashOutId: string, reason:
             const businessRepository = new BusinessRepository(actor.businessId, tx);
             const cashUpRepository = new CashUpRepository(actor.businessId, tx);
             const auditRepository = new AuditRepository(actor.businessId, tx);
-            const existing = await cashOutRepository.findById(cashOutId);
             await lockOwnOpenCashUp(businessRepository, cashUpRepository, actor, cashUpId);
+            const existing = await cashOutRepository.findById(cashOutId);
             if (!existing || existing.cashUpId !== cashUpId)
                 throw new EntityNotFoundError();
             if (existing.cancelledAt != null)
