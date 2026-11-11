@@ -12,6 +12,7 @@ import { routes } from "@/lib/routes";
 import { LOCKED_SALE_SUMMARY } from "@/lib/driver/sales/lockedSaleSummary";
 import type { Sale, SaleStatus } from "@/types/driver/cash-up";
 import { SaleCards } from "./SaleCards";
+import { DeleteSaleDialog, RequestSaleDeletionDialog } from "./SaleConfirmDialogs";
 import { SalesTable } from "./SalesTable";
 
 type Filter = "ALL" | SaleStatus;
@@ -62,9 +63,27 @@ function Toolbar({ options, filter, onFilter, query, onQuery, empty }: ToolbarPr
     );
 }
 
+const SALE_DELETED_NOTICE = "Sale deleted. You can find it under Deleted.";
+const DELETION_REQUESTED_NOTICE = "Deletion requested. The owner will decide.";
+
+/** The open cash-up's sales: chips, search, the list, Delete and Request deletion. Only used on /sales. */
 export function SalesList({ sales }: { sales: Sale[] }) {
     const [filter, setFilter] = useState<Filter>("ALL");
     const [query, setQuery] = useState("");
+    const [deleting, setDeleting] = useState<Sale | null>(null);
+    const [requesting, setRequesting] = useState<Sale | null>(null);
+    /** The green line after a delete or a request; cleared when the next confirm opens. */
+    const [notice, setNotice] = useState<string | null>(null);
+
+    function startDelete(sale: Sale) {
+        setNotice(null);
+        setDeleting(sale);
+    }
+
+    function startRequest(sale: Sale) {
+        setNotice(null);
+        setRequesting(sale);
+    }
 
     const options = FILTERS.map((item) => ({
         ...item,
@@ -113,20 +132,48 @@ export function SalesList({ sales }: { sales: Sale[] }) {
 
     return (
         <div className="flex flex-col gap-3 md:gap-5">
+            {notice && (
+                <p role="status" className="rounded-xl border border-success-line bg-success-bg px-4 py-3 text-sm text-success">
+                    {notice}
+                </p>
+            )}
+
             {toolbar}
 
             {visibleSales.length > 0 ? (
                 <>
                     <div className="md:hidden">
-                        <SaleCards sales={visibleSales} origin="sales" />
+                        <SaleCards sales={visibleSales} origin="sales" onDelete={startDelete} onRequestDeletion={startRequest} />
                     </div>
                     <div className="hidden md:block">
-                        <SalesTable sales={visibleSales} expandable={LOCKED_SALE_SUMMARY !== "none"} />
+                        <SalesTable
+                            sales={visibleSales}
+                            expandable={LOCKED_SALE_SUMMARY !== "none"}
+                            onDelete={startDelete}
+                            onRequestDeletion={startRequest}
+                        />
                     </div>
                 </>
             ) : (
                 <Card className="px-5 py-10 text-center text-sm text-muted">No sales match.</Card>
             )}
+
+            <DeleteSaleDialog
+                sale={deleting}
+                onClose={() => setDeleting(null)}
+                onDone={() => {
+                    setDeleting(null);
+                    setNotice(SALE_DELETED_NOTICE);
+                }}
+            />
+            <RequestSaleDeletionDialog
+                sale={requesting}
+                onClose={() => setRequesting(null)}
+                onDone={() => {
+                    setRequesting(null);
+                    setNotice(DELETION_REQUESTED_NOTICE);
+                }}
+            />
         </div>
     );
 }
