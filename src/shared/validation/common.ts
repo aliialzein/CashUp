@@ -55,9 +55,20 @@ export function addStableIssue(context: z.RefinementCtx, code: string, path: (st
     params: { stableCode: code },
   });
 }
+// Explicit schema codes only: ordinary messages and submitted values are not codes.
+const STABLE_ISSUE_CODES: ReadonlySet<string> = new Set([
+  'INVALID_UUID', 'INVALID_MONEY', 'MONEY_MUST_BE_POSITIVE',
+  'CONTROL_CHARACTER', 'REASON_TOO_SHORT', 'REASON_TOO_LONG', 'NOTE_TOO_LONG',
+  'INVALID_CLIENT_NUMBER', 'BUSINESS_NAME_REQUIRED', 'BUSINESS_NAME_TOO_LONG',
+  'INVALID_JOIN_CODE', 'AMOUNT_EXCEEDS_MAX', 'REFERENCE_RATE_EXCEEDS_MAX',
+  'INVALID_DENOMINATION', 'DUPLICATE_COUNT_LINE', 'INVALID_DATE_RANGE',
+  'BUSINESS_AMOUNT_MUST_BE_POSITIVE', 'DISCOUNT_EXCEEDS_DUE',
+  'CLIENT_NUMBER_REQUIRED', 'EDIT_FIELD_REQUIRED', 'PAYMENT_NOT_ALLOWED_FOR_PENDING_SALE',
+]);
 export function getStableIssueCode(issue: z.core.$ZodIssue): string {
   const stableCode = 'params' in issue ? issue.params?.['stableCode'] : undefined;
-  return typeof stableCode === 'string' ? stableCode : issue.code;
+  if (typeof stableCode === 'string' && STABLE_ISSUE_CODES.has(stableCode)) return stableCode;
+  return STABLE_ISSUE_CODES.has(issue.message) ? issue.message : issue.code;
 }
 export type PageQueryInput = z.input<typeof pageQuery>;
 export type PageQuery = z.infer<typeof pageQuery>;
