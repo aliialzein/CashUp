@@ -81,6 +81,8 @@ export type CashUp = {
     returned: ReturnNote | null;
     /** Display text, e.g. "27 Oct, 08:30". */
     startedAt: string;
+    /** Today's rate in LBP per 1 USD ("90000.00"), set at Start cash-up. `null` when the cash-up has none. */
+    referenceRate: string | null;
     ledger: Ledger;
     /** Count and total of all sales that are not deleted. The server calculates it. */
     salesCount: number;
@@ -125,11 +127,8 @@ export type CashUpDetail = {
     /** SUBMITTED or APPROVED. Open and returned cash-ups continue on Today. */
     status: Extract<CashUpStatus, "SUBMITTED" | "APPROVED">;
     submittedAt: string;
-    /**
-     * The drawer totals from the backend. `null` while the backend sends them only for open cash-ups:
-     * the page then says they come with the next update. Never computed on the frontend.
-     */
-    ledger: Ledger | null;
+    /** The drawer totals from the backend. Never computed on the frontend. */
+    ledger: Ledger;
     /** What the driver counted when submitting. */
     counted: Amounts;
     /** Counted minus expected, frozen at submit. */

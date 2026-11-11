@@ -1,4 +1,4 @@
-import { totalCollected } from "@/lib/driver/sales/collected";
+import { deliveredTotal } from "@/lib/driver/mappers/cashUp";
 import type { CashOut, CashUpDetail, Sale } from "@/types/driver/cash-up";
 
 /** Anything a delivered sale can carry besides its basics. */
@@ -36,15 +36,16 @@ const SALES_42: Sale[] = [
         deliveryFee: { usd: "2", lbp: "0" },
         tip: { usd: "1", lbp: "0" },
         changeGiven: { usd: "3", lbp: "0" },
-        totalCollected: { usd: "28", lbp: "120000" },
+        // Client paid 31 USD for 28 owed (25 + 2 fee + 1 tip) and got 3 back: Kept 28, it balances like the backend.
+        totalCollected: { usd: "31", lbp: "120000" },
         note: "Leave it at the door",
     }),
     delivered(104, "+961 70 123 456", "27 Oct", "08:45", "15", "0", {
         method: "WHISH",
         deliveryFee: { usd: "0", lbp: "50000" },
         discount: { usd: "3", lbp: "0" },
+        // Owed 15 − 3 discount = 12 USD, plus the 50,000 LBP fee: paid exactly, so no "Amount differs".
         totalCollected: { usd: "12", lbp: "50000" },
-        amountDiffers: true,
     }),
     delivered(103, "Shop sale", "27 Oct", "08:35", "0", "500000", { method: "CASH" }),
 ];
@@ -70,7 +71,7 @@ const SALES_39: Sale[] = [
     delivered(96, "Shop sale", "24 Oct", "11:30", "12", "200000", { method: "CASH" }),
 ];
 
-// TODO(backend): replace with the cash-up from the API. The server calculates deliveredTotal.
+// TODO(backend): replace with the cash-up from the API. deliveredTotal is computed like the real mapper's.
 const details: CashUpDetail[] = [
     {
         id: "c-42",
@@ -85,7 +86,7 @@ const details: CashUpDetail[] = [
             cashOut("co-42-2", "Supplier", "13:05", "2", "200000", "Bags and receipt paper"),
             cashOut("co-42-1", "Fuel", "09:20", "3", "0"),
         ],
-        deliveredTotal: totalCollected(SALES_42),
+        deliveredTotal: deliveredTotal(SALES_42),
         review: null,
     },
     {
@@ -101,7 +102,7 @@ const details: CashUpDetail[] = [
             cashOut("co-40-2", "Supplier", "15:30", "0", "200000"),
             cashOut("co-40-1", "Fuel", "11:10", "5", "0"),
         ],
-        deliveredTotal: totalCollected(SALES_40),
+        deliveredTotal: deliveredTotal(SALES_40),
         review: { at: "26 Oct, 09:10" },
     },
     {
@@ -120,7 +121,7 @@ const details: CashUpDetail[] = [
         gap: { usd: "-2", lbp: "0" },
         sales: SALES_39,
         cashOuts: [],
-        deliveredTotal: totalCollected(SALES_39),
+        deliveredTotal: deliveredTotal(SALES_39),
         review: { at: "25 Oct, 08:55" },
     },
 ];

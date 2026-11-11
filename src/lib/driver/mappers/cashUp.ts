@@ -1,4 +1,5 @@
 import type { CashCount } from "@/lib/driver/count-cash/denominations";
+import { keptAmounts } from "@/lib/driver/sales/collected";
 import { addAmounts, subtractAmounts } from "@/lib/money/amounts";
 import type { Amounts } from "@/lib/format/money";
 import type { CashUpDto, CashUpLedgerDto, CashUpOwnDto } from "@/modules/cash-ups/cash-ups.types";
@@ -17,7 +18,10 @@ export type LedgerInput = CashUpLedgerDto;
  * The fields of the driver's own cash-up that mapCashUp reads, taken from CashUpOwnDto.
  * Narrower than the backend on purpose: no VOID status, and the ledger is never null (the backend fills it while OPEN).
  */
-export type CashUpInput = Pick<CashUpOwnDto, "id" | "number" | "returnReason" | "openedAt" | "countedUsd" | "countedLbp"> & {
+export type CashUpInput = Pick<
+    CashUpOwnDto,
+    "id" | "number" | "returnReason" | "openedAt" | "referenceRate" | "countedUsd" | "countedLbp"
+> & {
     status: OwnCashUpStatus;
     ledger: LedgerInput;
     sales: readonly SaleLineInput[];
@@ -57,9 +61,11 @@ function sumAsked(sales: Sale[]): Amounts {
     return sales.reduce((total, sale) => addAmounts(total, askedAmount(sale)), NO_MONEY);
 }
 
-/** What the delivered sales asked for, together. Used by Today and by a locked cash-up's Sales card. */
+/** What the delivered sales brought in (client paid minus change, every method). The "Delivered" cards on Sales and history. */
 export function deliveredTotal(sales: Sale[]): Amounts {
-    return sumAsked(sales.filter((sale) => sale.status === "DELIVERED"));
+    return sales
+        .filter((sale) => sale.status === "DELIVERED")
+        .reduce((total, sale) => addAmounts(total, keptAmounts(sale)), NO_MONEY);
 }
 
 /** The sale cards' numbers (Today and Sales), from the sales that are not deleted. Used by mapCashUp and the mock. */
@@ -83,6 +89,7 @@ export function mapCashUp(dto: CashUpInput): CashUp {
         status: toStatus(dto),
         returned: dto.returnReason === null ? null : { by: "Owner", text: dto.returnReason },
         startedAt: `${formatDay(dto.openedAt)}, ${formatTime(dto.openedAt)}`,
+        referenceRate: dto.referenceRate,
         ledger: toLedger(dto.ledger),
         ...saleTotals(sales),
         counted: hasCount ? pair(dto.countedUsd ?? "0.00", dto.countedLbp ?? "0.00") : null,

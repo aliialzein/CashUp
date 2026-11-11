@@ -10,6 +10,7 @@ import { getOwnOpenCashUp, openCashUp, voidOwnOpenCashUp } from "@/modules/cash-
 import type { CashUpOwnDto } from "@/modules/cash-ups/cash-ups.types";
 import { runAction } from "@/lib/driver/runAction";
 import type { ActionResult } from "./actionResult";
+import { toBackendReferenceRate, toStartErrorCode } from "./referenceRate";
 
 const OK: ActionResult = { ok: true };
 
@@ -52,23 +53,33 @@ export async function cancelCashUp(): Promise<ActionResult> {
     );
 }
 
-/** Creates a cash-up with the opening float the driver confirmed. */
-export async function startCashUp(float: Amounts): Promise<ActionResult> {
+/**
+ * Creates a cash-up with the opening float and today's rate the driver confirmed.
+ * A cleared rate field sends no rate; the backend judges a typed one (above 0, under its maximum).
+ */
+export async function startCashUp(float: Amounts, typedRate: string): Promise<ActionResult> {
     // Normalized here, on the server: anyone can call an action with any string.
     const backendFloat = toBackendAmounts(float);
     if (backendFloat === null) return { ok: false, code: "VALIDATION_ERROR" };
+    const referenceRate = toBackendReferenceRate(typedRate);
+    if (referenceRate === null) return { ok: false, code: "REFERENCE_RATE_INVALID" };
 
-    return runAction(
+    const result = await runAction(
         "startCashUp",
         async () => {
             if (USE_MOCKS) {
-                startMockCashUp();
+                startMockCashUp(referenceRate ?? null);
                 return OK;
             }
-            // BACKEND: opens a real cash-up for the logged-in driver. The service checks the float and the session itself.
-            await openCashUp({ floatUsd: backendFloat.usd, floatLbp: backendFloat.lbp });
+            // BACKEND: opens a real cash-up for the logged-in driver. The service checks the float, the rate and the session itself.
+            await openCashUp({
+                floatUsd: backendFloat.usd,
+                floatLbp: backendFloat.lbp,
+                ...(referenceRate !== undefined && { referenceRate }),
+            });
             return OK;
         },
         refreshToday,
     );
+    return result.ok ? result : { ok: false, code: toStartErrorCode(result.code) };
 }

@@ -7,6 +7,7 @@ import type { Amounts, Currency } from "@/lib/format/money";
 import type { Ledger } from "@/types/driver/cash-up";
 import { CollapsibleLedger } from "./CollapsibleLedger";
 import { HEADER_ROW, ROW, SUMMARY_ROW } from "./ledgerStyles";
+import { CHANGE_GIVEN_LABEL } from "@/lib/driver/sales/saleLabels";
 
 const NUM = "text-right font-mono text-sm tabular-nums";
 const ZERO = /^[+-]?0*\.?0*$/;
@@ -81,7 +82,7 @@ export function CashUpLedger({ ledger, cashOutsHref = routes.driver.cashOuts, co
                 <Line label="Received" usd={ledger.received.usd} lbp={ledger.received.lbp} tone="in" />
             </div>
             <div className={`${ROW} min-h-11 border-b border-subtle text-[15px]`}>
-                <Line label="Change given" usd={ledger.changeGiven.usd} lbp={ledger.changeGiven.lbp} />
+                <Line label={CHANGE_GIVEN_LABEL} usd={ledger.changeGiven.usd} lbp={ledger.changeGiven.lbp} />
             </div>
             <CashOutsRow cashOuts={ledger.cashOuts} href={cashOutsHref} />
         </>

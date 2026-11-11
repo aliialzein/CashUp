@@ -1,3 +1,4 @@
+import { DEFAULT_REFERENCE_RATE_LBP } from "@/lib/driver/cash-up/referenceRate";
 import type { Amounts } from "@/lib/format/money";
 import type { CashUp, Sale } from "@/types/driver/cash-up";
 import { recalculateMockCashUp } from "./recalculateCashUp";
@@ -53,6 +54,7 @@ const fullOpenCashUp: CashUp = {
     // status: "RETURNED",
     // returned: { by: "Ali", text: "Please recount the LBP notes" },
     startedAt: "27 Oct, 08:30",
+    referenceRate: DEFAULT_REFERENCE_RATE_LBP,
     // Only the float is set here. Every other total is computed below by recalculateMockCashUp,
     // like the backend computes them (expected: $60 and 1,300,000 LBP with this data).
     ledger: { float: { usd: "50", lbp: "1000000" }, received: NONE, changeGiven: NONE, cashOuts: NONE, expected: NONE },

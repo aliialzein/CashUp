@@ -1,15 +1,16 @@
 import { Suspense, type ReactNode } from "react";
 import { BusinessBar, BusinessBarFallback } from "./BusinessBar";
-import { BusinessSwitcher, BusinessSwitcherFallback } from "./BusinessSwitcher";
 import type { NavItem } from "./navigation";
 import { PhoneTabBar, PhoneTabBarFallback } from "./PhoneTabBar";
 import { TopNav, TopNavFallback } from "./TopNav";
 
 type AppShellProps = {
 	nav: NavItem[];
-	businessName: string;
-	/** Second line under the business name, e.g. "Driver · Mohamad". */
-	userLine: string;
+	/**
+	 * The business and "<role> · <name>" at the right of the top bar. The layout passes it already wrapped in its own
+	 * <Suspense>, because it reads the session.
+	 */
+	identity: ReactNode;
 	children: ReactNode;
 };
 
@@ -17,7 +18,7 @@ type AppShellProps = {
  * Frame shared by every signed-in page.
  * Desktop: a top bar with the logo, the menu and the business. Phone: the bars depend on the page (see phoneChrome).
  */
-export function AppShell({ nav, businessName, userLine, children }: AppShellProps) {
+export function AppShell({ nav, identity, children }: AppShellProps) {
 	const barContent = (
 		<div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 md:h-16 md:px-8">
 			<div className="hidden items-center md:flex">
@@ -34,9 +35,7 @@ export function AppShell({ nav, businessName, userLine, children }: AppShellProp
 					<TopNav items={nav} />
 				</Suspense>
 			</div>
-			<Suspense fallback={<BusinessSwitcherFallback businessName={businessName} userLine={userLine} />}>
-				<BusinessSwitcher businessName={businessName} userLine={userLine} />
-			</Suspense>
+			{identity}
 		</div>
 	);
 

@@ -22,6 +22,7 @@ function cashUp(changes: Partial<CashUp> = {}): CashUp {
         status: "OPEN",
         returned: null,
         startedAt: "27 Oct, 08:30",
+        referenceRate: null,
         ledger: { float: { usd: "50", lbp: "0" }, received: NONE, changeGiven: NONE, cashOuts: NONE, expected: NONE },
         salesCount: 0,
         salesTotal: NONE,

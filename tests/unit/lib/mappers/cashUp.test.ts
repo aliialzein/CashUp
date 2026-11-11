@@ -1,5 +1,5 @@
 import { mapCashOut, type CashOutInput } from "@/lib/driver/mappers/cashOut";
-import { mapCashUp, type CashUpInput } from "@/lib/driver/mappers/cashUp";
+import { deliveredTotal, mapCashUp, type CashUpInput } from "@/lib/driver/mappers/cashUp";
 import type { SaleLineInput } from "@/lib/driver/mappers/sale";
 import { expect, describe, it } from "@jest/globals"
 
@@ -40,6 +40,7 @@ function cashUp(overrides: Partial<CashUpInput> = {}): CashUpInput {
         status: "OPEN",
         returnReason: null,
         openedAt: "2026-10-28T06:30:00.000Z",
+        referenceRate: null,
         ledger: {
             floatUsd: "20.00", floatLbp: "0.00",
             receivedUsd: "12.00", receivedLbp: "0.00",
@@ -138,5 +139,25 @@ describe("mapCashUp", () => {
 
     it("builds the start text in Beirut time", () => {
         expect(mapCashUp(cashUp()).startedAt).toBe("28 Oct, 08:30");
+    });
+
+    it("carries today's rate, or null when the cash-up has none", () => {
+        expect(mapCashUp(cashUp({ referenceRate: "90000.00" })).referenceRate).toBe("90000.00");
+        expect(mapCashUp(cashUp()).referenceRate).toBeNull();
+    });
+});
+
+describe("deliveredTotal (the Kept card)", () => {
+    it("adds what each delivered sale kept: client paid minus change, per currency", () => {
+        const sales = mapCashUp(
+            cashUp({
+                sales: [
+                    saleLine({ id: "a", totalCollectedUsd: "31.00", totalCollectedLbp: "120000.00", changeGivenUsd: "3.00" }),
+                    saleLine({ id: "b", totalCollectedUsd: "15.00", totalCollectedLbp: "0.00" }),
+                    saleLine({ id: "c", status: "TO_DELIVER", moneyTaken: "NOT_YET" }),
+                ],
+            }),
+        ).sales;
+        expect(deliveredTotal(sales)).toEqual({ usd: "43", lbp: "120000" });
     });
 });

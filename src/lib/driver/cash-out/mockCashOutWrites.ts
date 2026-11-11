@@ -68,8 +68,8 @@ export const mockCashOutWrites: CashOutWriteGateway = {
         if (cashUp === null) return refused("CASHUP_NOT_OPEN");
         const cashOut = cashUp.cashOuts.find((openCashOut) => openCashOut.id === cashOutId);
         if (!cashOut) return refused("ENTITY_NOT_FOUND");
-        // The backend answers a second delete of the same cash-out with CONFLICT.
-        if (cashOut.isDeleted) return refused("CONFLICT");
+        // The backend answers a second delete of the same cash-out with CASHOUT_ALREADY_CANCELLED.
+        if (cashOut.isDeleted) return refused("CASHOUT_ALREADY_CANCELLED");
 
         // The screen's form of the backend status CANCELLED, with the trimmed reason.
         cashOut.isDeleted = true;

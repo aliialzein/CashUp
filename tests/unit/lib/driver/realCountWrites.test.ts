@@ -54,11 +54,18 @@ describe("realCountWrites.saveCount", () => {
         expect(replaceOwnCounts).toHaveBeenCalledWith("cash-up-1", { lines: [] });
     });
 
-    it("answers FEATURE_NOT_READY for counted USD 0.10 notes, without calling the backend", async () => {
-        await expect(realCountWrites.saveCount(count({ "0.10": 4, "20": 1 }))).resolves.toEqual({ ok: false, code: "FEATURE_NOT_READY" });
+    it("sends counted USD 0.10 notes as \"0.10\" (the backend accepts them since the merge)", async () => {
+        getOwnOpenCashUp.mockResolvedValue(OPEN_CASH_UP);
+        replaceOwnCounts.mockResolvedValue({});
 
-        expect(getOwnOpenCashUp).not.toHaveBeenCalled();
-        expect(replaceOwnCounts).not.toHaveBeenCalled();
+        await expect(realCountWrites.saveCount(count({ "0.10": 4, "20": 1 }))).resolves.toEqual({ ok: true });
+
+        expect(replaceOwnCounts).toHaveBeenCalledWith("cash-up-1", {
+            lines: [
+                { currency: "USD", denomination: "20.00", quantity: 1 },
+                { currency: "USD", denomination: "0.10", quantity: 4 },
+            ],
+        });
     });
 
     it("does not mind USD 0.10 when none were counted", async () => {
@@ -98,9 +105,33 @@ describe("realCountWrites.submitCashUpWithCount", () => {
         expect(replaceOwnCounts).toHaveBeenCalledTimes(1);
     });
 
-    it("neither saves nor submits a count with USD 0.10 notes", async () => {
-        await expect(realCountWrites.submitCashUpWithCount(count({ "0.10": 1 }))).resolves.toEqual({ ok: false, code: "FEATURE_NOT_READY" });
+    it("saves and submits a count with USD 0.10 notes", async () => {
+        getOwnOpenCashUp.mockResolvedValue(OPEN_CASH_UP);
+        replaceOwnCounts.mockResolvedValue({});
+        submitCashUp.mockResolvedValue({});
 
+        await expect(realCountWrites.submitCashUpWithCount(count({ "0.10": 1 }))).resolves.toEqual({ ok: true });
+        expect(submitCashUp).toHaveBeenCalledWith("cash-up-1");
+    });
+});
+
+describe("realCountWrites with a note the backend does not accept", () => {
+    it("answers FEATURE_NOT_READY without calling the backend (tested with a backend list that has no USD 0.10)", async () => {
+        let gateway: CountWriteGateway | undefined;
+        // Own module set, so only this test sees the shortened backend list.
+        await jest.isolateModulesAsync(async () => {
+            jest.doMock("server-only", () => ({}));
+            jest.doMock("../../../../src/modules/cash-ups/cash-ups.service", () => ({ getOwnOpenCashUp, replaceOwnCounts, submitCashUp }));
+            jest.doMock("../../../../src/domain/money/config", () => {
+                const actual = jest.requireActual<typeof import("../../../../src/domain/money/config")>("../../../../src/domain/money/config");
+                return { ...actual, DENOMINATIONS: { ...actual.DENOMINATIONS, USD: actual.DENOMINATIONS.USD.filter((note) => note !== "0.10") } };
+            });
+            ({ realCountWrites: gateway } = await import("../../../../src/lib/driver/count-cash/realCountWrites"));
+        });
+
+        await expect(gateway?.saveCount(count({ "0.10": 4, "20": 1 }))).resolves.toEqual({ ok: false, code: "FEATURE_NOT_READY" });
+        await expect(gateway?.submitCashUpWithCount(count({ "0.10": 1 }))).resolves.toEqual({ ok: false, code: "FEATURE_NOT_READY" });
+        expect(getOwnOpenCashUp).not.toHaveBeenCalled();
         expect(replaceOwnCounts).not.toHaveBeenCalled();
         expect(submitCashUp).not.toHaveBeenCalled();
     });

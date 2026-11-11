@@ -30,8 +30,8 @@ function isAcceptedByBackend(line: CountLineInput): boolean {
 /** Saves the count of the open cash-up: its id, or why nothing was sent. */
 async function saveOpenCount(count: CashCount): Promise<string | ActionResult> {
     const lines = countedLines(count);
-    // WAITS FOR: the backend's DENOMINATIONS to accept USD 0.10 (and drop USD 2), as agreed. Until then a count with
-    // such a note is not sent at all: a counted note is never dropped or changed to make the call pass.
+    // Today the backend accepts every note the screen counts (USD 0.10 since the merge). If the two lists ever differ
+    // again, a count with such a note is not sent at all: a counted note is never dropped or changed to make the call pass.
     if (!lines.every(isAcceptedByBackend)) return FEATURE_NOT_READY;
 
     // BACKEND: the driver's own open cash-up.

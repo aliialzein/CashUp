@@ -88,3 +88,46 @@ describe("mockSaleWrites", () => {
         await expect(mockSaleWrites.deleteSale("no-such-sale", "Typed twice")).resolves.toEqual({ ok: false, code: "ENTITY_NOT_FOUND" });
     });
 });
+
+describe("mockSaleWrites.completeDelivery with today's rate (the backend's checkSaleBalance)", () => {
+    // Owed: 10.00 + fee 3.00 + tip 1.00 = 14.00 USD. The client pays 20 USD and gets 5 USD + 90,000 LBP (= 1 USD) back.
+    const MIXED_CHANGE = {
+        ...DELIVERY,
+        collected: { usd: "20.00", lbp: "0.00" },
+        change: { usd: "5.00", lbp: "90000.00" },
+    };
+
+    function setRate(referenceRate: string | null) {
+        const cashUp = getOpenCashUp();
+        if (cashUp === null) throw new Error("the mock scenario must have an open cash-up for these tests");
+        cashUp.referenceRate = referenceRate;
+    }
+
+    it("accepts change in both currencies at the cash-up's rate, as balanced", async () => {
+        setRate("90000");
+        const sale = await addSale("key-rate-mixed");
+
+        await expect(mockSaleWrites.completeDelivery(sale.id, MIXED_CHANGE)).resolves.toEqual({ ok: true });
+        expect(sale).toMatchObject({ status: "DELIVERED", amountDiffers: false });
+    });
+
+    it("refuses change in both currencies when the cash-up has no rate", async () => {
+        setRate(null);
+        const sale = await addSale("key-rate-missing");
+
+        await expect(mockSaleWrites.completeDelivery(sale.id, MIXED_CHANGE)).resolves.toEqual({
+            ok: false,
+            code: "SALE_REQUIRES_REFERENCE_RATE",
+        });
+        expect(sale.status).toBe("TO_DELIVER");
+        setRate("90000");
+    });
+
+    it("flags a delivery that does not match what is owed as \"amount differs\"", async () => {
+        setRate("90000");
+        const sale = await addSale("key-rate-short");
+
+        await expect(mockSaleWrites.completeDelivery(sale.id, { ...DELIVERY, collected: { usd: "10.00", lbp: "0.00" }, change: { usd: "0.00", lbp: "0.00" } })).resolves.toEqual({ ok: true });
+        expect(sale.amountDiffers).toBe(true);
+    });
+});

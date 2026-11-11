@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { canCancelCashUp } from "@/lib/driver/cash-up/canCancelCashUp";
 import { lastClosedCashUp } from "@/lib/driver/history/lastClosedCashUp";
+import { formatMoney } from "@/lib/format/money";
 import { driverData } from "@/lib/driver/data/driverData";
 
 type TodayPageProps = {
@@ -40,15 +41,16 @@ export default async function TodayPage({ searchParams }: TodayPageProps) {
     return (
         <>
             <TodayNotice searchParams={searchParams} className="mb-5" />
-            <div className="mb-5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
+            {/* Phone: title and badge on one line that never wraps, the start line under it. Desktop: one row. */}
+            <div className="mb-5 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-3 whitespace-nowrap">
                     <h1 className="font-heading text-xl font-bold tracking-tight md:text-2xl">Cash-up #{cashUp.number}</h1>
                     <Badge>Open</Badge>
                 </div>
-                <span className="text-xs text-muted md:text-sm">
-                    <span className="hidden md:inline">Started </span>
-                    {cashUp.startedAt}
-                </span>
+                <p className="text-xs text-muted md:text-sm">
+                    Started {cashUp.startedAt}
+                    {cashUp.referenceRate && ` · Rate: 1 USD = ${formatMoney(cashUp.referenceRate, "LBP")}`}
+                </p>
             </div>
 
             {cashUp.returned && (

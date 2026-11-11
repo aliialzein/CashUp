@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { CashOutsResults } from "@/components/driver/cash-outs/CashOutsResults";
 import { type EmptyText } from "@/components/driver/cash-outs/CashOutsTable";
 import { CashOutsTotal } from "@/components/driver/cash-outs/CashOutsTotal";
-import { TotalsPending } from "@/components/driver/cash-up/TotalsPending";
 import { LockedBadge } from "@/components/driver/history/LockedBadge";
 import { PageHeader } from "@/components/driver/layout/PageHeader";
 import { activeCashOuts } from "@/lib/driver/cash-out/activeCashOuts";
@@ -42,11 +41,7 @@ async function LockedCashOuts({ params, searchParams }: LockedCashOutsPageProps)
                 subtitle={cashUpLabel(detail.number)}
                 badge={<LockedBadge />}
             />
-            {detail.ledger ? (
-                <CashOutsTotal total={detail.ledger.cashOuts} none={shownCashOuts.length === 0} />
-            ) : (
-                <TotalsPending />
-            )}
+            <CashOutsTotal total={detail.ledger.cashOuts} none={shownCashOuts.length === 0} />
             <CashOutsResults cashOuts={shownCashOuts} empty={EMPTY} />
             <p className="text-center text-[13px] text-muted md:text-sm">Cash-outs are read-only after the cash-up is submitted.</p>
         </>

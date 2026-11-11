@@ -3,6 +3,7 @@ import { Icon } from "@/components/ui/Icon";
 import type { DeliverySummary } from "@/lib/driver/delivery/summarizeDelivery";
 import { formatAmounts, type Amounts } from "@/lib/format/money";
 import { isZeroAmounts } from "@/lib/money/amounts";
+import { CLIENT_PAID_LABEL } from "@/lib/driver/sales/saleLabels";
 
 type DeliverySummaryPanelProps = {
     order: Amounts;
@@ -31,7 +32,7 @@ function getHeadline(summary: DeliverySummary): { label: string; amounts: Amount
         return { label: "Still to collect", amounts: summary.remaining, tone: "warning" };
     }
     if (!isZeroAmounts(summary.extra)) {
-        return { label: "Extra collected", amounts: summary.extra, tone: "info" };
+        return { label: `${CLIENT_PAID_LABEL} extra`, amounts: summary.extra, tone: "info" };
     }
     return { label: "Fully covered", amounts: summary.paid, tone: "success" };
 }

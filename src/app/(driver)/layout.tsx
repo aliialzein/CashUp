@@ -1,18 +1,24 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { AppShell } from "@/components/driver/layout/AppShell";
+import { DriverIdentity, DriverIdentityFallback } from "@/components/driver/layout/DriverIdentity";
 import { driverNav } from "@/components/driver/layout/navigation";
-import { mockSession } from "@/lib/driver/mock/session";
 
+/**
+ * Stays synchronous on purpose: the only part that reads the session (the business and user in the header) sits in
+ * its own <Suspense>, so the rest of the frame and every page render without waiting for it, and the build keeps
+ * passing under Cache Components (loading.tsx does not cover this layout).
+ */
 export default function DriverLayout({ children }: { children: ReactNode }) {
-  const roleLabel = mockSession.role === "DRIVER" ? "Driver" : "Cashier";
-
-  return (
-    <AppShell
-      nav={driverNav}
-      businessName={mockSession.businessName}
-      userLine={`${roleLabel} · ${mockSession.userName}`}
-    >
-      {children}
-    </AppShell>
-  );
+    return (
+        <AppShell
+            nav={driverNav}
+            identity={
+                <Suspense fallback={<DriverIdentityFallback />}>
+                    <DriverIdentity />
+                </Suspense>
+            }
+        >
+            {children}
+        </AppShell>
+    );
 }

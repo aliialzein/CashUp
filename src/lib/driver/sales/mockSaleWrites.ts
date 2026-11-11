@@ -1,7 +1,9 @@
+import { checkSaleBalance, type SaleBalanceInput } from "@/domain/money/sale-balance";
 import type { ActionResult } from "@/lib/driver/cash-up/actionResult";
 import { getOpenCashUp, recalculateOpenMockCashUp } from "@/lib/driver/mock/today";
+import type { Amounts } from "@/lib/format/money";
 import type { Sale } from "@/types/driver/cash-up";
-import type { SaleWriteGateway } from "./saleWriteGateway";
+import type { DeliveryDetails, SaleWriteGateway } from "./saleWriteGateway";
 
 /**
  * Fake sale writes for mock mode. They change the mock open cash-up's sales in memory, so every flow can be
@@ -33,6 +35,27 @@ function findSaleToDeliver(saleId: string, refusalWhenDelivered: string): Sale |
 
 function currentTime(): string {
     return new Date().toTimeString().slice(0, 5);
+}
+
+const NONE: Amounts = { usd: "0", lbp: "0" };
+
+/** The sale and its delivery in the shape of the backend's checkSaleBalance (amount and discount from the sale). */
+function toBalanceInput(sale: Sale, delivery: DeliveryDetails): SaleBalanceInput {
+    const discount = sale.discount ?? NONE;
+    return {
+        businessAmountUsd: sale.amount.usd,
+        businessAmountLbp: sale.amount.lbp,
+        deliveryFeeUsd: delivery.deliveryFee.usd,
+        deliveryFeeLbp: delivery.deliveryFee.lbp,
+        tipUsd: delivery.tip.usd,
+        tipLbp: delivery.tip.lbp,
+        discountUsd: discount.usd,
+        discountLbp: discount.lbp,
+        totalCollectedUsd: delivery.collected.usd,
+        totalCollectedLbp: delivery.collected.lbp,
+        changeGivenUsd: delivery.change.usd,
+        changeGivenLbp: delivery.change.lbp,
+    };
 }
 
 export const mockSaleWrites: SaleWriteGateway = {
@@ -84,6 +107,12 @@ export const mockSaleWrites: SaleWriteGateway = {
         const found = findSaleToDeliver(saleId, "SALE_NOT_AWAITING_DELIVERY");
         if ("ok" in found) return found;
 
+        // Like the backend: what was kept is checked against what is owed with the cash-up's rate (if it has one).
+        const referenceRate = getOpenCashUp()?.referenceRate ?? undefined;
+        const balance = checkSaleBalance(toBalanceInput(found, delivery), referenceRate);
+        if (referenceRate === undefined && balance.requiresReferenceRate) return refused("SALE_REQUIRES_REFERENCE_RATE");
+
+        found.amountDiffers = !balance.balanced;
         found.status = "DELIVERED";
         found.deliveryFee = delivery.deliveryFee;
         found.tip = delivery.tip;

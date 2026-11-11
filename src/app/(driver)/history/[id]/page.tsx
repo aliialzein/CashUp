@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { CashUpLedger } from "@/components/driver/cash-up/CashUpLedger";
 import { CountResult } from "@/components/driver/cash-up/CountResult";
 import { LockedNote } from "@/components/driver/cash-up/LockedNote";
-import { TotalsPending } from "@/components/driver/cash-up/TotalsPending";
 import { CashUpStatusBadge } from "@/components/driver/history/CashUpStatusBadge";
 import { SalesLinkCard } from "@/components/driver/history/SalesLinkCard";
 import { PageHeader } from "@/components/driver/layout/PageHeader";
@@ -43,17 +41,7 @@ async function CashUpDetail({ params, searchParams }: CashUpDetailPageProps) {
             />
             <div className="grid gap-5 md:grid-cols-2">
                 <div className="flex flex-col gap-5">
-                    {detail.ledger ? (
-                        <CashUpLedger ledger={detail.ledger} cashOutsHref={cashOutsHref} />
-                    ) : (
-                        // Without totals there is no Cash-outs row to tap, so the cash-outs get their own link.
-                        <div className="flex flex-col gap-2">
-                            <TotalsPending />
-                            <Link href={cashOutsHref} className="text-sm font-semibold text-ink underline-offset-2 hover:underline">
-                                See the cash-outs ›
-                            </Link>
-                        </div>
-                    )}
+                    <CashUpLedger ledger={detail.ledger} cashOutsHref={cashOutsHref} />
                 </div>
                 <div className="flex flex-col gap-5">
                     <CountResult counted={detail.counted} gap={detail.gap} />

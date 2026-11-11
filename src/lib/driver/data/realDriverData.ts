@@ -3,6 +3,9 @@ import { mapCashUp } from "@/lib/driver/mappers/cashUp";
 import { mapCashUpDetail, type LockedStatus } from "@/lib/driver/mappers/cashUpDetail";
 import { mapCashUpSummary } from "@/lib/driver/mappers/cashUpSummary";
 import { mapSavedCount } from "@/lib/driver/mappers/savedCount";
+import { roleIdentity } from "@/lib/driver/session/roleIdentity";
+import { getCurrentUser } from "@/modules/auth/auth.service";
+import { getBusiness } from "@/modules/business/business.service";
 import {
     getOwnCashUp,
     getOwnCounts,
@@ -10,7 +13,7 @@ import {
     listOwnCashUps,
 } from "@/modules/cash-ups/cash-ups.service";
 import type { CashUpDto } from "@/modules/cash-ups/cash-ups.types";
-import { EntityNotFoundError } from "@/shared/errors/service-errors";
+import { EntityNotFoundError, UnauthenticatedError } from "@/shared/errors/service-errors";
 import { pageQuery, uuid } from "@/shared/validation/common";
 import type { CashUpSummary } from "@/types/driver/cash-up";
 import type { DriverDataSource } from "./driverDataSource";
@@ -31,9 +34,9 @@ const backendReads: DriverDataSource = {
         const own = await getOwnOpenCashUp();
         if (own === null) return null;
 
-        // The backend fills the ledger for every OPEN cash-up. Anything else is a backend bug: fail loudly.
-        // This one check also narrows `status` and `ledger` for TypeScript, so no cast is needed.
-        if (own.status !== "OPEN" || own.ledger === null) throw new Error("OPEN_CASH_UP_WITHOUT_LEDGER");
+        // getOwnOpenCashUp only returns OPEN cash-ups; anything else is a backend bug: fail loudly.
+        // This one check also narrows `status` for TypeScript, so no cast is needed. The ledger is always present now.
+        if (own.status !== "OPEN") throw new Error("OPEN_CASH_UP_NOT_OPEN");
 
         // BACKEND: the count saved so far, so Count cash can show it again.
         const saved = await getOwnCounts(own.id);
@@ -70,8 +73,19 @@ const backendReads: DriverDataSource = {
         const { status } = ownCashUp;
         if (!isLocked(status)) return null;
 
-        // The ledger is null until the backend sends it for every status; the page then says the totals come later.
         return mapCashUpDetail({ ...ownCashUp, status });
+    },
+
+    async getIdentity() {
+        // BACKEND: the signed-in user (name) and the business of their membership (name, their role).
+        const [user, business] = await Promise.all([getCurrentUser(), getBusiness()]);
+        if (user === null) throw new UnauthenticatedError();
+        return { businessName: business.name, userName: user.fullName, ...roleIdentity(business.role) };
+    },
+
+    async getFloatSuggestion() {
+        // The backend has no float suggestion yet: real mode starts with empty float fields (team decision, run 8).
+        return null;
     },
 };
 
@@ -80,4 +94,6 @@ export const realDriverData: DriverDataSource = {
     getOpenCashUp: () => withSessionRedirect(() => backendReads.getOpenCashUp()),
     getHistory: () => withSessionRedirect(() => backendReads.getHistory()),
     getCashUpDetail: (id) => withSessionRedirect(() => backendReads.getCashUpDetail(id)),
+    getIdentity: () => withSessionRedirect(() => backendReads.getIdentity()),
+    getFloatSuggestion: () => backendReads.getFloatSuggestion(),
 };

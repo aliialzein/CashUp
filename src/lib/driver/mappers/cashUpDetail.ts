@@ -14,8 +14,8 @@ export type CashUpDetailInput = Pick<
     "id" | "number" | "closedAt" | "approvedAt" | "countedUsd" | "countedLbp" | "gapUsd" | "gapLbp"
 > & {
     status: LockedStatus;
-    /** Today the backend sends it only while OPEN, so it is null here until the agreed update. */
-    ledger: LedgerInput | null;
+    /** The backend's drawer totals, sent for every status. */
+    ledger: LedgerInput;
     sales: readonly SaleLineInput[];
     cashOuts: readonly CashOutInput[];
 };
@@ -27,7 +27,7 @@ function dayAndTime(isoDate: string): string {
 
 /**
  * Backend locked cash-up -> the Detail page. The count, the gap and the submit time are frozen at submit, so a locked
- * cash-up without them is a backend bug: fail loudly instead of guessing (like OPEN_CASH_UP_WITHOUT_LEDGER on Today).
+ * cash-up without them is a backend bug: fail loudly instead of guessing (like OPEN_CASH_UP_NOT_OPEN on Today).
  */
 export function mapCashUpDetail(dto: CashUpDetailInput): CashUpDetail {
     const { closedAt, countedUsd, countedLbp, gapUsd, gapLbp } = dto;
@@ -41,7 +41,7 @@ export function mapCashUpDetail(dto: CashUpDetailInput): CashUpDetail {
         number: dto.number,
         status: dto.status,
         submittedAt: dayAndTime(closedAt),
-        ledger: dto.ledger === null ? null : toLedger(dto.ledger),
+        ledger: toLedger(dto.ledger),
         counted: pair(countedUsd, countedLbp),
         gap: pair(gapUsd, gapLbp),
         sales,

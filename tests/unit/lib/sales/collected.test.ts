@@ -1,5 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
-import { collectedAmounts, saleAmountLine, totalCollected } from "../../../../src/lib/driver/sales/collected";
+import { collectedAmounts, keptAmounts, saleAmountLine } from "../../../../src/lib/driver/sales/collected";
+import { CLIENT_PAID_LABEL } from "../../../../src/lib/driver/sales/saleLabels";
 import type { Sale } from "../../../../src/types/driver/cash-up";
 
 function sale(overrides: Partial<Sale>): Sale {
@@ -15,47 +16,59 @@ function sale(overrides: Partial<Sale>): Sale {
     };
 }
 
-describe("collectedAmounts", () => {
-    it("uses the total the server calculated", () => {
-        const totalCollected = { usd: "28", lbp: "120000" };
+describe("collectedAmounts (what the client paid)", () => {
+    it("uses the total the server saved", () => {
+        const totalCollected = { usd: "31", lbp: "120000" };
         expect(collectedAmounts(sale({ totalCollected, deliveryFee: { usd: "2", lbp: "0" } }))).toBe(totalCollected);
     });
 
     it("falls back to order + delivery fee", () => {
-        const result = collectedAmounts(sale({ deliveryFee: { usd: "2", lbp: "50000" } }));
-        expect(Number(result.usd)).toBe(27);
-        expect(Number(result.lbp)).toBe(170000);
+        expect(collectedAmounts(sale({ deliveryFee: { usd: "2", lbp: "50000" } }))).toEqual({ usd: "27", lbp: "170000" });
     });
 
     it("is the order amount when there is no fee", () => {
-        const result = collectedAmounts(sale({}));
-        expect(Number(result.usd)).toBe(25);
-        expect(Number(result.lbp)).toBe(120000);
+        expect(collectedAmounts(sale({}))).toEqual({ usd: "25", lbp: "120000" });
+    });
+
+    it("falls back like the backend's balance rule: what was owed (with tip, minus discount) plus the change", () => {
+        const paid = collectedAmounts(
+            sale({
+                deliveryFee: { usd: "2", lbp: "0" },
+                tip: { usd: "1", lbp: "0" },
+                discount: { usd: "0", lbp: "20000" },
+                changeGiven: { usd: "3", lbp: "0" },
+            }),
+        );
+        expect(paid).toEqual({ usd: "31", lbp: "100000" });
     });
 });
 
-describe("totalCollected", () => {
-    it("adds up what each sale collected, per currency", () => {
-        const total = totalCollected([
-            sale({ deliveryFee: { usd: "2", lbp: "0" } }),
-            sale({ amount: { usd: "10", lbp: "0" }, totalCollected: { usd: "9", lbp: "50000" } }),
-        ]);
-        expect(Number(total.usd)).toBe(36);
-        expect(Number(total.lbp)).toBe(170000);
+describe("keptAmounts (client paid minus change given)", () => {
+    it("keeps 28 USD when the client paid 31 USD and got 3 USD back (sale #105)", () => {
+        const kept = keptAmounts(
+            sale({ totalCollected: { usd: "31", lbp: "120000" }, changeGiven: { usd: "3", lbp: "0" } }),
+        );
+        expect(kept).toEqual({ usd: "28", lbp: "120000" });
     });
 
-    it("is zero for no sales", () => {
-        const total = totalCollected([]);
-        expect(Number(total.usd)).toBe(0);
-        expect(Number(total.lbp)).toBe(0);
+    it("is what the client paid when no change was given", () => {
+        expect(keptAmounts(sale({ totalCollected: { usd: "15", lbp: "0" } }))).toEqual({ usd: "15", lbp: "0" });
+    });
+
+    it("never converts: change given in LBP for a USD payment makes the LBP side negative", () => {
+        const kept = keptAmounts(
+            sale({ totalCollected: { usd: "20", lbp: "0" }, changeGiven: { usd: "0", lbp: "90000" } }),
+        );
+        expect(kept).toEqual({ usd: "20", lbp: "-90000" });
     });
 });
 
 describe("saleAmountLine", () => {
-    it("shows what was collected for a delivered sale", () => {
+    it("shows what the client paid for a delivered sale, with the shared label", () => {
         const line = saleAmountLine(sale({ deliveryFee: { usd: "2", lbp: "0" } }));
-        expect(line.label).toBe("Collected");
-        expect(Number(line.amounts.usd)).toBe(27);
+        expect(line.label).toBe(CLIENT_PAID_LABEL);
+        expect(line.label).toBe("Client paid");
+        expect(line.amounts.usd).toBe("27");
     });
 
     it("shows the order amount for a waiting or deleted sale", () => {

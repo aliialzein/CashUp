@@ -19,8 +19,10 @@ export function closeMockCashUp(): void {
     openOverride = false;
 }
 
-export function startMockCashUp(): void {
+/** Opens the mock cash-up with the rate the driver typed (null = no rate), like openCashUp stores it. */
+export function startMockCashUp(referenceRate: string | null): void {
     openOverride = true;
+    mockOpenCashUp.referenceRate = referenceRate;
 }
 
 /** After a mock write: totals and sale cards follow the changed sales and cash-outs, like the backend's answer. */

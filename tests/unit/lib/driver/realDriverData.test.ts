@@ -10,6 +10,7 @@ const listOwnCashUps = jest.fn<FakeBackendCall>();
 const getOwnCashUp = jest.fn<FakeBackendCall>();
 const getOwnCounts = jest.fn<FakeBackendCall>();
 const getCurrentUser = jest.fn<FakeBackendCall>();
+const getBusiness = jest.fn<FakeBackendCall>();
 /** Like the real redirect(): it never returns, it throws. */
 const redirect = jest.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT ${url}`);
@@ -31,6 +32,7 @@ beforeAll(async () => {
     // The session redirect (sessionRedirect.ts) is tested on its own; here only its wiring.
     jest.doMock("next/navigation", () => ({ redirect }));
     jest.doMock("../../../../src/modules/auth/auth.service", () => ({ getCurrentUser }));
+    jest.doMock("../../../../src/modules/business/business.service", () => ({ getBusiness }));
     ({ realDriverData } = await import("../../../../src/lib/driver/data/realDriverData"));
 });
 
@@ -40,11 +42,40 @@ describe("realDriverData without a session", () => {
         getOwnOpenCashUp.mockRejectedValue(new UnauthenticatedError());
         listOwnCashUps.mockRejectedValue(new UnauthenticatedError());
         getOwnCashUp.mockRejectedValue(new UnauthenticatedError());
+        getBusiness.mockRejectedValue(new UnauthenticatedError());
 
         await expect(realDriverData.getOpenCashUp()).rejects.toThrow("NEXT_REDIRECT /login");
         await expect(realDriverData.getHistory()).rejects.toThrow("NEXT_REDIRECT /login");
         await expect(realDriverData.getCashUpDetail("3f2b8c1e-5a4d-4c7b-9e2f-1a2b3c4d5e6f")).rejects.toThrow("NEXT_REDIRECT /login");
-        expect(redirect).toHaveBeenCalledTimes(3);
+        await expect(realDriverData.getIdentity()).rejects.toThrow("NEXT_REDIRECT /login");
+        expect(redirect).toHaveBeenCalledTimes(4);
+    });
+});
+
+describe("realDriverData.getIdentity", () => {
+    it("gives the business name, the user's full name and the role's label and fee rule", async () => {
+        getCurrentUser.mockResolvedValue({ fullName: "Mohamad Harajly" });
+        getBusiness.mockResolvedValue({ id: "b1", name: "Beirut Bites", isSolo: false, role: "STAFF" });
+
+        await expect(realDriverData.getIdentity()).resolves.toEqual({
+            businessName: "Beirut Bites",
+            userName: "Mohamad Harajly",
+            roleLabel: "Driver",
+            feeRequired: true,
+        });
+    });
+
+    it("sends the member to the login page when the session ended between the two reads", async () => {
+        getCurrentUser.mockResolvedValue(null);
+        getBusiness.mockResolvedValue({ id: "b1", name: "Beirut Bites", isSolo: false, role: "STAFF" });
+
+        await expect(realDriverData.getIdentity()).rejects.toThrow("NEXT_REDIRECT /login");
+    });
+});
+
+describe("realDriverData.getFloatSuggestion", () => {
+    it("suggests no float: the backend has none yet", async () => {
+        await expect(realDriverData.getFloatSuggestion()).resolves.toBeNull();
     });
 });
 
@@ -139,10 +170,10 @@ describe("realDriverData.getOpenCashUp", () => {
         expect(cashUp?.savedCounts).toBeNull();
     });
 
-    it("fails loudly when an open cash-up comes without its ledger", async () => {
-        getOwnOpenCashUp.mockResolvedValue(openCashUpRow({ ledger: null }));
+    it("fails loudly when the backend's open cash-up is not OPEN (a backend bug)", async () => {
+        getOwnOpenCashUp.mockResolvedValue(openCashUpRow({ status: "SUBMITTED" }));
 
-        await expect(realDriverData.getOpenCashUp()).rejects.toThrow("OPEN_CASH_UP_WITHOUT_LEDGER");
+        await expect(realDriverData.getOpenCashUp()).rejects.toThrow("OPEN_CASH_UP_NOT_OPEN");
         expect(getOwnCounts).not.toHaveBeenCalled();
     });
 
@@ -245,7 +276,7 @@ describe("realDriverData.getCashUpDetail", () => {
         await expect(realDriverData.getCashUpDetail(VALID_ID)).resolves.toBeNull();
     });
 
-    it("maps a locked cash-up for the Detail page, with the ledger still null from today's backend", async () => {
+    it("maps a locked cash-up for the Detail page, with the totals the backend now always sends", async () => {
         getOwnCashUp.mockResolvedValue({
             id: VALID_ID,
             number: 42,
@@ -256,14 +287,21 @@ describe("realDriverData.getCashUpDetail", () => {
             countedLbp: "0.00",
             gapUsd: "-2.00",
             gapLbp: "0.00",
-            ledger: null,
+            ledger: {
+                floatUsd: "50.00", floatLbp: "0.00",
+                receivedUsd: "52.00", receivedLbp: "0.00",
+                changeGivenUsd: "0.00", changeGivenLbp: "0.00",
+                cashOutsUsd: "0.00", cashOutsLbp: "0.00",
+                expectedUsd: "102.00", expectedLbp: "0.00",
+            },
             sales: [],
             cashOuts: [],
         });
 
         const detail = await realDriverData.getCashUpDetail(VALID_ID);
 
-        expect(detail).toMatchObject({ id: VALID_ID, number: 42, status: "SUBMITTED", ledger: null, review: null });
+        expect(detail).toMatchObject({ id: VALID_ID, number: 42, status: "SUBMITTED", review: null });
+        expect(detail?.ledger.expected).toEqual({ usd: "102.00", lbp: "0.00" });
         expect(detail?.gap).toEqual({ usd: "-2.00", lbp: "0.00" });
     });
 

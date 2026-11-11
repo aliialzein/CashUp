@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/driver/layout/PageHeader";
 import { CompleteDeliveryForm } from "@/components/driver/sales/CompleteDeliveryForm";
 import { requireOpenCashUp } from "@/lib/driver/data/requireOpenCashUp";
-import { mockSession } from "@/lib/driver/mock/session";
+import { driverData } from "@/lib/driver/data/driverData";
 import { originFromPath, resolveOrigin, withOrigin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";
 
@@ -15,7 +15,13 @@ type CompleteDeliveryPageProps = {
 /** Reads the sale and where the driver came from. It lives inside Suspense because both are runtime data. */
 async function CompleteDelivery({ params, searchParams }: CompleteDeliveryPageProps) {
     // BACKEND: the open cash-up, to find the sale in it. With none open, the driver goes to Today.
-    const [{ id }, { from }, cashUp] = await Promise.all([params, searchParams, requireOpenCashUp()]);
+    // BACKEND: the signed-in member too, for the fee rule (a driver must enter the fee).
+    const [{ id }, { from }, cashUp, identity] = await Promise.all([
+        params,
+        searchParams,
+        requireOpenCashUp(),
+        driverData.getIdentity(),
+    ]);
     const sale = cashUp.sales.find((openSale) => openSale.id === id);
 
     // Only a sale that is still waiting for delivery can be completed.
@@ -33,7 +39,7 @@ async function CompleteDelivery({ params, searchParams }: CompleteDeliveryPagePr
             />
             <CompleteDeliveryForm
                 sale={sale}
-                feeRequired={mockSession.role === "DRIVER"}
+                feeRequired={identity.feeRequired}
                 returnHref={origin.href}
                 editHref={withOrigin(routes.driver.editSale(sale.id), originFromPath(origin.href) ?? "sales")}
             />

@@ -33,6 +33,7 @@ const VALIDATION_ERROR_TEXT: Record<string, string> = {
     INVALID_DENOMINATION: "One of these notes cannot be saved. Check your count.",
     // The app never sends a note twice, so the driver cannot cause it.
     DUPLICATE_COUNT_LINE: "Something went wrong. Please refresh and try again.",
+    REFERENCE_RATE_EXCEEDS_MAX: "This rate is too high. Check the number you typed.",
 };
 
 const ERROR_TEXT: Record<string, string> = {
@@ -49,6 +50,9 @@ const ERROR_TEXT: Record<string, string> = {
     SALES_AWAITING_DELIVERY: "Deliver or delete the waiting sales before submitting.",
     REQUESTS_AWAITING_DECISION: "The owner still has to answer a request on this cash-up.",
     SALE_NOT_AWAITING_DELIVERY: "This sale was already delivered.",
+    SALE_REQUIRES_REFERENCE_RATE: "Change in both currencies needs today's rate. Start the next cash-up with the rate.",
+    // Made by the app (toStartErrorCode): the backend's "not positive / not money" refusal, about today's rate.
+    REFERENCE_RATE_INVALID: "Enter a rate above 0, or clear the field.",
     SALE_ALREADY_CANCELLED: "This sale was already deleted.",
     SALE_CANNOT_BE_CANCELLED: "This sale can no longer be deleted.",
     CASHOUT_ALREADY_CANCELLED: "This cash-out was already deleted.",

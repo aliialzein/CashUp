@@ -59,6 +59,12 @@ describe("toErrorCode with the backend's stable validation codes", () => {
         expect(codeOfFailedParse(createCashOutSchema, { ...VALID_CASH_OUT, reason: "ab", unknownField: 1 })).toBe("REASON_TOO_SHORT");
     });
 
+    it("passes the rate's stable code from the backend schema on to the screen", () => {
+        expect(codeOfFailedParse(openCashUpSchema, { floatUsd: "50.00", floatLbp: "0.00", referenceRate: "99999999.00" })).toBe(
+            "REFERENCE_RATE_EXCEEDS_MAX",
+        );
+    });
+
     it("never passes a raw zod message on to the screen", () => {
         // An unknown key gives the zod message 'Unrecognized key: "unknownField"', which is not a code.
         expect(codeOfFailedParse(createCashOutSchema, { ...VALID_CASH_OUT, unknownField: 1 })).toBe("VALIDATION_ERROR");
@@ -130,6 +136,9 @@ describe("errorText", () => {
         ["FEATURE_NOT_READY", "This is not available yet. Try again after the next update."],
         ["INVALID_DENOMINATION", "One of these notes cannot be saved. Check your count."],
         ["DUPLICATE_COUNT_LINE", "Something went wrong. Please refresh and try again."],
+        ["SALE_REQUIRES_REFERENCE_RATE", "Change in both currencies needs today's rate. Start the next cash-up with the rate."],
+        ["REFERENCE_RATE_EXCEEDS_MAX", "This rate is too high. Check the number you typed."],
+        ["CASHUP_NOT_EMPTY", "Only an empty cash-up can be cancelled."],
     ])("gives %s its own text", (code, text) => {
         expect(errorText(code)).toBe(text);
     });

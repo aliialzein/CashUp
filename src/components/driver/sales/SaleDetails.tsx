@@ -1,14 +1,9 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/Badge";
-import type { PaymentMethod } from "@/lib/driver/delivery/summarizeSinglePayment";
-import { formatAmounts, type Amounts } from "@/lib/format/money";
-import { isZeroAmounts } from "@/lib/money/amounts";
-import { collectedAmounts } from "@/lib/driver/sales/collected";
+import { keptAmounts } from "@/lib/driver/sales/collected";
+import { saleTotalLabel } from "@/lib/driver/sales/saleLabels";
 import type { Sale } from "@/types/driver/cash-up";
-
-const NONE: Amounts = { usd: "0", lbp: "0" };
-
-export const METHOD_LABEL: Record<PaymentMethod, string> = { CASH: "Cash", WHISH: "Whish", OMT: "OMT" };
+import { AmountLines, saleDetailGroups } from "./SaleDetailGroups";
 
 type RowProps = {
     label: string;
@@ -27,16 +22,6 @@ function Row({ label, strong = false, mono = true, children }: RowProps) {
     );
 }
 
-/** True when there is an amount worth showing. */
-export function hasAmounts(amounts: Amounts | undefined): amounts is Amounts {
-    return amounts !== undefined && !isZeroAmounts(amounts);
-}
-
-/** An amount, or a muted "None" when there is nothing. */
-export function AmountOrNone({ amounts }: { amounts: Amounts }) {
-    return isZeroAmounts(amounts) ? <span className="text-muted">None</span> : <>{formatAmounts(amounts)}</>;
-}
-
 type SaleDetailsProps = {
     sale: Sale;
     id?: string;
@@ -47,30 +32,27 @@ type SaleDetailsProps = {
     roomy?: boolean;
 };
 
-/** How a delivered sale worked out. Phone and desktop show the same rows. */
+/**
+ * Phone: how a delivered sale worked out. The same ORDER and PAYMENT groups as the desktop row, as label/value rows,
+ * then the total: "Kept" for cash, "Received by Whish/OMT" for a wallet.
+ */
 export function SaleDetails({ sale, id, className = "", showClient = true, roomy = false }: SaleDetailsProps) {
     const hasFlags = sale.isEdited || sale.amountDiffers;
+    const gap = roomy ? "gap-3.5" : "gap-2";
 
     return (
-        <div id={id} className={`flex flex-col ${roomy ? "gap-3.5" : "gap-2"} ${className}`}>
+        <div id={id} className={`flex flex-col ${gap} ${className}`}>
             {showClient && <Row label="Client">{sale.clientPhone || "Shop sale"}</Row>}
-            <Row label="Date" mono={false}>
-                {[sale.date, sale.time].filter(Boolean).join(" · ")}
-            </Row>
-            {sale.method && (
-                <Row label="Paid by" mono={false}>
-                    {METHOD_LABEL[sale.method]}
-                </Row>
-            )}
-            <Row label="Order amount">{formatAmounts(sale.amount)}</Row>
-            <Row label="Delivery fee">
-                <AmountOrNone amounts={sale.deliveryFee ?? NONE} />
-            </Row>
-            {hasAmounts(sale.tip) && <Row label="Tip">{formatAmounts(sale.tip)}</Row>}
-            {hasAmounts(sale.discount) && <Row label="Discount">{formatAmounts(sale.discount)}</Row>}
-            <Row label="Change given">
-                <AmountOrNone amounts={sale.changeGiven ?? NONE} />
-            </Row>
+            {saleDetailGroups(sale).map((group) => (
+                <div key={group.title} className={`flex flex-col ${gap}`}>
+                    <h3 className="pt-1 text-xs font-medium tracking-wider text-muted uppercase">{group.title}</h3>
+                    {group.items.map((item) => (
+                        <Row key={item.label} label={item.label} mono={item.mono}>
+                            {item.value}
+                        </Row>
+                    ))}
+                </div>
+            ))}
             {sale.note && (
                 <div className="text-[13px]">
                     <span className="text-muted">Note</span>
@@ -78,8 +60,8 @@ export function SaleDetails({ sale, id, className = "", showClient = true, roomy
                 </div>
             )}
             <div className="flex flex-col gap-2 border-t border-subtle pt-2">
-                <Row label="Total collected" strong>
-                    {formatAmounts(collectedAmounts(sale))}
+                <Row label={saleTotalLabel(sale.method)} strong>
+                    <AmountLines amounts={keptAmounts(sale)} />
                 </Row>
                 {hasFlags && (
                     <div className="flex flex-wrap gap-1.5">

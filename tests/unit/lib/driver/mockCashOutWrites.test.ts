@@ -70,11 +70,11 @@ describe("mockCashOutWrites.cancelCashOut", () => {
         expect(openCashUp().ledger.expected).toEqual(totalsBefore.expected);
     });
 
-    it("answers CONFLICT for a cash-out that is already deleted", async () => {
+    it("answers CASHOUT_ALREADY_CANCELLED for a cash-out that is already deleted, like the merged backend", async () => {
         const cashOut = await addCashOut("key-delete-twice");
         await mockCashOutWrites.cancelCashOut(cashOut.id, "Typed twice");
 
-        await expect(mockCashOutWrites.cancelCashOut(cashOut.id, "Typed twice")).resolves.toEqual({ ok: false, code: "CONFLICT" });
+        await expect(mockCashOutWrites.cancelCashOut(cashOut.id, "Typed twice")).resolves.toEqual({ ok: false, code: "CASHOUT_ALREADY_CANCELLED" });
     });
 
     it("checks the reason like the backend, before looking for the cash-out", async () => {

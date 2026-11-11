@@ -25,6 +25,7 @@ import { OrderCard } from "./OrderCard";
 import { PaymentMethodPicker } from "./PaymentMethodPicker";
 import { UseChip } from "./UseChip";
 import { WALLET_LABELS } from "./WalletProviderPicker";
+import { CHANGE_GIVEN_LABEL, CLIENT_PAID_LABEL } from "@/lib/driver/sales/saleLabels";
 
 const NONE: Amounts = { usd: "0", lbp: "0" };
 const CHECK_HINT = "Check the amounts. After you confirm, this sale is locked.";
@@ -146,7 +147,7 @@ export function SingleMethodDeliveryForm({ sale, feeRequired, returnHref, editHr
                 {/* One block, so the space above Change given belongs to it and disappears when it folds away. */}
                 <div>
                     <DeliverySection
-                        title="Client paid"
+                        title={CLIENT_PAID_LABEL}
                         hint={
                             isCash
                                 ? "What the client handed over. Leave a currency empty if it was not used."
@@ -154,14 +155,14 @@ export function SingleMethodDeliveryForm({ sale, feeRequired, returnHref, editHr
                         }
                         action={canUseExactAmount && <UseChip onClick={fillExactAmount}>Use exact amount</UseChip>}
                     >
-                        <AmountPairField label="Client paid" value={paidInput} onChange={setPaidInput} />
+                        <AmountPairField label={CLIENT_PAID_LABEL} value={paidInput} onChange={setPaidInput} />
                         <p className="font-mono text-xs text-muted md:hidden">Client owes {formatAmounts(summary.due)}</p>
                     </DeliverySection>
 
                     <Collapse open={isCash}>
                         <div className="pt-3.5 md:pt-5">
                             <DeliverySection
-                                title="Change given"
+                                title={CHANGE_GIVEN_LABEL}
                                 hint="What you gave back to the client."
                                 action={
                                     suggestedChange && (
@@ -171,7 +172,7 @@ export function SingleMethodDeliveryForm({ sale, feeRequired, returnHref, editHr
                                     )
                                 }
                             >
-                                <AmountPairField label="Change given" value={changeInput} onChange={setChangeInput} />
+                                <AmountPairField label={CHANGE_GIVEN_LABEL} value={changeInput} onChange={setChangeInput} />
                             </DeliverySection>
                         </div>
                     </Collapse>

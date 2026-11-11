@@ -11,6 +11,7 @@ import { formatAmounts } from "@/lib/format/money";
 import { withOrigin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";
 import { saleAmountLine } from "@/lib/driver/sales/collected";
+import { CLIENT_PAID_LABEL } from "@/lib/driver/sales/saleLabels";
 import type { Sale } from "@/types/driver/cash-up";
 import { SaleDetailsCells } from "./SaleDetailsCells";
 import { SaleStatusBadge } from "./SaleStatusBadge";
@@ -33,7 +34,7 @@ function SaleRow({ sale, expandable, onDelete, onRequestDeletion }: SaleRowProps
     const [open, setOpen] = useState(false);
     const detailsId = useId();
     const { label, amounts } = saleAmountLine(sale);
-    const collected = label === "Collected";
+    const collected = label === CLIENT_PAID_LABEL;
     const hasDetails = expandable && sale.status === "DELIVERED";
     const lockedInOpenCashUp = sale.status === "DELIVERED" && onRequestDeletion !== undefined;
 
@@ -155,7 +156,7 @@ export function SalesTable({ sales, expandable = false, onDelete, onRequestDelet
                         <th className={TH}>Client</th>
                         <th className={TH}>Time</th>
                         <th className={TH}>Status</th>
-                        <th className={TH}>Collected</th>
+                        <th className={TH}>{CLIENT_PAID_LABEL}</th>
                         <th className={TH}>
                             <span className="sr-only">Actions</span>
                         </th>

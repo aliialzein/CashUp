@@ -45,7 +45,7 @@ const LEDGER = {
     expectedLbp: "0.00",
 };
 
-/** A submitted cash-up as today's backend sends it: no ledger. */
+/** A submitted cash-up as the backend sends it, totals included. */
 function locked(overrides: Partial<CashUpDetailInput> = {}): CashUpDetailInput {
     return {
         id: "c-42",
@@ -57,7 +57,7 @@ function locked(overrides: Partial<CashUpDetailInput> = {}): CashUpDetailInput {
         countedLbp: "0.00",
         gapUsd: "-2.00",
         gapLbp: "0.00",
-        ledger: null,
+        ledger: LEDGER,
         sales: [saleLine(), saleLine({ id: "sale-2", saleNumber: 2, status: "DELETED", moneyTaken: "CANCELLED", cancelReason: "Typed twice" })],
         cashOuts: [
             {
@@ -88,10 +88,6 @@ describe("mapCashUpDetail", () => {
         expect(detail.sales[1].cancelReason).toBe("Typed twice");
         expect(detail.cashOuts.map((cashOut) => cashOut.reason)).toEqual(["Fuel"]);
         expect(detail.review).toBeNull();
-    });
-
-    it("keeps the totals null when today's backend sends no ledger (the page shows the grey line)", () => {
-        expect(mapCashUpDetail(locked()).ledger).toBeNull();
     });
 
     it("converts the backend's totals when the ledger is present; only money out turns negative, as the screens show it", () => {

@@ -13,6 +13,7 @@ import { historyOrigin } from "@/lib/driver/navigation/historyOrigin";
 import { withOrigin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";
 import { LOCKED_SALE_SUMMARY } from "@/lib/driver/sales/lockedSaleSummary";
+import { DELIVERED_TOTAL_LABEL } from "@/lib/driver/sales/saleLabels";
 
 type LockedSalesPageProps = {
     params: Promise<{ id: string }>;
@@ -27,7 +28,7 @@ async function LockedSales({ params, searchParams }: LockedSalesPageProps) {
     if (!detail) notFound();
 
     const deliveredCount = detail.sales.filter((sale) => sale.status === "DELIVERED").length;
-    const deliveredLabel = `Delivered · ${deliveredCount}`;
+    const deliveredLabel = `${DELIVERED_TOTAL_LABEL} · ${deliveredCount}`;
 
     return (
         <>

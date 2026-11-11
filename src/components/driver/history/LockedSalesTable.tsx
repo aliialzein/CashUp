@@ -8,6 +8,7 @@ import { Collapse } from "@/components/ui/Collapse";
 import { Icon } from "@/components/ui/Icon";
 import { formatAmounts } from "@/lib/format/money";
 import { saleAmountLine } from "@/lib/driver/sales/collected";
+import { CLIENT_PAID_LABEL } from "@/lib/driver/sales/saleLabels";
 import type { Sale, SaleStatus } from "@/types/driver/cash-up";
 
 type Tone = ComponentProps<typeof Badge>["tone"];
@@ -82,7 +83,7 @@ type LockedSalesTableProps = {
     expandable?: boolean;
 };
 
-/** The sales of a submitted cash-up, read only: no actions. The last column is what each sale collected. */
+/** The sales of a submitted cash-up, read only: no actions. The last column is what each client paid. */
 export function LockedSalesTable({ sales, expandable = false }: LockedSalesTableProps) {
     return (
         <Card as="section" aria-label="Sales" className="overflow-hidden">
@@ -93,7 +94,7 @@ export function LockedSalesTable({ sales, expandable = false }: LockedSalesTable
                 <span>Client</span>
                 <span>Time</span>
                 <span>Status</span>
-                <span>Collected</span>
+                <span>{CLIENT_PAID_LABEL}</span>
                 {expandable && <span />}
             </div>
 
