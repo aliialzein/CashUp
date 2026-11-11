@@ -45,19 +45,39 @@ export function readSession(tokenHash: string) {
   });
 }
 
-/** Serialize each operation's budget, prune expired rows, then admit a bounded account key. */
-export async function consumeAuthAttempt(operation: 'login' | 'signup', emailHash: string, tx: Db): Promise<boolean> {
-  await tx.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`auth-attempt:${operation}`}, 0))`);
-  await tx.$executeRaw(Prisma.sql`DELETE FROM "auth_attempts" WHERE "expiresAt" <= CURRENT_TIMESTAMP`);
-  const consume = async (key: string, seconds: number, maximum: number) => {
-    const rows = await tx.$queryRaw<Array<{ attempts: number }>>(Prisma.sql`
+/** One statement owns its implicit transaction, including the operation-wide lock. */
+export async function consumeAuthAttempt(operation: 'login' | 'signup', emailHash: string, db: Db = getPrisma()): Promise<boolean> {
+  const globalKey = `${operation}:global`;
+  const accountKey = `${operation}:${emailHash}`;
+  // Pruning excludes the upsert keys: one statement must not delete and update the same row.
+  const rows = await db.$queryRaw<Array<{ allowed: boolean }>>(Prisma.sql`
+    WITH budget_lock AS MATERIALIZED (
+      SELECT pg_advisory_xact_lock(hashtextextended(${`auth-attempt:${operation}`}, 0))
+    ), pruned AS (
+      DELETE FROM "auth_attempts" USING budget_lock
+      WHERE "expiresAt" <= CURRENT_TIMESTAMP AND "key" NOT IN (${globalKey}, ${accountKey})
+    ), global_budget AS (
       INSERT INTO "auth_attempts" ("key", "attempts", "expiresAt")
-      VALUES (${key}, 1, to_timestamp((floor(extract(epoch FROM CURRENT_TIMESTAMP) / ${seconds}) + 1) * ${seconds}))
-      ON CONFLICT ("key") DO UPDATE SET "attempts" = LEAST("auth_attempts"."attempts" + 1, ${maximum + 1})
+      SELECT ${globalKey}, 1, to_timestamp((floor(extract(epoch FROM CURRENT_TIMESTAMP) / 600) + 1) * 600)
+      FROM budget_lock
+      ON CONFLICT ("key") DO UPDATE SET
+        "attempts" = CASE WHEN "auth_attempts"."expiresAt" <= CURRENT_TIMESTAMP THEN 1
+          ELSE LEAST("auth_attempts"."attempts" + 1, 101) END,
+        "expiresAt" = CASE WHEN "auth_attempts"."expiresAt" <= CURRENT_TIMESTAMP THEN EXCLUDED."expiresAt"
+          ELSE "auth_attempts"."expiresAt" END
       RETURNING "attempts"
-    `);
-    return rows[0].attempts <= maximum;
-  };
-  if (!await consume(`${operation}:global`, 600, 100)) return false;
-  return consume(`${operation}:${emailHash}`, 900, 5);
+    ), account_budget AS (
+      INSERT INTO "auth_attempts" ("key", "attempts", "expiresAt")
+      SELECT ${accountKey}, 1, to_timestamp((floor(extract(epoch FROM CURRENT_TIMESTAMP) / 900) + 1) * 900)
+      FROM global_budget WHERE "attempts" <= 100
+      ON CONFLICT ("key") DO UPDATE SET
+        "attempts" = CASE WHEN "auth_attempts"."expiresAt" <= CURRENT_TIMESTAMP THEN 1
+          ELSE LEAST("auth_attempts"."attempts" + 1, 6) END,
+        "expiresAt" = CASE WHEN "auth_attempts"."expiresAt" <= CURRENT_TIMESTAMP THEN EXCLUDED."expiresAt"
+          ELSE "auth_attempts"."expiresAt" END
+      RETURNING "attempts"
+    )
+    SELECT COALESCE((SELECT "attempts" <= 5 FROM account_budget), false) AS allowed
+  `);
+  return rows[0].allowed;
 }
