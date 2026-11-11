@@ -300,21 +300,24 @@ model Sale {
   deliveryFeeUsd Decimal @default(0) @db.Decimal(18, 2)
   deliveryFeeLbp Decimal @default(0) @db.Decimal(18, 2)
 
-  tipUsd Decimal @default(0) @db.Decimal(18, 2)
-  tipLbp Decimal @default(0) @db.Decimal(18, 2)
+  tipUsd Decimal? @db.Decimal(18, 2)
+  tipLbp Decimal? @db.Decimal(18, 2)
 
   discountUsd Decimal @default(0) @db.Decimal(18, 2)
   discountLbp Decimal @default(0) @db.Decimal(18, 2)
 
-  totalCollectedUsd Decimal @default(0) @db.Decimal(18, 2)
-  totalCollectedLbp Decimal @default(0) @db.Decimal(18, 2)
+  totalCollectedUsd Decimal? @db.Decimal(18, 2)
+  totalCollectedLbp Decimal? @db.Decimal(18, 2)
 
-  changeGivenUsd Decimal @default(0) @db.Decimal(18, 2)
-  changeGivenLbp Decimal @default(0) @db.Decimal(18, 2)
+  changeGivenUsd Decimal? @db.Decimal(18, 2)
+  changeGivenLbp Decimal? @db.Decimal(18, 2)
 
-  method       PaymentMethod
+  method       PaymentMethod?
   clientNumber String?
   note         String?
+
+  // Preserved pre-nullability pending payment values; never treated as collected money.
+  legacyPendingPayment Json?
 
   amountDiffers    Boolean @default(false)
   isEdited         Boolean @default(false)

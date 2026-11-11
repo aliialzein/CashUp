@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CREATE_SALE_STATUSES, MONEY_PATTERN, SALE_STATUSES } from '../../domain/money/config';
+import { MONEY_PATTERN, SALE_STATUSES } from '../../domain/money/config';
 import { add, compare, sub, type MoneyLike } from '../../domain/money/money';
 import { addStableIssue, clientNumber, moneyString, note, paymentMethod } from '../../shared/validation/common';
 import { addMaxIssue } from '../../shared/validation/financial';
@@ -9,28 +9,28 @@ const saleMoneyShape = {
   businessAmountLbp: moneyString.default('0.00'),
   deliveryFeeUsd: moneyString.default('0.00'),
   deliveryFeeLbp: moneyString.default('0.00'),
-  tipUsd: moneyString.default('0.00'),
-  tipLbp: moneyString.default('0.00'),
+  tipUsd: moneyString,
+  tipLbp: moneyString,
   discountUsd: moneyString.default('0.00'),
   discountLbp: moneyString.default('0.00'),
-  totalCollectedUsd: moneyString.default('0.00'),
-  totalCollectedLbp: moneyString.default('0.00'),
-  changeGivenUsd: moneyString.default('0.00'),
-  changeGivenLbp: moneyString.default('0.00'),
+  totalCollectedUsd: moneyString,
+  totalCollectedLbp: moneyString,
+  changeGivenUsd: moneyString,
+  changeGivenLbp: moneyString,
 };
 const moneyFields = Object.keys(saleMoneyShape) as (keyof typeof saleMoneyShape)[];
-function refineAmounts(value: Partial<Record<keyof typeof saleMoneyShape, string>>, context: z.RefinementCtx) {
+function refineAmounts(value: Partial<Record<keyof typeof saleMoneyShape, string | null>>, context: z.RefinementCtx) {
   for (const field of moneyFields)
     addMaxIssue(context, field, value[field], field.endsWith('Usd') ? 'USD' : 'LBP');
 }
-function refineSaleFinancial(value: z.infer<typeof saleFinancialBase>, context: z.RefinementCtx) {
+function refineSaleFinancial(value: Omit<z.infer<typeof saleFinancialBase>, 'method' | 'tipUsd' | 'tipLbp' | 'totalCollectedUsd' | 'totalCollectedLbp' | 'changeGivenUsd' | 'changeGivenLbp'> & Partial<Record<typeof moneyFields[number], string | null>>, context: z.RefinementCtx) {
   refineAmounts(value, context);
-  if (moneyFields.some(field => !MONEY_PATTERN.test(value[field])))
+  if (moneyFields.some(field => value[field] != null && !MONEY_PATTERN.test(value[field]!)))
     return;
   if (compare(value.businessAmountUsd, '0') <= 0 && compare(value.businessAmountLbp, '0') <= 0)
     addStableIssue(context, 'BUSINESS_AMOUNT_MUST_BE_POSITIVE', ['businessAmountUsd']);
   for (const suffix of ['Usd', 'Lbp'] as const) {
-    const due = sub(add(add(value[`businessAmount${suffix}`], value[`deliveryFee${suffix}`]), value[`tip${suffix}`]), value[`discount${suffix}`]);
+    const due = sub(add(add(value[`businessAmount${suffix}`], value[`deliveryFee${suffix}`]), value[`tip${suffix}`] ?? '0.00'), value[`discount${suffix}`]);
     if (compare(due, '0') < 0)
       addStableIssue(context, 'DISCOUNT_EXCEEDS_DUE', [`discount${suffix}`]);
   }
@@ -41,8 +41,16 @@ const saleFinancialBase = z.object({
   clientNumber: clientNumber.nullable().optional(),
   note: note.nullable().optional(),
 }).strict();
-const saleFinancialSchema = saleFinancialBase.superRefine(refineSaleFinancial);
-export const createSaleSchema = saleFinancialBase.extend({ status: z.enum(CREATE_SALE_STATUSES) }).strict().superRefine((value, context) => {
+const deliveredSaleSchema = saleFinancialBase.extend({ status: z.literal('DELIVERED') }).strict();
+const pendingPayment = z.null({ error: 'PAYMENT_NOT_ALLOWED_FOR_PENDING_SALE' }).optional().default(null);
+const pendingSaleSchema = saleFinancialBase.extend({
+  status: z.literal('TO_DELIVER'),
+  method: pendingPayment,
+  tipUsd: pendingPayment, tipLbp: pendingPayment,
+  totalCollectedUsd: pendingPayment, totalCollectedLbp: pendingPayment,
+  changeGivenUsd: pendingPayment, changeGivenLbp: pendingPayment,
+}).strict();
+export const createSaleSchema = z.discriminatedUnion('status', [deliveredSaleSchema, pendingSaleSchema]).superRefine((value, context) => {
   refineSaleFinancial(value, context);
   if (value.status === 'TO_DELIVER' && !value.clientNumber)
     addStableIssue(context, 'CLIENT_NUMBER_REQUIRED', ['clientNumber']);
@@ -69,27 +77,26 @@ export const editSaleSchema = z.object({
   refineAmounts(value, context);
 });
 export type MergedSaleCurrent = {
-  [K in keyof typeof saleMoneyShape]: MoneyLike;
+  [K in keyof typeof saleMoneyShape]: MoneyLike | null;
 } & {
   status?: 'TO_DELIVER' | 'DELIVERED' | 'DELETED';
-  method: 'CASH' | 'WHISH' | 'OMT';
+  method: 'CASH' | 'WHISH' | 'OMT' | null;
   clientNumber?: string | null;
   note?: string | null;
 };
 export function validateMergedSale(current: MergedSaleCurrent, changes: EditSaleInput) {
-  const merged = Object.fromEntries(moneyFields.map(field => [field, (changes[field] ?? current[field]).toString()]));
-  return saleFinancialSchema.superRefine((value, context) => {
-    if (current.status === 'TO_DELIVER' && !value.clientNumber)
-      addStableIssue(context, 'CLIENT_NUMBER_REQUIRED', ['clientNumber']);
-  }).safeParse({
+  const merged = Object.fromEntries(moneyFields.map(field => [field, (changes[field] ?? current[field])?.toString() ?? null]));
+  return createSaleSchema.safeParse({
     ...merged,
+    status: current.status === 'TO_DELIVER' ? 'TO_DELIVER' : 'DELIVERED',
     method: changes.method ?? current.method,
     clientNumber: changes.clientNumber === undefined ? current.clientNumber : changes.clientNumber,
-    note: changes.note === undefined ? current.note : changes.note
+    note: changes.note === undefined ? current.note : changes.note,
   });
 }
 export const cancelSaleSchema = reasonBody;
 export const requestDeleteSaleSchema = reasonBody;
+export const decideSaleDeletionSchema = reasonBody.extend({ decision: z.enum(['APPROVE', 'REFUSE']) });
 const statuses = z.preprocess((value: unknown) => {
   if (typeof value === 'string')
     return value.split(',').flatMap((part) => part.split(','));
@@ -122,10 +129,14 @@ export type RequestDeleteSale = z.infer<typeof requestDeleteSaleSchema>;
 export type ListSalesQueryInput = z.input<typeof listSalesQuerySchema>;
 export type ListSalesQuery = z.infer<typeof listSalesQuerySchema>;
 export const confirmDeliverySchema = z.object({
-  totalCollectedUsd: moneyString.default('0.00'),
-  totalCollectedLbp: moneyString.default('0.00'),
-  changeGivenUsd: moneyString.default('0.00'),
-  changeGivenLbp: moneyString.default('0.00'),
+  deliveryFeeUsd: moneyString.optional(),
+  deliveryFeeLbp: moneyString.optional(),
+  tipUsd: moneyString,
+  tipLbp: moneyString,
+  totalCollectedUsd: moneyString,
+  totalCollectedLbp: moneyString,
+  changeGivenUsd: moneyString,
+  changeGivenLbp: moneyString,
   method: paymentMethod,
 }).strict().superRefine(refineAmounts);
 export type ConfirmDeliveryInput = z.input<typeof confirmDeliverySchema>;

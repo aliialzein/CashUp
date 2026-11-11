@@ -1,34 +1,16 @@
 import type { PaymentMethod } from './config';
-import { isCurrencyDifferenceBalanced, parseMoney, type MoneyLike } from './money';
-export interface DeliveryOrder {
-  totalCollectedUsd: MoneyLike;
-  totalCollectedLbp: MoneyLike;
-  changeGivenUsd: MoneyLike;
-  changeGivenLbp: MoneyLike;
-  method: PaymentMethod;
-}
-export type DeliveryConfirmation = DeliveryOrder;
+import type { MoneyLike } from './money';
+import { checkSaleBalance, type SaleBalanceInput } from './sale-balance';
+type PaymentFields = 'totalCollectedUsd' | 'totalCollectedLbp' | 'changeGivenUsd' | 'changeGivenLbp';
+export type DeliveryOrder = Omit<SaleBalanceInput, PaymentFields> & { method: PaymentMethod | null };
+export type DeliveryConfirmation = Pick<SaleBalanceInput, PaymentFields> & { method: PaymentMethod };
 export function computeDeliveryFlags(
   order: DeliveryOrder,
   confirmation: DeliveryConfirmation,
   referenceRate?: MoneyLike,
 ): { amountDiffers: boolean } {
-  const plannedUsd = parseMoney(order.totalCollectedUsd).minus(parseMoney(order.changeGivenUsd));
-  const plannedLbp = parseMoney(order.totalCollectedLbp).minus(parseMoney(order.changeGivenLbp));
-  const actualUsd = parseMoney(confirmation.totalCollectedUsd).minus(parseMoney(confirmation.changeGivenUsd));
-  const actualLbp = parseMoney(confirmation.totalCollectedLbp).minus(parseMoney(confirmation.changeGivenLbp));
-  const usdDifference = plannedUsd.minus(actualUsd);
-  const lbpDifference = plannedLbp.minus(actualLbp);
-  let amountsDiffer: boolean;
-  if (referenceRate === undefined) {
-    amountsDiffer = !usdDifference.isZero() || !lbpDifference.isZero();
-  }
-  else {
-    amountsDiffer = !isCurrencyDifferenceBalanced(usdDifference, lbpDifference, referenceRate);
-  }
+  const balance = checkSaleBalance({ ...order, ...confirmation }, referenceRate);
   return {
-    amountDiffers:
-      amountsDiffer ||
-      order.method !== confirmation.method,
+    amountDiffers: !balance.balanced || (order.method !== null && order.method !== confirmation.method),
   };
 }

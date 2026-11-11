@@ -10,6 +10,8 @@ import * as CountService from '../../../src/modules/cash-ups/cash-ups.service';
 import { BusinessRuleError, ConflictError, EntityNotFoundError, ForbiddenError } from '../../../src/shared/errors/service-errors';
 import { DuplicateError } from '../../../src/shared/errors/persistence-errors';
 import * as SaleService from '../../../src/modules/sales/sales.service';
+import { SaleRepository } from '../../../src/modules/sales/sales.repository';
+import { CashUpRepository } from '../../../src/modules/cash-ups/cash-ups.repository';
 import { editSaleSchema } from '../../../src/modules/sales/sales.validation';
 import { mockRepositories, testDatabase, type RepositoryMocks } from './repository-mocks';
 const businessId = 'c0f049c8-a170-4c72-9177-8767b1ea0904';
@@ -76,17 +78,19 @@ function sale(status: Sale['status'] = 'DELIVERED', values: Partial<Sale> = {}):
         changeGivenUsd: new Prisma.Decimal('0'),
         changeGivenLbp: new Prisma.Decimal('0'),
         method: 'CASH',
-        clientNumber: null,
+        clientNumber: status === 'TO_DELIVER' ? '+961123456' : null,
         note: null,
         amountDiffers: false,
         isEdited: false,
         deletionAwaiting: false,
         cancelReason: null,
+        legacyPendingPayment: null,
         idempotencyKey,
         createdAt: now,
         deliveredAt: status === 'DELIVERED' ? now : null,
         deletedAt: null,
         updatedAt: now,
+        ...(status === 'TO_DELIVER' ? { tipUsd: null, tipLbp: null, totalCollectedUsd: null, totalCollectedLbp: null, changeGivenUsd: null, changeGivenLbp: null, method: null } : {}),
         ...values,
     };
 }
@@ -266,7 +270,7 @@ function setup(options: {
         sale: currentSale,
         cashUp: currentCashUp,
         sales: {
-            create: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof SaleService.createSale>[0], arg2: Omit<Parameters<typeof SaleService.createSale>[1], 'idempotencyKey'>, arg3: string) => withTestMember(arg0, db, () => SaleService.createSale(arg1, { ...arg2, idempotencyKey: arg3 })),
+            create: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof SaleService.createSale>[0], arg2: import("../../../src/modules/sales/sales.validation").CreateSaleInput, arg3: string) => withTestMember(arg0, db, () => SaleService.createSale(arg1, { ...arg2, idempotencyKey: arg3 })),
             edit: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof SaleService.editSale>[0], arg2: Parameters<typeof SaleService.editSale>[1], arg3: Parameters<typeof SaleService.editSale>[2]) => withTestMember(arg0, db, () => SaleService.editSale(arg1, arg2, arg3)),
             confirmDelivery: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof SaleService.confirmSaleDelivery>[0], arg2: Parameters<typeof SaleService.confirmSaleDelivery>[1], arg3: Parameters<typeof SaleService.confirmSaleDelivery>[2]) => withTestMember(arg0, db, () => SaleService.confirmSaleDelivery(arg1, arg2, arg3)),
             cancel: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof SaleService.cancelSale>[0], arg2: Parameters<typeof SaleService.cancelSale>[1], arg3: Parameters<typeof SaleService.cancelSale>[2]) => withTestMember(arg0, db, () => SaleService.cancelSale(arg1, arg2, arg3))
@@ -383,9 +387,9 @@ describe('SaleService', () => {
     it('confirms delivery and computes amount-difference flags from the domain', async () => {
         const app = setup({
             saleStatus: 'TO_DELIVER',
-            saleValues: { totalCollectedUsd: new Prisma.Decimal('12.00') },
+            saleValues: { businessAmountUsd: new Prisma.Decimal('12.00') },
         });
-        await app.sales.confirmDelivery(app.actor, cashUpId, saleId, {
+        await app.sales.confirmDelivery(app.actor, cashUpId, saleId, { tipUsd: '0.00', tipLbp: '0.00',
             totalCollectedLbp: '0.00',
             changeGivenUsd: '0.00',
             changeGivenLbp: '0.00',
@@ -397,7 +401,7 @@ describe('SaleService', () => {
     });
     it('rejects delivery confirmation on a collected sale', async () => {
         const app = setup();
-        await expect(app.sales.confirmDelivery(app.actor, cashUpId, saleId, {
+        await expect(app.sales.confirmDelivery(app.actor, cashUpId, saleId, { tipUsd: '0.00', tipLbp: '0.00',
             totalCollectedLbp: '0.00',
             changeGivenUsd: '0.00',
             changeGivenLbp: '0.00',
@@ -407,8 +411,35 @@ describe('SaleService', () => {
         expect(app.repos.sales.markDelivered).not.toHaveBeenCalled();
         expect(app.audit.record).not.toHaveBeenCalled();
     });
-    it('edits a partial sale and records an audit only for the change', async () => {
+    it('rejects a delivered edit with the registered code before any repository mutation or audit', async () => {
         const app = setup();
+        await expect(app.sales.edit(app.actor, cashUpId, saleId, { note: 'Rejected' })).rejects.toMatchObject({ name: 'BusinessRuleError', code: 'SALE_ALREADY_DELIVERED' });
+        expect(app.repos.sales.edit).not.toHaveBeenCalled();
+        expect(app.audit.record).not.toHaveBeenCalled();
+    });
+    it.each([
+        ['DELETED', false, 'SALE_ALREADY_CANCELLED'],
+        ['DELIVERED', true, 'CONFLICT'],
+        ['TO_DELIVER', true, 'CONFLICT'],
+    ] as const)('preserves the prior error for %s with deletion lock %s', async (saleStatus, deletionAwaiting, code) => {
+        const app = setup({ saleStatus, saleValues: { deletionAwaiting } });
+        await expect(app.sales.edit(app.actor, cashUpId, saleId, { note: 'Rejected' })).rejects.toMatchObject({ name: 'ConflictError', code });
+        expect(app.repos.sales.edit).not.toHaveBeenCalled();
+        expect(app.audit.record).not.toHaveBeenCalled();
+    });
+    it('rejects delivery completed between the preliminary read and the locked read', async () => {
+        const app = setup();
+        const delivered = await app.repos.sales.findById(saleId);
+        const find = jest.spyOn(SaleRepository.prototype, 'findById').mockResolvedValueOnce({ ...delivered!, status: 'TO_DELIVER' });
+        const lock = jest.spyOn(CashUpRepository.prototype, 'lockForUpdate');
+        await expect(app.sales.edit(app.actor, cashUpId, saleId, { note: 'Rejected' })).rejects.toMatchObject({ code: 'SALE_ALREADY_DELIVERED' });
+        expect(find).toHaveBeenCalledTimes(2);
+        expect(lock.mock.invocationCallOrder[0]).toBeLessThan(find.mock.invocationCallOrder[1]);
+        expect(app.repos.sales.edit).not.toHaveBeenCalled();
+        expect(app.audit.record).not.toHaveBeenCalled();
+    });
+    it('edits a partial sale and records an audit only for the change', async () => {
+        const app = setup({ saleStatus: 'TO_DELIVER' });
         const result = await app.sales.edit(app.actor, cashUpId, saleId, editSaleSchema.parse({ note: 'Edited note' }));
         expect(result.sale.note).toBe('Edited note');
         expect(app.repos.sales.edit).toHaveBeenCalledWith(saleId, expect.objectContaining({ note: 'Edited note', }), app.actor.membershipId);
@@ -417,22 +448,17 @@ describe('SaleService', () => {
     it.each([
         ['business amount', { businessAmountUsd: new Prisma.Decimal('11.00') }],
         ['delivery fee', { deliveryFeeUsd: new Prisma.Decimal('1.00') }],
-        ['tip', { tipUsd: new Prisma.Decimal('1.00') }],
         ['discount', { discountUsd: new Prisma.Decimal('1.00') }],
-        ['total collected', { totalCollectedUsd: new Prisma.Decimal('11.00') }],
         ['LBP business amount', { businessAmountLbp: new Prisma.Decimal('1000') }],
-        ['payment method', { method: 'WHISH' }],
-        ['change amount', { changeGivenUsd: new Prisma.Decimal('1.00') }],
-        ['LBP change', { changeGivenLbp: new Prisma.Decimal('1000') }],
         ['client number', { clientNumber: '+96170000000' }],
         ['note', { note: 'Edited note' }],
     ] as const)('audits a change to the sale %s field', async (_field, saleEditValues) => {
-        const app = setup({ saleEditValues });
+        const app = setup({ saleStatus: 'TO_DELIVER', saleEditValues });
         await app.sales.edit(app.actor, cashUpId, saleId, editSaleSchema.parse({ note: 'Edited note' }));
         expect(app.audit.record).toHaveBeenCalledTimes(1);
     });
     it('does not audit a no-op sale edit', async () => {
-        const app = setup({ saleEditValues: { note: null, isEdited: false } });
+        const app = setup({ saleStatus: 'TO_DELIVER', saleEditValues: { note: null, isEdited: false } });
         await app.sales.edit(app.actor, cashUpId, saleId, editSaleSchema.parse({ note: 'Edited note' }));
         expect(app.audit.record).not.toHaveBeenCalled();
     });
@@ -603,12 +629,13 @@ describe('staff mutation role-action-status matrix', () => {
         },
         {
             name: 'sale edit',
+            saleStatus: 'TO_DELIVER',
             run: (app) => app.sales.edit(app.actor, cashUpId, saleId, editSaleSchema.parse({ note: 'Changed' })),
         },
         {
             name: 'sale confirm delivery',
             saleStatus: 'TO_DELIVER',
-            run: (app) => app.sales.confirmDelivery(app.actor, cashUpId, saleId, {
+            run: (app) => app.sales.confirmDelivery(app.actor, cashUpId, saleId, { tipUsd: '0.00', tipLbp: '0.00',
                 totalCollectedLbp: '0.00',
                 changeGivenUsd: '0.00',
                 changeGivenLbp: '0.00',

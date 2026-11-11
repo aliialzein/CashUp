@@ -8,15 +8,15 @@ export interface SaleDto {
     readonly businessAmountLbp: string;
     readonly deliveryFeeUsd: string;
     readonly deliveryFeeLbp: string;
-    readonly tipUsd: string;
-    readonly tipLbp: string;
+    readonly tipUsd: string | null;
+    readonly tipLbp: string | null;
     readonly discountUsd: string;
     readonly discountLbp: string;
-    readonly totalCollectedUsd: string;
-    readonly totalCollectedLbp: string;
-    readonly method: PaymentMethod;
-    readonly changeGivenUsd: string;
-    readonly changeGivenLbp: string;
+    readonly totalCollectedUsd: string | null;
+    readonly totalCollectedLbp: string | null;
+    readonly method: PaymentMethod | null;
+    readonly changeGivenUsd: string | null;
+    readonly changeGivenLbp: string | null;
     readonly clientNumber: string | null;
     readonly note: string | null;
     readonly amountDiffers: boolean;
@@ -32,17 +32,17 @@ export interface SaleLineDto {
     readonly saleNumber: number;
     readonly status: SaleStatus;
     readonly moneyTaken: 'COLLECTED' | 'NOT_YET' | 'CANCELLED';
-    readonly totalCollectedUsd: string;
-    readonly totalCollectedLbp: string;
-    readonly method: PaymentMethod;
-    readonly changeGivenUsd: string;
-    readonly changeGivenLbp: string;
+    readonly totalCollectedUsd: string | null;
+    readonly totalCollectedLbp: string | null;
+    readonly method: PaymentMethod | null;
+    readonly changeGivenUsd: string | null;
+    readonly changeGivenLbp: string | null;
     readonly businessAmountUsd: string;
     readonly businessAmountLbp: string;
     readonly deliveryFeeUsd: string;
     readonly deliveryFeeLbp: string;
-    readonly tipUsd: string;
-    readonly tipLbp: string;
+    readonly tipUsd: string | null;
+    readonly tipLbp: string | null;
     readonly discountUsd: string;
     readonly discountLbp: string;
     readonly clientNumber: string | null;
@@ -70,4 +70,22 @@ export interface SaleCreateResultDto extends SaleMutationDto {
 }
 
 /** Operation command; the UUID key is duplicate protection, never identity. */
-export type CreateSaleCommand = import('./sales.validation').CreateSale & { readonly idempotencyKey: string };
+export type CreateSaleCommand = import('./sales.validation').CreateSaleInput & { readonly idempotencyKey: string };
+
+export interface SaleDeletionRequestDto {
+    readonly id: string;
+    readonly type: import('../../generated/prisma/enums').RequestType;
+    readonly cashUpId: string;
+    readonly saleId: string | null;
+    readonly status: import('../../generated/prisma/enums').RequestStatus;
+    readonly reason: string;
+    readonly requestedById: string;
+    readonly decidedById: string | null;
+    readonly decisionReason: string | null;
+    readonly selfApproved: boolean;
+    readonly createdAt: string;
+    readonly decidedAt: string | null;
+}
+export interface SaleDeletionResultDto extends SaleMutationDto {
+    readonly request: SaleDeletionRequestDto;
+}

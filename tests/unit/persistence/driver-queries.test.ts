@@ -1,4 +1,4 @@
-import type { PrismaClient } from '../../../src/generated/prisma/client';
+import { Prisma, type PrismaClient } from '../../../src/generated/prisma/client';
 import { CashUpRepository } from '../../../src/modules/cash-ups/cash-ups.repository';
 it('queries an OPEN membership record directly with business scope', async () => {
     const findFirst = jest.fn().mockResolvedValue(null);
@@ -22,9 +22,10 @@ it('scopes pending amendment inventory to the business, cash-up and awaiting sta
     expect(await new CashUpRepository('business', db).pendingSaleAmendmentFields('cashup')).toEqual(historical);
     expect(findMany).toHaveBeenCalledWith({ where: { kind: 'SALE_FIELD', amendment: { businessId: 'business', cashUpId: 'cashup', status: 'AWAITING_APPROVAL' } }, select: { field: true } });
 });
-it('scopes saved denomination reads through their cash-up parent', async () => {
-    const findMany = jest.fn().mockResolvedValue([]);
+it('scopes saved denomination reads through their cash-up parent without filtering historical denominations', async () => {
+    const historical = [{ id: 'legacy', cashUpId: 'cashup', currency: 'USD', denomination: new Prisma.Decimal('2'), quantity: 3 }];
+    const findMany = jest.fn().mockResolvedValue(historical);
     const db = { countEntry: { findMany } } as unknown as PrismaClient;
-    await new CashUpRepository('business', db).listByCashUp('cashup');
+    expect(await new CashUpRepository('business', db).listByCashUp('cashup')).toEqual(historical);
     expect(findMany).toHaveBeenCalledWith({ where: { cashUpId: 'cashup', cashUp: { businessId: 'business' } }, orderBy: [{ currency: 'asc' }, { denomination: 'desc' }] });
 });

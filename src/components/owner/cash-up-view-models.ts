@@ -110,10 +110,10 @@ export interface SaleData {
   deliveryFee: number;
   tip: number | null;
   discount: number | null;
-  totalCollected: number;
+  totalCollected: number | null;
 
   currency: Currency;
-  method: PaymentMethod;
+  method: PaymentMethod | null;
 
   changeGiven: number | null;
   changeCurrency: Currency | null;

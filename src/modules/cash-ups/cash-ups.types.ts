@@ -41,6 +41,7 @@ export interface OpenCashUpSummaryDto {
 }
 export interface CashUpWithSalesDto extends CashUpDto {
     readonly sales: readonly SaleLineDto[];
+    readonly requests: readonly import('../sales/sales.types').SaleDeletionRequestDto[];
     readonly salesSummary: SalesSummaryDto;
 }
 export interface CashUpOwnDto extends CashUpWithSalesDto {

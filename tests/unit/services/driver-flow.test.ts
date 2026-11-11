@@ -60,16 +60,17 @@ function setup(options: {
             flagCounts: async () => ({ total: summary.total, deleted: summary.deleted, edited: 0, amountDiffers: 0, deletionAwaiting: 0 }),
             totalsByCurrencyAndMethod: async () => deliveredTotals(sales),
             changeGivenByCurrency: async () => sales.filter(s => s.status === 'DELIVERED').flatMap(s => [
-                { currency: 'USD' as const, total: s.changeGivenUsd }, { currency: 'LBP' as const, total: s.changeGivenLbp }
+                { currency: 'USD' as const, total: s.changeGivenUsd! }, { currency: 'LBP' as const, total: s.changeGivenLbp! }
             ]),
         },
         counts: { listByCashUp: async () => counts, countedTotals: async () => { const totals = countDenominations(counts); return { USD: new Prisma.Decimal(totals.USD), LBP: new Prisma.Decimal(totals.LBP) }; } },
         cashOuts: { create: jest.fn(async () => ({ cashOut: expenses[0] ?? cashOut(), created: true })), listByCashUp: async () => expenses },
     });
     const saleFindFirst = jest.fn(async () => sales[0] ? { id: sales[0].id } : null);
-    const db = testDatabase(saleFindFirst);
+    const cashOutFindFirst = jest.fn(async () => expenses[0] ? { id: expenses[0].id } : null);
+    const db = testDatabase(saleFindFirst, cashOutFindFirst);
     const audit = { record: jest.mocked(auditFunctions.recordAudit).mockReset().mockResolvedValue(undefined) };
-    return { db, audit, repos, sales, expenses, saleFindFirst, row: () => row, query: {
+    return { db, audit, repos, sales, expenses, saleFindFirst, cashOutFindFirst, row: () => row, query: {
             getOwn: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof CashUpQueryService.getOwnCashUp>[0]) => withTestMember(arg0, db, () => CashUpQueryService.getOwnCashUp(arg1)),
             getOwnOpen: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember) => withTestMember(arg0, db, () => CashUpQueryService.getOwnOpenCashUp()),
             listOwn: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof CashUpQueryService.listOwnCashUps>[0]) => withTestMember(arg0, db, () => CashUpQueryService.listOwnCashUps(arg1)),
@@ -164,6 +165,19 @@ describe('live ledger and saved counts', () => {
         expect(app.repos.cashUps.submit).not.toHaveBeenCalled();
         expect(app.audit.record).not.toHaveBeenCalled();
     });
+    it('reads historical USD two-dollar entries without validating, rewriting or filtering them', async () => {
+        const historical = count({ denomination: new Prisma.Decimal('2'), quantity: 3 });
+        const before = { ...historical };
+        const app = setup({ counts: [historical] });
+        expect(await app.counts.getOwn(actor, historical.cashUpId)).toMatchObject({
+            saved: true,
+            lines: [{ currency: 'USD', denomination: '2.00', quantity: 3 }],
+            countedTotals: { USD: '6.00', LBP: '0.00' },
+        });
+        expect(historical).toEqual(before);
+        expect(app.db.$transaction).not.toHaveBeenCalled();
+        expect(app.audit.record).not.toHaveBeenCalled();
+    });
     it('distinguishes no count from saved zeros, including an explicit empty save marker', async () => {
         expect(await setup({ counts: [] }).counts.getOwn(actor, '10000000-0000-4000-8000-000000000001')).toMatchObject({ saved: false, countStartedAt: null, lines: [], countedTotals: { USD: '0.00', LBP: '0.00' } });
         expect(await setup().counts.getOwn(actor, '10000000-0000-4000-8000-000000000001')).toMatchObject({ saved: true, lines: [{ denomination: '5.00', quantity: 0 }] });
@@ -190,7 +204,7 @@ describe('submission and own cancellation', () => {
         await expect(setup({ counts: [count()] }).lifecycle.submit(actor, '10000000-0000-4000-8000-000000000001')).resolves.toMatchObject({ status: 'SUBMITTED', countedUsd: '0.00' });
     });
     it('voids atomically, audits the trimmed reason, retains records and blocks subsequent writes', async () => {
-        const app = setup({ sales: [] });
+        const app = setup({ sales: [], cashOuts: [] });
         expect(await app.lifecycle.voidOwnOpen(actor, '10000000-0000-4000-8000-000000000001', '  Shift cancelled  ')).toMatchObject({ status: 'VOID', voidReason: 'Shift cancelled', voidedAt: date.toISOString() });
         expect(app.audit.record).toHaveBeenCalledWith(expect.anything(), actor, expect.objectContaining({ action: 'CASHUP_VOIDED', metadata: { reason: 'Shift cancelled' } }));
         expect(app.saleFindFirst).toHaveBeenCalledWith({
@@ -198,11 +212,12 @@ describe('submission and own cancellation', () => {
             select: { id: true },
         });
         expect(app.sales).toHaveLength(0);
-        expect(app.expenses[0].status).toBe('ACTIVE');
+        expect(app.expenses).toHaveLength(0);
+        expect(app.cashOutFindFirst).toHaveBeenCalledWith({ where: { cashUpId: '10000000-0000-4000-8000-000000000001', cashUp: { businessId: actor.businessId } }, select: { id: true } });
         await expect(app.counts.replace(actor, '10000000-0000-4000-8000-000000000001', { lines: [] })).rejects.toMatchObject({ code: 'CASHUP_NOT_OPEN' });
-        const input = createSaleSchema.parse({ status: 'DELIVERED', businessAmountUsd: '1', totalCollectedUsd: '1', method: 'CASH' });
+        const input = createSaleSchema.parse({ tipUsd: '0.00', tipLbp: '0.00', totalCollectedLbp: '0.00', changeGivenUsd: '0.00', changeGivenLbp: '0.00', status: 'DELIVERED', businessAmountUsd: '1', totalCollectedUsd: '1', method: 'CASH' });
         await expect({
-            create: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof SaleService.createSale>[0], arg2: Omit<Parameters<typeof SaleService.createSale>[1], 'idempotencyKey'>, arg3: string) => withTestMember(arg0, app.db, () => SaleService.createSale(arg1, { ...arg2, idempotencyKey: arg3 })),
+            create: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof SaleService.createSale>[0], arg2: import("../../../src/modules/sales/sales.validation").CreateSaleInput, arg3: string) => withTestMember(arg0, app.db, () => SaleService.createSale(arg1, { ...arg2, idempotencyKey: arg3 })),
             edit: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof SaleService.editSale>[0], arg2: Parameters<typeof SaleService.editSale>[1], arg3: Parameters<typeof SaleService.editSale>[2]) => withTestMember(arg0, app.db, () => SaleService.editSale(arg1, arg2, arg3)),
             confirmDelivery: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof SaleService.confirmSaleDelivery>[0], arg2: Parameters<typeof SaleService.confirmSaleDelivery>[1], arg3: Parameters<typeof SaleService.confirmSaleDelivery>[2]) => withTestMember(arg0, app.db, () => SaleService.confirmSaleDelivery(arg1, arg2, arg3)),
             cancel: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof SaleService.cancelSale>[0], arg2: Parameters<typeof SaleService.cancelSale>[1], arg3: Parameters<typeof SaleService.cancelSale>[2]) => withTestMember(arg0, app.db, () => SaleService.cancelSale(arg1, arg2, arg3))
@@ -212,6 +227,15 @@ describe('submission and own cancellation', () => {
             cancel: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof CashOutService.cancelCashOut>[0], arg2: Parameters<typeof CashOutService.cancelCashOut>[1], arg3: Parameters<typeof CashOutService.cancelCashOut>[2]) => withTestMember(arg0, app.db, () => CashOutService.cancelCashOut(arg1, arg2, arg3))
         }.create(actor, '10000000-0000-4000-8000-000000000001', { amountUsd: '1', amountLbp: '0', reason: 'Fuel' }, '9ebfd3da-4a78-4201-8123-cb64ee681245')).rejects.toMatchObject({ code: 'CASHUP_NOT_OPEN' });
         expect(app.audit.record).toHaveBeenCalledTimes(1);
+    });
+    it.each(['ACTIVE', 'CANCELLED'] as const)('rejects a cash-up with a %s cash-out without mutating or auditing', async status => {
+        const expense = cashOut({ status });
+        const app = setup({ sales: [], cashOuts: [expense] });
+        await expect(app.lifecycle.voidOwnOpen(actor, '10000000-0000-4000-8000-000000000001', 'Shift cancelled')).rejects.toMatchObject({ code: 'CASHUP_NOT_EMPTY' });
+        expect(app.repos.cashUps.voidCashUp).not.toHaveBeenCalled();
+        expect(app.audit.record).not.toHaveBeenCalled();
+        expect(app.expenses).toEqual([expense]);
+        expect(app.saleFindFirst.mock.invocationCallOrder[0]).toBeLessThan(app.cashOutFindFirst.mock.invocationCallOrder[0]);
     });
     it('does not void or audit a cash-up that contains a sale', async () => {
         const app = setup({ sales: [sale()] });
@@ -243,9 +267,9 @@ describe('pending amendment safety', () => {
         await expect(app.lifecycle.submit(actor, '10000000-0000-4000-8000-000000000001')).rejects.toMatchObject({ code: 'LEGACY_AMENDMENT_UNSUPPORTED' });
         await expect(app.counts.replace(actor, '10000000-0000-4000-8000-000000000001', { lines: [] })).rejects.toMatchObject({ code: 'LEGACY_AMENDMENT_UNSUPPORTED' });
         await expect(app.lifecycle.voidOwnOpen(actor, '10000000-0000-4000-8000-000000000001', 'Cancelled')).rejects.toMatchObject({ code: 'LEGACY_AMENDMENT_UNSUPPORTED' });
-        const input = createSaleSchema.parse({ status: 'DELIVERED', businessAmountUsd: '1', totalCollectedUsd: '1', method: 'CASH' });
+        const input = createSaleSchema.parse({ tipUsd: '0.00', tipLbp: '0.00', totalCollectedLbp: '0.00', changeGivenUsd: '0.00', changeGivenLbp: '0.00', status: 'DELIVERED', businessAmountUsd: '1', totalCollectedUsd: '1', method: 'CASH' });
         await expect({
-            create: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof SaleService.createSale>[0], arg2: Omit<Parameters<typeof SaleService.createSale>[1], 'idempotencyKey'>, arg3: string) => withTestMember(arg0, app.db, () => SaleService.createSale(arg1, { ...arg2, idempotencyKey: arg3 })),
+            create: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof SaleService.createSale>[0], arg2: import("../../../src/modules/sales/sales.validation").CreateSaleInput, arg3: string) => withTestMember(arg0, app.db, () => SaleService.createSale(arg1, { ...arg2, idempotencyKey: arg3 })),
             edit: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof SaleService.editSale>[0], arg2: Parameters<typeof SaleService.editSale>[1], arg3: Parameters<typeof SaleService.editSale>[2]) => withTestMember(arg0, app.db, () => SaleService.editSale(arg1, arg2, arg3)),
             confirmDelivery: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof SaleService.confirmSaleDelivery>[0], arg2: Parameters<typeof SaleService.confirmSaleDelivery>[1], arg3: Parameters<typeof SaleService.confirmSaleDelivery>[2]) => withTestMember(arg0, app.db, () => SaleService.confirmSaleDelivery(arg1, arg2, arg3)),
             cancel: (arg0: import("../../../src/modules/auth/auth.types").CurrentMember, arg1: Parameters<typeof SaleService.cancelSale>[0], arg2: Parameters<typeof SaleService.cancelSale>[1], arg3: Parameters<typeof SaleService.cancelSale>[2]) => withTestMember(arg0, app.db, () => SaleService.cancelSale(arg1, arg2, arg3))

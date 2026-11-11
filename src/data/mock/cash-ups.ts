@@ -127,13 +127,13 @@ export const mockCashUps: CashUpCardData[] = [
         deliveryFee: 500000,
         tip: null,
         discount: null,
-        totalCollected: 15500000,
+        totalCollected: null,
 
         currency: Currency.LBP,
-        method: PaymentMethod.CASH,
+        method: null,
 
-        changeGiven: 500000,
-        changeCurrency: Currency.LBP,
+        changeGiven: null,
+        changeCurrency: null,
 
         clientNumber: "70XXXXXX",
         note: "Pending delivery",

@@ -85,8 +85,8 @@ describe('cash-up queries with sales', () => {
         expect(result.sales.map(({ moneyTaken, totalCollectedUsd, totalCollectedLbp }) => ({ moneyTaken, totalCollectedUsd, totalCollectedLbp }))).toEqual([
             { moneyTaken: 'COLLECTED', totalCollectedUsd: '10.00', totalCollectedLbp: '0.00' },
             { moneyTaken: 'COLLECTED', totalCollectedUsd: '20.00', totalCollectedLbp: '0.00' },
-            { moneyTaken: 'NOT_YET', totalCollectedUsd: '32.00', totalCollectedLbp: '0.00' },
-            { moneyTaken: 'CANCELLED', totalCollectedUsd: '40.00', totalCollectedLbp: '0.00' },
+            { moneyTaken: 'NOT_YET', totalCollectedUsd: null, totalCollectedLbp: null },
+            { moneyTaken: 'CANCELLED', totalCollectedUsd: null, totalCollectedLbp: null },
         ]);
         expect(result.sales[3]).toMatchObject({
             status: SaleStatus.DELETED,

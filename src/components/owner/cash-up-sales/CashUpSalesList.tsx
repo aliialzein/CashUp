@@ -175,7 +175,7 @@ export default function CashUpSalesList({
                     </p>
 
                     <p className="text-sm text-[#64756A]">
-                      {paymentMethodLabels[sale.method]}
+                      {sale.method === null ? 'Not collected' : paymentMethodLabels[sale.method]}
                       {" · "}
                       {sale.currency}
                     </p>
@@ -183,7 +183,7 @@ export default function CashUpSalesList({
 
                   <div className="flex items-center justify-between gap-4 sm:justify-end">
                     <p className="font-bold tabular-nums text-[#145B37]">
-                      {money(sale.totalCollected, sale.currency)}
+                      {sale.totalCollected === null ? 'Not collected' : money(sale.totalCollected, sale.currency)}
                     </p>
 
                     <button
@@ -269,7 +269,7 @@ export default function CashUpSalesList({
 
                         <Detail
                           label="Payment Method"
-                          value={paymentMethodLabels[sale.method]}
+                          value={sale.method === null ? 'Not collected' : paymentMethodLabels[sale.method]}
                         />
                       </div>
 
