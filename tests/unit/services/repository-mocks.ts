@@ -117,7 +117,7 @@ export function mockRepositories(overrides: RepositoryMockOverrides = {}): Repos
     return mocks;
 }
 /** A transaction boundary fake; query behavior is mocked at concrete repository methods. */
-export function testDatabase() {
-    const tx = {} as Prisma.TransactionClient;
+export function testDatabase(saleFindFirst: () => Promise<unknown | null> = async () => null) {
+    const tx = { sale: { findFirst: jest.fn(saleFindFirst) } } as unknown as Prisma.TransactionClient;
     return { $transaction: jest.fn(async (work: (client: Prisma.TransactionClient) => Promise<unknown>) => work(tx)) } as unknown as PrismaClient;
 }

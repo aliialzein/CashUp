@@ -86,4 +86,114 @@ describe('Staff sales and cash-outs', () => {
             LBP: { expected: '500000.00', counted: '0.00', gap: '-500000.00' },
         });
     });
+    it('validates direct-sale mixed-currency change with the persisted cash-up rate', async () => {
+        const { businessA } = await seedBusinesses();
+        const staff = await staffActor(businessA);
+        const cashUp = await services.lifecycle.open(staff, { referenceRate: '89500' });
+        const mixedSale = createSaleSchema.parse({
+            status: 'DELIVERED',
+            businessAmountUsd: '12',
+            totalCollectedUsd: '20',
+            changeGivenUsd: '5',
+            changeGivenLbp: '268500',
+            method: 'CASH',
+        });
+        const delivered = await services.sales.create(staff, cashUp.id, mixedSale, randomUUID());
+        expect(delivered.sale).toMatchObject({
+            totalCollectedUsd: '20.00',
+            totalCollectedLbp: '0.00',
+            changeGivenUsd: '5.00',
+            changeGivenLbp: '268500.00',
+        });
+        await expect(services.sales.create(staff, cashUp.id, createSaleSchema.parse({
+            ...mixedSale,
+            changeGivenLbp: '270000',
+        }), randomUUID())).rejects.toMatchObject({ code: 'SALE_NOT_BALANCED' });
+
+        const staffWithoutRate = await staffActor(businessA, 2);
+        const cashUpWithoutRate = await services.lifecycle.open(staffWithoutRate, {});
+        await expect(services.sales.create(staffWithoutRate, cashUpWithoutRate.id, createSaleSchema.parse({
+            status: 'DELIVERED',
+            businessAmountUsd: '12',
+            totalCollectedUsd: '20',
+            changeGivenUsd: '5',
+            changeGivenLbp: '268500',
+            method: 'CASH',
+        }), randomUUID())).rejects.toMatchObject({ code: 'SALE_REQUIRES_REFERENCE_RATE' });
+        await expect(services.sales.create(staffWithoutRate, cashUpWithoutRate.id, createSaleSchema.parse({
+            status: 'DELIVERED',
+            businessAmountUsd: '12',
+            totalCollectedUsd: '12',
+            method: 'CASH',
+        }), randomUUID())).resolves.toMatchObject({ sale: { totalCollectedUsd: '12.00' } });
+        const plannedSale = createSaleSchema.parse({
+            status: 'TO_DELIVER',
+            businessAmountUsd: '12',
+            totalCollectedUsd: '12',
+            method: 'CASH',
+            clientNumber: '+961123456',
+        });
+        const sameCurrencyDiscrepancy = await services.sales.create(staffWithoutRate, cashUpWithoutRate.id, plannedSale, randomUUID());
+        await expect(services.sales.confirmDelivery(staffWithoutRate, cashUpWithoutRate.id, sameCurrencyDiscrepancy.saleId, confirmDeliverySchema.parse({
+            totalCollectedUsd: '13',
+            method: 'CASH',
+        }))).resolves.toMatchObject({ sale: { amountDiffers: true } });
+        const mixedDelivery = await services.sales.create(staffWithoutRate, cashUpWithoutRate.id, plannedSale, randomUUID());
+        await expect(services.sales.confirmDelivery(staffWithoutRate, cashUpWithoutRate.id, mixedDelivery.saleId, confirmDeliverySchema.parse({
+            totalCollectedUsd: '20',
+            changeGivenUsd: '5',
+            changeGivenLbp: '268500',
+            method: 'CASH',
+        }))).rejects.toMatchObject({ code: 'SALE_REQUIRES_REFERENCE_RATE' });
+    });
+    it('keeps delivery discrepancies accepted, compares planned and actual tender by rate, and preserves drawer currencies', async () => {
+        const { businessA } = await seedBusinesses();
+        const staff = await staffActor(businessA);
+        const cashUp = await services.lifecycle.open(staff, { referenceRate: '89500' });
+        const plannedSale = createSaleSchema.parse({
+            status: 'TO_DELIVER',
+            businessAmountUsd: '12',
+            totalCollectedUsd: '20',
+            changeGivenUsd: '8',
+            method: 'CASH',
+            clientNumber: '+961123456',
+        });
+        const mixedDelivery = await services.sales.create(staff, cashUp.id, plannedSale, randomUUID());
+        const delivered = await services.sales.confirmDelivery(staff, cashUp.id, mixedDelivery.saleId, confirmDeliverySchema.parse({
+            totalCollectedUsd: '20',
+            changeGivenUsd: '5',
+            changeGivenLbp: '268500',
+            method: 'CASH',
+        }));
+        expect(delivered.sale.amountDiffers).toBe(false);
+        expect((await services.queries.getOwn(staff, cashUp.id)).ledger).toMatchObject({
+            receivedUsd: '20.00',
+            receivedLbp: '0.00',
+            changeGivenUsd: '5.00',
+            changeGivenLbp: '268500.00',
+            expectedUsd: '15.00',
+            expectedLbp: '-268500.00',
+        });
+
+        const equivalentTender = await services.sales.create(staff, cashUp.id, plannedSale, randomUUID());
+        await expect(services.sales.confirmDelivery(staff, cashUp.id, equivalentTender.saleId, confirmDeliverySchema.parse({
+            totalCollectedUsd: '0',
+            totalCollectedLbp: '1790000',
+            changeGivenLbp: '716000',
+            method: 'CASH',
+        }))).resolves.toMatchObject({ sale: { amountDiffers: false } });
+
+        const methodChange = await services.sales.create(staff, cashUp.id, plannedSale, randomUUID());
+        await expect(services.sales.confirmDelivery(staff, cashUp.id, methodChange.saleId, confirmDeliverySchema.parse({
+            totalCollectedUsd: '20',
+            changeGivenUsd: '8',
+            method: 'WHISH',
+        }))).resolves.toMatchObject({ sale: { amountDiffers: true } });
+        const amountChange = await services.sales.create(staff, cashUp.id, plannedSale, randomUUID());
+        await expect(services.sales.confirmDelivery(staff, cashUp.id, amountChange.saleId, confirmDeliverySchema.parse({
+            totalCollectedUsd: '21',
+            changeGivenUsd: '8',
+            method: 'CASH',
+        }))).resolves.toMatchObject({ sale: { amountDiffers: true } });
+    });
 });

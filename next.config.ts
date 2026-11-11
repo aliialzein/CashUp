@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   allowedDevOrigins: ["192.168.*.*"], // to get the js resources on the mobile
+  logging: {
+    serverFunctions: false,
+  },
   experimental: {
     agentFeedback: true,
   },

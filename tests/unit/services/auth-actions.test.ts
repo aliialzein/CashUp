@@ -3,7 +3,17 @@ import * as auth from '../../../src/modules/auth/auth.service';
 import { AuthFailure } from '../../../src/modules/auth/auth.types';
 import { signupSchema } from '../../../src/modules/auth/auth.validation';
 import { signupAction, loginAction, logoutAction } from '../../../src/app/(auth)/actions';
-jest.mock('next/navigation', () => ({ redirect: jest.fn(() => { throw new Error('REDIRECT'); }) }));
+import logger from '../../../src/lib/logger';
+jest.mock('next/navigation', () => ({
+  redirect: jest.fn(() => { throw new Error('REDIRECT'); }),
+  unstable_rethrow: jest.fn((error: unknown) => {
+    if (error instanceof Error && error.message === 'REDIRECT') throw error;
+  }),
+}));
+jest.mock('../../../src/lib/logger', () => ({
+  __esModule: true,
+  default: { error: jest.fn() },
+}));
 jest.mock('../../../src/modules/auth/auth.service', () => ({
   ...jest.requireActual('../../../src/modules/auth/auth.service'),
   signup: jest.fn(), login: jest.fn(), logout: jest.fn(), getCurrentUser: jest.fn(),
@@ -14,6 +24,7 @@ beforeEach(() => {
   jest.mocked(auth.login).mockReset().mockResolvedValue(undefined);
   jest.mocked(auth.logout).mockReset().mockResolvedValue(undefined);
   jest.mocked(auth.getCurrentUser).mockResolvedValue({ id: 'user', email: input.email, fullName: input.fullName, membership: null });
+  jest.mocked(logger.error).mockClear();
 });
 it('connects signup to the auth service and the no-membership destination', async () => {
   expect(await signupAction(input)).toEqual({ ok: true, destination: '/onboarding' });
@@ -33,12 +44,23 @@ it.each(['INVALID_CREDENTIALS', 'SIGNUP_UNAVAILABLE', 'TOO_MANY_ATTEMPTS', 'AUTH
   expect(await loginAction(input)).toEqual({ ok: false, code, message: expect.any(String) });
 });
 it('never exposes unexpected internal details', async () => {
-  jest.mocked(auth.signup).mockRejectedValue(new Error('database secret password hash'));
+  jest.mocked(auth.signup).mockRejectedValue(Object.assign(new Error('password=secret database URL'), { code: 'P1001' }));
   expect(await signupAction(input)).toEqual({ ok: false, message: 'Something went wrong. Please try again.' });
+  expect(logger.error).toHaveBeenCalledWith('Unexpected authentication failure', {
+    operation: 'signup',
+    errorType: 'Error',
+    prismaCode: 'P1001',
+  });
+  expect(JSON.stringify(jest.mocked(logger.error).mock.calls)).not.toMatch(/secret|password|database URL/i);
 });
 it('fails safely if a session cannot be read after login', async () => {
   jest.mocked(auth.getCurrentUser).mockResolvedValue(null);
-  expect(await loginAction(input)).toMatchObject({ ok: false });
+  expect(await loginAction(input)).toMatchObject({ ok: false, code: 'AUTH_UNAVAILABLE' });
+});
+it('rethrows framework redirects rather than converting them to generic auth failures', async () => {
+  jest.mocked(auth.signup).mockRejectedValue(new Error('REDIRECT'));
+  await expect(signupAction(input)).rejects.toThrow('REDIRECT');
+  expect(logger.error).not.toHaveBeenCalled();
 });
 it('revokes through a mutation action before redirecting to login', async () => {
   await expect(logoutAction()).rejects.toThrow('REDIRECT');

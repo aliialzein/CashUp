@@ -31,12 +31,8 @@ function refineSaleFinancial(value: z.infer<typeof saleFinancialBase>, context: 
     addStableIssue(context, 'BUSINESS_AMOUNT_MUST_BE_POSITIVE', ['businessAmountUsd']);
   for (const suffix of ['Usd', 'Lbp'] as const) {
     const due = sub(add(add(value[`businessAmount${suffix}`], value[`deliveryFee${suffix}`]), value[`tip${suffix}`]), value[`discount${suffix}`]);
-    if (compare(due, '0') < 0) {
+    if (compare(due, '0') < 0)
       addStableIssue(context, 'DISCOUNT_EXCEEDS_DUE', [`discount${suffix}`]);
-    }
-    else if (compare(sub(value[`totalCollected${suffix}`], value[`changeGiven${suffix}`]), due) !== 0) {
-      addStableIssue(context, 'SALE_NOT_BALANCED', [`totalCollected${suffix}`]);
-    }
   }
 }
 const saleFinancialBase = z.object({

@@ -88,17 +88,23 @@ describe('Staff count replacement and cash-out cancellation', () => {
     });
     it('allows only one concurrent cancellation and preserves the winning reason and audit', async () => {
         const { business, actor, cashUp, cashOut } = await setup();
-        const results = await Promise.allSettled(['First', 'Second'].map(reason => services.cashOuts.cancel(actor, cashUp.id, cashOut.id, reason)));
+        const reasons = ['First', 'Second'];
+        const results = await Promise.allSettled(reasons.map(reason => services.cashOuts.cancel(actor, cashUp.id, cashOut.id, reason)));
         expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1);
         expect(results.filter(result => result.status === 'rejected')).toEqual([
-            expect.objectContaining({ reason: expect.objectContaining({ code: 'CONFLICT' }) }),
+            expect.objectContaining({ reason: expect.objectContaining({ code: 'CASHOUT_ALREADY_CANCELLED' }) }),
         ]);
         const row = await prisma.cashOut.findUniqueOrThrow({ where: { id: cashOut.id } });
+        const winner = results.findIndex(result => result.status === 'fulfilled');
+        expect(row).toMatchObject({
+            status: 'CANCELLED', cancelReason: reasons[winner],
+            cancelledByMembershipId: actor.membershipId, cancelledAt: expect.any(Date),
+        });
         const audits = await repositoriesForTest(({ businessId: business.id }).businessId).audit.list({ entityId: cashOut.id });
         expect(audits.filter(entry => entry.action === AuditAction.CASHOUT_CANCELLED)).toEqual([
-            expect.objectContaining({ metadata: { reason: row.cancelReason } }),
+            expect.objectContaining({ actorId: actor.userId, metadata: { reason: reasons[winner] } }),
         ]);
-        await expect(services.cashOuts.cancel(actor, cashUp.id, cashOut.id, 'Again')).rejects.toMatchObject({ code: 'CONFLICT' });
+        await expect(services.cashOuts.cancel(actor, cashUp.id, cashOut.id, 'Again')).rejects.toMatchObject({ code: 'CASHOUT_ALREADY_CANCELLED' });
         expect(await prisma.cashOut.findUniqueOrThrow({ where: { id: cashOut.id } })).toEqual(row);
     });
     it('requires a transaction and preserves missing-record, ownership, and tenant hiding', async () => {
