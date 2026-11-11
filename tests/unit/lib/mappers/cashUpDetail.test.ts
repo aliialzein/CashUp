@@ -94,12 +94,12 @@ describe("mapCashUpDetail", () => {
         expect(mapCashUpDetail(locked()).ledger).toBeNull();
     });
 
-    it("converts the backend's totals when the ledger is present, without computing anything", () => {
+    it("converts the backend's totals when the ledger is present; only money out turns negative, as the screens show it", () => {
         expect(mapCashUpDetail(locked({ ledger: LEDGER })).ledger).toEqual({
             float: { usd: "50.00", lbp: "0.00" },
             received: { usd: "12.00", lbp: "0.00" },
             changeGiven: { usd: "0.00", lbp: "0.00" },
-            cashOuts: { usd: "5.00", lbp: "0.00" },
+            cashOuts: { usd: "-5", lbp: "0" },
             expected: { usd: "57.00", lbp: "0.00" },
         });
     });

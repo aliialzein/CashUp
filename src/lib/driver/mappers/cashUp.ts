@@ -1,5 +1,5 @@
 import type { CashCount } from "@/lib/driver/count-cash/denominations";
-import { addAmounts } from "@/lib/money/amounts";
+import { addAmounts, subtractAmounts } from "@/lib/money/amounts";
 import type { Amounts } from "@/lib/format/money";
 import type { CashUpDto, CashUpLedgerDto, CashUpOwnDto } from "@/modules/cash-ups/cash-ups.types";
 import type { CashUp, CashUpStatus, Ledger, Sale } from "@/types/driver/cash-up";
@@ -28,13 +28,17 @@ export type CashUpInput = Pick<CashUpOwnDto, "id" | "number" | "returnReason" | 
 
 const NO_MONEY: Amounts = pair("0.00", "0.00");
 
-/** The backend's drawer totals as the screens show them. Only converted, never computed. */
+/**
+ * The backend's drawer totals as the screens show them. Only converted, never computed.
+ * The backend sends cash-outs as a positive sum; the screens show money leaving the drawer as negative ("-5.00"),
+ * so only that line changes sign. Change given stays positive, as the backend sends it.
+ */
 export function toLedger(ledger: LedgerInput): Ledger {
     return {
         float: pair(ledger.floatUsd, ledger.floatLbp),
         received: pair(ledger.receivedUsd, ledger.receivedLbp),
         changeGiven: pair(ledger.changeGivenUsd, ledger.changeGivenLbp),
-        cashOuts: pair(ledger.cashOutsUsd, ledger.cashOutsLbp),
+        cashOuts: subtractAmounts(NO_MONEY, pair(ledger.cashOutsUsd, ledger.cashOutsLbp)),
         expected: pair(ledger.expectedUsd, ledger.expectedLbp),
     };
 }
@@ -58,9 +62,19 @@ export function deliveredTotal(sales: Sale[]): Amounts {
     return sumAsked(sales.filter((sale) => sale.status === "DELIVERED"));
 }
 
+/** The sale cards' numbers (Today and Sales), from the sales that are not deleted. Used by mapCashUp and the mock. */
+export function saleTotals(sales: Sale[]): Pick<CashUp, "salesCount" | "salesTotal" | "deliveredTotal" | "waitingTotal"> {
+    const keptSales = sales.filter((sale) => sale.status !== "DELETED");
+    return {
+        salesCount: keptSales.length,
+        salesTotal: sumAsked(keptSales),
+        deliveredTotal: deliveredTotal(keptSales),
+        waitingTotal: sumAsked(keptSales.filter((sale) => sale.status === "TO_DELIVER")),
+    };
+}
+
 export function mapCashUp(dto: CashUpInput): CashUp {
     const sales = dto.sales.map(mapSale);
-    const keptSales = sales.filter((sale) => sale.status !== "DELETED");
     const hasCount = dto.countedUsd !== null && dto.countedLbp !== null;
 
     return {
@@ -70,12 +84,9 @@ export function mapCashUp(dto: CashUpInput): CashUp {
         returned: dto.returnReason === null ? null : { by: "Owner", text: dto.returnReason },
         startedAt: `${formatDay(dto.openedAt)}, ${formatTime(dto.openedAt)}`,
         ledger: toLedger(dto.ledger),
-        salesCount: keptSales.length,
-        salesTotal: sumAsked(keptSales),
+        ...saleTotals(sales),
         counted: hasCount ? pair(dto.countedUsd ?? "0.00", dto.countedLbp ?? "0.00") : null,
         savedCounts: dto.savedCounts ?? null,
-        deliveredTotal: deliveredTotal(keptSales),
-        waitingTotal: sumAsked(keptSales.filter((sale) => sale.status === "TO_DELIVER")),
         sales,
         cashOuts: dto.cashOuts.map(mapCashOut),
     };

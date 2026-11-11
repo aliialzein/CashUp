@@ -1,12 +1,12 @@
 import type { ActionResult } from "@/lib/driver/cash-up/actionResult";
-import { getOpenCashUp } from "@/lib/driver/mock/today";
+import { getOpenCashUp, recalculateOpenMockCashUp } from "@/lib/driver/mock/today";
 import type { Sale } from "@/types/driver/cash-up";
 import type { SaleWriteGateway } from "./saleWriteGateway";
 
 /**
  * Fake sale writes for mock mode. They change the mock open cash-up's sales in memory, so every flow can be
- * tried on screen; everything resets when the dev server restarts. The mock ledger and totals are NOT
- * recalculated. Delete together with the mock folder.
+ * tried on screen; everything resets when the dev server restarts. After every change the mock ledger and the sale
+ * cards are recalculated like the backend would (recalculateOpenMockCashUp). Delete together with the mock folder.
  */
 
 const OK: ActionResult = { ok: true };
@@ -56,6 +56,7 @@ export const mockSaleWrites: SaleWriteGateway = {
         };
         if (details.note !== null) sale.note = details.note;
         cashUp.sales.unshift(sale);
+        recalculateOpenMockCashUp();
         return OK;
     },
 
@@ -75,6 +76,7 @@ export const mockSaleWrites: SaleWriteGateway = {
             else found.note = changes.note;
         }
         found.isEdited = true;
+        recalculateOpenMockCashUp();
         return OK;
     },
 
@@ -88,6 +90,7 @@ export const mockSaleWrites: SaleWriteGateway = {
         found.method = delivery.method;
         found.totalCollected = delivery.collected;
         found.changeGiven = delivery.change;
+        recalculateOpenMockCashUp();
         return OK;
     },
 
@@ -97,6 +100,7 @@ export const mockSaleWrites: SaleWriteGateway = {
 
         found.status = "DELETED";
         found.cancelReason = reason.trim();
+        recalculateOpenMockCashUp();
         return OK;
     },
 

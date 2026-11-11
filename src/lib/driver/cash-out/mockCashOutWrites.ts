@@ -1,16 +1,15 @@
 import type { ActionResult } from "@/lib/driver/cash-up/actionResult";
 import { toErrorCode } from "@/lib/driver/cash-up/errorCode";
-import { getOpenCashUp } from "@/lib/driver/mock/today";
-import { addAmounts, subtractAmounts } from "@/lib/money/amounts";
-import type { BackendAmounts } from "@/lib/money/toBackendMoney";
+import { getOpenCashUp, recalculateOpenMockCashUp } from "@/lib/driver/mock/today";
 import { cancelCashOutSchema, createCashOutSchema } from "@/modules/cash-outs/cash-outs.validation";
-import type { CashOut, Ledger } from "@/types/driver/cash-up";
+import type { CashOut } from "@/types/driver/cash-up";
 import type { CashOutWriteGateway } from "./cashOutWriteGateway";
 import { parseReasonText } from "./reasonText";
 
 /**
  * Fake cash-out writes for mock mode, like the sales and count mocks: added and deleted cash-outs are kept on the
- * mock open cash-up in memory (list, chips and totals update), and everything resets when the dev server restarts.
+ * mock open cash-up in memory, and everything resets when the dev server restarts. After every change the totals are
+ * recalculated with the backend's own buildCashLedger (recalculateOpenMockCashUp), so list, chips and totals update.
  * Reason, note and amount are checked by the backend's own schemas (imported read-only), so the codes, limits and
  * order are the backend's. Delete together with the mock folder.
  */
@@ -25,16 +24,6 @@ let lastMockCashOutNumber = 0;
 
 function currentTime(): string {
     return new Date().toTimeString().slice(0, 5);
-}
-
-/**
- * Moves the mock totals by one cash-out, as the backend would compute them: money out lowers both "cash-outs"
- * (kept negative) and "expected"; a deleted cash-out gives it back. Mock only: real totals always come from the server.
- */
-function moveTotals(ledger: Ledger, amount: BackendAmounts, direction: "out" | "back"): void {
-    const move = direction === "out" ? subtractAmounts : addAmounts;
-    ledger.cashOuts = move(ledger.cashOuts, amount);
-    ledger.expected = move(ledger.expected, amount);
 }
 
 export const mockCashOutWrites: CashOutWriteGateway = {
@@ -66,7 +55,7 @@ export const mockCashOutWrites: CashOutWriteGateway = {
         if (checked.data.note) cashOut.note = checked.data.note;
 
         cashUp.cashOuts.unshift(cashOut);
-        moveTotals(cashUp.ledger, details.amount, "out");
+        recalculateOpenMockCashUp();
         return OK;
     },
 
@@ -85,7 +74,7 @@ export const mockCashOutWrites: CashOutWriteGateway = {
         // The screen's form of the backend status CANCELLED, with the trimmed reason.
         cashOut.isDeleted = true;
         cashOut.cancelReason = checked.data.reason;
-        moveTotals(cashUp.ledger, cashOut.amount, "back");
+        recalculateOpenMockCashUp();
         return OK;
     },
 };

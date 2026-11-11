@@ -2,6 +2,7 @@ import { totalOfNotes } from "@/lib/driver/count-cash/calculations";
 import type { CashCount } from "@/lib/driver/count-cash/denominations";
 import type { CashUp } from "@/types/driver/cash-up";
 import { mockOpenCashUp } from "./cash-up";
+import { recalculateMockCashUp } from "./recalculateCashUp";
 import { hasOpenCashUp } from "./scenarios";
 
 // TODO(backend): delete with the mocks. Cancel, Submit and Start flip this while the server runs.
@@ -20,6 +21,12 @@ export function closeMockCashUp(): void {
 
 export function startMockCashUp(): void {
     openOverride = true;
+}
+
+/** After a mock write: totals and sale cards follow the changed sales and cash-outs, like the backend's answer. */
+export function recalculateOpenMockCashUp(): void {
+    const cashUp = getOpenCashUp();
+    if (cashUp !== null) recalculateMockCashUp(cashUp);
 }
 
 /** Keeps the count while the server runs, so Today and Count cash both show it. */
