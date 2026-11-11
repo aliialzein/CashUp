@@ -7,4 +7,6 @@ export type DeliveryFormProps = {
     feeRequired: boolean;
     /** Where Cancel and Confirm go: the page the driver came from. */
     returnHref: string;
+    /** The Edit sale page, for a wrong amount or discount (they cannot be changed at delivery). */
+    editHref: string;
 };

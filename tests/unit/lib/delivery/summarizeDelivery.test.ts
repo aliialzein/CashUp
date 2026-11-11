@@ -31,4 +31,21 @@ describe("summarizeDelivery", () => {
         expect(summary.extra).toEqual({ usd: "8", lbp: "0" });
         expect(summary.hasGap).toBe(true);
     });
+
+    it("adds the tip and takes off the discount, each in its own currency", () => {
+        const summary = summarizeDelivery({
+            order,
+            fee,
+            tip: { usd: "1", lbp: "0" },
+            discount: { usd: "0", lbp: "20000" },
+            cash: { usd: "23", lbp: "100000" },
+            wallet: none,
+        });
+        expect(summary.due).toEqual({ usd: "23", lbp: "100000" });
+        expect(summary.hasGap).toBe(false);
+    });
+
+    it("treats a missing tip and discount as none", () => {
+        expect(summarizeDelivery({ order, fee, cash: none, wallet: none }).due).toEqual({ usd: "22", lbp: "120000" });
+    });
 });

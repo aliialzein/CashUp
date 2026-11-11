@@ -47,4 +47,14 @@ describe("summarizeSinglePayment", () => {
         expect(result.summary.remaining).toEqual({ usd: "2", lbp: "120000" });
         expect(result.summary.hasGap).toBe(true);
     });
+
+    it("passes the tip and discount on to what is due, for cash and wallet", () => {
+        const tip = { usd: "3", lbp: "0" };
+        const discount = { usd: "5", lbp: "0" };
+        const cash = summarizeSinglePayment({ order, fee, tip, discount, method: "CASH", paid: { usd: "30", lbp: "120000" }, change: none });
+        const wallet = summarizeSinglePayment({ order, fee, tip, discount, method: "OMT", paid: { usd: "20", lbp: "120000" }, change: none });
+        expect(cash.summary.due).toEqual({ usd: "20", lbp: "120000" });
+        expect(cash.suggestedChange).toEqual({ usd: "10", lbp: "0" });
+        expect(wallet.summary.hasGap).toBe(false);
+    });
 });

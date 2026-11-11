@@ -7,6 +7,10 @@ import { isZeroAmounts } from "@/lib/money/amounts";
 type DeliverySummaryPanelProps = {
     order: Amounts;
     fee: Amounts;
+    /** Shown only when not zero. */
+    tip?: Amounts;
+    /** Shown only when not zero. */
+    discount?: Amounts;
     cash: Amounts;
     wallet: Amounts;
     walletLabel: string;
@@ -41,7 +45,7 @@ function Row({ label, value, className = "" }: { label: string; value: string; c
     );
 }
 
-export function DeliverySummaryPanel({ order, fee, cash, wallet, walletLabel, summary }: DeliverySummaryPanelProps) {
+export function DeliverySummaryPanel({ order, fee, tip, discount, cash, wallet, walletLabel, summary }: DeliverySummaryPanelProps) {
     const { label, amounts, tone } = getHeadline(summary);
     // One currency is short while the other has extra: show the extra too.
     const mixed = !isZeroAmounts(summary.remaining) && !isZeroAmounts(summary.extra);
@@ -67,6 +71,8 @@ export function DeliverySummaryPanel({ order, fee, cash, wallet, walletLabel, su
             <div className="space-y-2.5 px-5 py-4">
                 <Row label="Order" value={formatAmounts(order)} />
                 <Row label="Delivery fee" value={formatAmounts(fee)} />
+                {tip && !isZeroAmounts(tip) && <Row label="Tip" value={formatAmounts(tip)} />}
+                {discount && !isZeroAmounts(discount) && <Row label="Discount" value={formatAmounts(discount)} />}
                 <div className="space-y-2.5 border-t border-line pt-2.5">
                     <Row label="Cash" value={formatAmounts(cash)} className="text-success" />
                     <Row label={`Through ${walletLabel}`} value={formatAmounts(wallet)} />

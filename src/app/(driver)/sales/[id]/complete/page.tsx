@@ -4,7 +4,8 @@ import { PageHeader } from "@/components/driver/layout/PageHeader";
 import { CompleteDeliveryForm } from "@/components/driver/sales/CompleteDeliveryForm";
 import { requireOpenCashUp } from "@/lib/driver/data/requireOpenCashUp";
 import { mockSession } from "@/lib/driver/mock/session";
-import { resolveOrigin } from "@/lib/navigation/origin";
+import { originFromPath, resolveOrigin, withOrigin } from "@/lib/navigation/origin";
+import { routes } from "@/lib/routes";
 
 type CompleteDeliveryPageProps = {
     params: Promise<{ id: string }>;
@@ -30,7 +31,12 @@ async function CompleteDelivery({ params, searchParams }: CompleteDeliveryPagePr
                 subtitle={`Sale #${sale.number} · ${sale.clientPhone}`}
                 phoneSubtitle={`Sale #${sale.number}`}
             />
-            <CompleteDeliveryForm sale={sale} feeRequired={mockSession.role === "DRIVER"} returnHref={origin.href} />
+            <CompleteDeliveryForm
+                sale={sale}
+                feeRequired={mockSession.role === "DRIVER"}
+                returnHref={origin.href}
+                editHref={withOrigin(routes.driver.editSale(sale.id), originFromPath(origin.href) ?? "sales")}
+            />
         </>
     );
 }
