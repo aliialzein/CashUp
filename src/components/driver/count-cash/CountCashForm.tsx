@@ -1,18 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent } from "react";
-import { saveCount, submitCashUp } from "@/lib/driver/cash-up/actions";
+import { useState } from "react";
+import { Card } from "@/components/ui/Card";
 import { errorText } from "@/lib/driver/cash-up/actionResult";
+import { saveCount, submitCashUpWithCount } from "@/lib/driver/count-cash/actions";
 import { totalOfNotes } from "@/lib/driver/count-cash/calculations";
 import { emptyCounts, type CashCount } from "@/lib/driver/count-cash/denominations";
+import { todayAfter } from "@/lib/driver/count-cash/todayNotice";
 import type { Amounts, Currency } from "@/lib/format/money";
 import { subtractAmounts } from "@/lib/money/amounts";
-import { routes } from "@/lib/routes";
-import { COUNT_CASH_FORM_ID, SUBMIT_INTENT } from "./formId";
 import { CountBar } from "./CountBar";
+import { CountControls } from "./CountControls";
 import { CountFlowActions } from "./CountFlowActions";
-import { CountSummary } from "./CountSummary";
+import { CountTotals } from "./CountTotals";
 import { CurrencyTabs } from "./CurrencyTabs";
 import { NoteCards } from "./NoteCards";
 import { NotesTable } from "./NotesTable";
@@ -20,33 +21,32 @@ import { NotesTable } from "./NotesTable";
 type CountCashFormProps = {
     /** What the drawer should hold, per currency, calculated by the server. */
     expected: Amounts;
-    /** The count saved earlier, shown again so the driver confirms or changes it. `null` starts from zero. */
+    /** The count saved earlier, loaded again so the driver can finish it. `null` starts from zero. */
     savedCounts: CashCount | null;
 };
 
-/** True when the button that sent the form is Submit. Save count sends it without a value. */
-function isSubmitIntent(event: FormEvent<HTMLFormElement>): boolean {
-    const submitter = (event.nativeEvent as SubmitEvent).submitter;
-    return submitter?.getAttribute("value") === SUBMIT_INTENT;
-}
-
+/**
+ * The drawer count. The totals and the gap are for the screen only; the backend judges and freezes them at submit.
+ * "This is my final count" decides which button works: Submit cash-up, or Save and finish later.
+ */
 export function CountCashForm({ expected, savedCounts }: CountCashFormProps) {
     const router = useRouter();
     const [usdCounts, setUsdCounts] = useState(savedCounts?.USD ?? emptyCounts("USD"));
     const [lbpCounts, setLbpCounts] = useState(savedCounts?.LBP ?? emptyCounts("LBP"));
     // Phone only: which currency's notes are on screen. Desktop shows both.
     const [currency, setCurrency] = useState<Currency>("USD");
-    const [isPending, startTransition] = useTransition();
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [isSaved, setIsSaved] = useState(false);
+    const [isFinal, setIsFinal] = useState(false);
+    const [isSending, setIsSending] = useState(false);
+    const [errorCode, setErrorCode] = useState<string | null>(null);
 
     const counted: Amounts = { usd: totalOfNotes(usdCounts), lbp: totalOfNotes(lbpCounts) };
     const gap = subtractAmounts(counted, expected);
+    const count: CashCount = { USD: usdCounts, LBP: lbpCounts };
 
     // The currency on screen on the phone.
     const counts = currency === "USD" ? usdCounts : lbpCounts;
     const setCounts = currency === "USD" ? setUsdCounts : setLbpCounts;
-    const nothingCounted = Object.values(counts).every((count) => count === 0);
+    const nothingCounted = Object.values(counts).every((noteCount) => noteCount === 0);
 
     /** From the button at the end of a long list, so the other list starts at its top. */
     function switchCurrency() {
@@ -54,43 +54,49 @@ export function CountCashForm({ expected, savedCounts }: CountCashFormProps) {
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        // The header buttons live outside this component and cannot be disabled, so a second click stops here.
-        if (isPending) return;
+    /** Saves the count and goes back to Today, which says the count is saved. */
+    async function save() {
+        if (isFinal || isSending) return;
+        setIsSending(true);
+        setErrorCode(null);
+        const result = await saveCount(count);
 
-        const isSubmit = isSubmitIntent(event);
-        const count: CashCount = { USD: usdCounts, LBP: lbpCounts };
-        setErrorMessage(null);
-        setIsSaved(false);
-
-        startTransition(async () => {
-            const result = isSubmit ? await submitCashUp(count) : await saveCount(count);
-            if (!result.ok) {
-                setErrorMessage(errorText(result.code));
-                return;
-            }
-            if (isSubmit) {
-                router.push(routes.driver.today);
-                return;
-            }
-            setIsSaved(true);
-        });
+        if (!result.ok) {
+            setIsSending(false);
+            setErrorCode(result.code);
+            return;
+        }
+        // Still "sending" until Today opens, so nothing can be clicked again on the way.
+        router.push(todayAfter("count-saved"));
     }
 
-    return (
-        <form id={COUNT_CASH_FORM_ID} onSubmit={handleSubmit} className="flex flex-col gap-3 md:gap-6">
-            {errorMessage && (
-                <p role="alert" className="text-sm text-red-600">
-                    {errorMessage}
-                </p>
-            )}
-            {isSaved && (
-                <p role="status" className="text-sm text-muted">
-                    Count saved. You can recount, or submit when you are ready.
-                </p>
-            )}
+    /** Saves the count, then submits. On success Today says the cash-up was submitted. */
+    async function submit() {
+        if (!isFinal || isSending) return;
+        setIsSending(true);
+        setErrorCode(null);
+        const result = await submitCashUpWithCount(count);
 
+        // Refused: the count stays saved and on screen, with the reason why.
+        if (!result.ok) {
+            setIsSending(false);
+            setErrorCode(result.code);
+            return;
+        }
+        router.push(todayAfter("submitted"));
+    }
+
+    const controls = {
+        isFinal,
+        onFinalChange: setIsFinal,
+        isSending,
+        errorMessage: errorCode && errorText(errorCode),
+        onSubmit: submit,
+        onSave: save,
+    };
+
+    return (
+        <div className="flex flex-col gap-3 md:gap-6">
             {/* Phone: one currency at a time, with its total on the tab. */}
             <div className="flex flex-col gap-3 md:hidden">
                 <CurrencyTabs value={currency} onChange={setCurrency} counted={counted} />
@@ -103,7 +109,7 @@ export function CountCashForm({ expected, savedCounts }: CountCashFormProps) {
                 />
             </div>
 
-            {/* Desktop: both currencies side by side, then the summary. */}
+            {/* Desktop (option A): both currencies side by side, then one footer card with the totals and the controls. */}
             <div className="hidden grid-cols-2 items-start gap-6 md:grid">
                 <NotesTable
                     currency="USD"
@@ -118,13 +124,14 @@ export function CountCashForm({ expected, savedCounts }: CountCashFormProps) {
                     onReset={() => setLbpCounts(emptyCounts("LBP"))}
                 />
             </div>
-            <div className="hidden md:block">
-                <CountSummary counted={counted} expected={expected} gap={gap} />
-            </div>
+            <Card className="hidden flex-col gap-5 p-6 md:flex">
+                <CountTotals counted={counted} expected={expected} gap={gap} />
+                <CountControls {...controls} />
+            </Card>
 
             <div className="md:hidden">
-                <CountBar counted={counted} expected={expected} gap={gap} isPending={isPending} />
+                <CountBar counted={counted} expected={expected} gap={gap} {...controls} />
             </div>
-        </form>
+        </div>
     );
 }
