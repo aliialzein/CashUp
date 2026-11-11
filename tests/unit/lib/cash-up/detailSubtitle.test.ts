@@ -27,8 +27,12 @@ describe("detailSubtitle", () => {
         expect(detailSubtitle(base)).toBe("Submitted 27 Oct, 18:05");
     });
 
-    it("says who approved it and when", () => {
-        const approved: CashUpDetail = { ...base, status: "APPROVED", review: { by: "Ali", at: "28 Oct, 09:10" } };
-        expect(detailSubtitle(approved)).toBe("Approved 28 Oct, 09:10 by Ali");
+    it("says when it was approved, by Owner, never by a name", () => {
+        const approved: CashUpDetail = { ...base, status: "APPROVED", review: { at: "28 Oct, 09:10" } };
+        expect(detailSubtitle(approved)).toBe("Approved 28 Oct, 09:10 by Owner");
+    });
+
+    it("falls back to the submit time for an approved cash-up without an approval time", () => {
+        expect(detailSubtitle({ ...base, status: "APPROVED", review: null })).toBe("Submitted 27 Oct, 18:05");
     });
 });

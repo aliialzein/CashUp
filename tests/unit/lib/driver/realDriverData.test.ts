@@ -239,10 +239,32 @@ describe("realDriverData.getCashUpDetail", () => {
         await expect(realDriverData.getCashUpDetail(VALID_ID)).resolves.toBeNull();
     });
 
-    it("stops with a stable code while a locked cash-up cannot be mapped yet", async () => {
-        getOwnCashUp.mockResolvedValue({ id: VALID_ID, status: "SUBMITTED" });
+    it("gives null for a returned cash-up (backend OPEN with a reason): it continues on Today", async () => {
+        getOwnCashUp.mockResolvedValue({ id: VALID_ID, status: "OPEN", returnReason: "Recount the LBP" });
 
-        await expect(realDriverData.getCashUpDetail(VALID_ID)).rejects.toThrow("CASH_UP_DETAIL_NOT_MAPPED");
+        await expect(realDriverData.getCashUpDetail(VALID_ID)).resolves.toBeNull();
+    });
+
+    it("maps a locked cash-up for the Detail page, with the ledger still null from today's backend", async () => {
+        getOwnCashUp.mockResolvedValue({
+            id: VALID_ID,
+            number: 42,
+            status: "SUBMITTED",
+            closedAt: "2026-10-28T16:05:00.000Z",
+            approvedAt: null,
+            countedUsd: "100.00",
+            countedLbp: "0.00",
+            gapUsd: "-2.00",
+            gapLbp: "0.00",
+            ledger: null,
+            sales: [],
+            cashOuts: [],
+        });
+
+        const detail = await realDriverData.getCashUpDetail(VALID_ID);
+
+        expect(detail).toMatchObject({ id: VALID_ID, number: 42, status: "SUBMITTED", ledger: null, review: null });
+        expect(detail?.gap).toEqual({ usd: "-2.00", lbp: "0.00" });
     });
 
     it("lets other backend errors through instead of hiding them", async () => {

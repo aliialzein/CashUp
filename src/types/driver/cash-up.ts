@@ -112,9 +112,8 @@ export type CashUpSummary = {
     gap: Amounts | null;
 };
 
-/** Who reviewed a cash-up, and when. */
+/** When the owner approved a cash-up. The screens always say "Owner", never a name. */
 export type CashUpReview = {
-    by: string;
     /** Display text, e.g. "26 Oct, 09:10". */
     at: string;
 };
@@ -126,7 +125,11 @@ export type CashUpDetail = {
     /** SUBMITTED or APPROVED. Open and returned cash-ups continue on Today. */
     status: Extract<CashUpStatus, "SUBMITTED" | "APPROVED">;
     submittedAt: string;
-    ledger: Ledger;
+    /**
+     * The drawer totals from the backend. `null` while the backend sends them only for open cash-ups:
+     * the page then says they come with the next update. Never computed on the frontend.
+     */
+    ledger: Ledger | null;
     /** What the driver counted when submitting. */
     counted: Amounts;
     /** Counted minus expected, frozen at submit. */

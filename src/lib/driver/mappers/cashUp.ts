@@ -28,7 +28,8 @@ export type CashUpInput = Pick<CashUpOwnDto, "id" | "number" | "returnReason" | 
 
 const NO_MONEY: Amounts = pair("0.00", "0.00");
 
-function toLedger(ledger: LedgerInput): Ledger {
+/** The backend's drawer totals as the screens show them. Only converted, never computed. */
+export function toLedger(ledger: LedgerInput): Ledger {
     return {
         float: pair(ledger.floatUsd, ledger.floatLbp),
         received: pair(ledger.receivedUsd, ledger.receivedLbp),
@@ -52,6 +53,11 @@ function sumAsked(sales: Sale[]): Amounts {
     return sales.reduce((total, sale) => addAmounts(total, askedAmount(sale)), NO_MONEY);
 }
 
+/** What the delivered sales asked for, together. Used by Today and by a locked cash-up's Sales card. */
+export function deliveredTotal(sales: Sale[]): Amounts {
+    return sumAsked(sales.filter((sale) => sale.status === "DELIVERED"));
+}
+
 export function mapCashUp(dto: CashUpInput): CashUp {
     const sales = dto.sales.map(mapSale);
     const keptSales = sales.filter((sale) => sale.status !== "DELETED");
@@ -68,7 +74,7 @@ export function mapCashUp(dto: CashUpInput): CashUp {
         salesTotal: sumAsked(keptSales),
         counted: hasCount ? pair(dto.countedUsd ?? "0.00", dto.countedLbp ?? "0.00") : null,
         savedCounts: dto.savedCounts ?? null,
-        deliveredTotal: sumAsked(keptSales.filter((sale) => sale.status === "DELIVERED")),
+        deliveredTotal: deliveredTotal(keptSales),
         waitingTotal: sumAsked(keptSales.filter((sale) => sale.status === "TO_DELIVER")),
         sales,
         cashOuts: dto.cashOuts.map(mapCashOut),

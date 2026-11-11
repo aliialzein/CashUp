@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { CashUpLedger } from "@/components/driver/cash-up/CashUpLedger";
 import { CountResult } from "@/components/driver/cash-up/CountResult";
 import { LockedNote } from "@/components/driver/cash-up/LockedNote";
+import { TotalsPending } from "@/components/driver/cash-up/TotalsPending";
 import { CashUpStatusBadge } from "@/components/driver/history/CashUpStatusBadge";
 import { SalesLinkCard } from "@/components/driver/history/SalesLinkCard";
 import { PageHeader } from "@/components/driver/layout/PageHeader";
@@ -28,6 +30,7 @@ async function CashUpDetail({ params, searchParams }: CashUpDetailPageProps) {
     const deliveredCount = detail.sales.filter((sale) => sale.status === "DELIVERED").length;
     // The pages below (Sales, Cash-outs) get the same origin, so their ← comes back here and this ← still goes to the right place.
     const origin = historyOrigin(from);
+    const cashOutsHref = withOrigin(routes.driver.historyCashOuts(detail.id), origin);
 
     return (
         <>
@@ -40,10 +43,17 @@ async function CashUpDetail({ params, searchParams }: CashUpDetailPageProps) {
             />
             <div className="grid gap-5 md:grid-cols-2">
                 <div className="flex flex-col gap-5">
-                    <CashUpLedger
-                        ledger={detail.ledger}
-                        cashOutsHref={withOrigin(routes.driver.historyCashOuts(detail.id), origin)}
-                    />
+                    {detail.ledger ? (
+                        <CashUpLedger ledger={detail.ledger} cashOutsHref={cashOutsHref} />
+                    ) : (
+                        // Without totals there is no Cash-outs row to tap, so the cash-outs get their own link.
+                        <div className="flex flex-col gap-2">
+                            <TotalsPending />
+                            <Link href={cashOutsHref} className="text-sm font-semibold text-ink underline-offset-2 hover:underline">
+                                See the cash-outs ›
+                            </Link>
+                        </div>
+                    )}
                 </div>
                 <div className="flex flex-col gap-5">
                     <CountResult counted={detail.counted} gap={detail.gap} />

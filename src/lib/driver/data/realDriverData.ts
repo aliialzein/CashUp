@@ -1,5 +1,6 @@
 import "server-only";
 import { mapCashUp } from "@/lib/driver/mappers/cashUp";
+import { mapCashUpDetail, type LockedStatus } from "@/lib/driver/mappers/cashUpDetail";
 import { mapCashUpSummary } from "@/lib/driver/mappers/cashUpSummary";
 import { mapSavedCount } from "@/lib/driver/mappers/savedCount";
 import {
@@ -15,8 +16,8 @@ import type { CashUpSummary } from "@/types/driver/cash-up";
 import type { DriverDataSource } from "./driverDataSource";
 import { withSessionRedirect } from "./sessionRedirect";
 
-/** Only submitted and approved cash-ups have a detail page. Open ones live on Today; VOID never shows. */
-function isLocked(status: CashUpDto["status"]): boolean {
+/** Only submitted and approved cash-ups have a detail page. Open and returned ones live on Today; VOID never shows. */
+function isLocked(status: CashUpDto["status"]): status is LockedStatus {
     return status === "SUBMITTED" || status === "APPROVED";
 }
 
@@ -66,10 +67,11 @@ const backendReads: DriverDataSource = {
             if (error instanceof EntityNotFoundError) return null;
             throw error;
         }
-        if (!isLocked(ownCashUp.status)) return null;
+        const { status } = ownCashUp;
+        if (!isLocked(status)) return null;
 
-        // NEXT STEP: CashUpOwnDto now has `number` and USD/LBP pair columns. Map it to a CashUpDetail, then remove this line.
-        throw new Error("CASH_UP_DETAIL_NOT_MAPPED");
+        // The ledger is null until the backend sends it for every status; the page then says the totals come later.
+        return mapCashUpDetail({ ...ownCashUp, status });
     },
 };
 

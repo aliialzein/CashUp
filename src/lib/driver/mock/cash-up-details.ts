@@ -102,7 +102,7 @@ const details: CashUpDetail[] = [
             cashOut("co-40-1", "Fuel", "11:10", "5", "0"),
         ],
         deliveredTotal: totalCollected(SALES_40),
-        review: { by: "Ali", at: "26 Oct, 09:10" },
+        review: { at: "26 Oct, 09:10" },
     },
     {
         id: "c-39",
@@ -121,7 +121,7 @@ const details: CashUpDetail[] = [
         sales: SALES_39,
         cashOuts: [],
         deliveredTotal: totalCollected(SALES_39),
-        review: { by: "Ali", at: "25 Oct, 08:55" },
+        review: { at: "25 Oct, 08:55" },
     },
 ];
 
