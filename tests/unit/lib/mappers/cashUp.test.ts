@@ -27,6 +27,8 @@ function saleLine(overrides: Partial<SaleLineInput> = {}): SaleLineInput {
         createdAt: "2026-10-28T06:30:00.000Z",
         isEdited: false,
         amountDiffers: false,
+        deletionAwaiting: false,
+        cancelReason: null,
         ...overrides,
     };
 }

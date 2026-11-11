@@ -27,6 +27,8 @@ function dto(overrides: Partial<SaleLineInput> = {}): SaleLineInput {
         createdAt: "2026-12-15T13:30:00.000Z",
         isEdited: false,
         amountDiffers: false,
+        deletionAwaiting: false,
+        cancelReason: null,
         ...overrides,
     };
 }
@@ -37,6 +39,7 @@ describe("mapSale", () => {
             id: "a3f1212c-b061-4f82-90c5-e057aa8fd564",
             number: 7,
             clientPhone: "+96170123456",
+            clientNumber: "+96170123456",
             time: "15:30",
             date: "15 Dec",
             status: "DELIVERED",
@@ -48,6 +51,7 @@ describe("mapSale", () => {
             method: "CASH",
             isEdited: false,
             amountDiffers: false,
+            deletionAwaiting: false,
             totalCollected: { usd: "12.00", lbp: "0.00" },
         });
     });
@@ -79,8 +83,10 @@ describe("mapSale", () => {
         expect(sale.status).toBe("TO_DELIVER");
     });
 
-    it("names a sale without a client number a shop sale", () => {
-        expect(mapSale(dto({ clientNumber: null })).clientPhone).toBe("Shop sale");
+    it("names a sale without a client number a shop sale, but keeps the saved number null", () => {
+        const sale = mapSale(dto({ clientNumber: null }));
+        expect(sale.clientPhone).toBe("Shop sale");
+        expect(sale.clientNumber).toBeNull();
     });
 
     it("sets the note only when there is one", () => {
@@ -92,6 +98,16 @@ describe("mapSale", () => {
         const sale = mapSale(dto({ isEdited: true, amountDiffers: true }));
         expect(sale.isEdited).toBe(true);
         expect(sale.amountDiffers).toBe(true);
+    });
+
+    it("carries an open deletion request", () => {
+        expect(mapSale(dto({ deletionAwaiting: true })).deletionAwaiting).toBe(true);
+    });
+
+    it("sets the cancel reason only on a deleted sale that has one", () => {
+        expect(mapSale(dto())).not.toHaveProperty("cancelReason");
+        const deleted = mapSale(dto({ status: "DELETED", moneyTaken: "CANCELLED", cancelReason: "Client cancelled" }));
+        expect(deleted.cancelReason).toBe("Client cancelled");
     });
 });
 

@@ -10,7 +10,10 @@ export type SaleStatus = "TO_DELIVER" | "DELIVERED" | "DELETED";
 export type Sale = {
     id: string;
     number: number;
+    /** Display text: the client number, or "Shop sale" when there is none. */
     clientPhone: string;
+    /** The client number exactly as saved, or null. Edit sale fills its field from this, never from the display text. */
+    clientNumber: string | null;
     /** Time only (HH:mm). The page groups sales by date when a cash-up spans several days. */
     time: string;
     status: SaleStatus;
@@ -34,6 +37,10 @@ export type Sale = {
     /** Flags the owner sees at review. */
     isEdited?: boolean;
     amountDiffers?: boolean;
+    /** A delivered sale with an open deletion request: the owner still has to approve or refuse it. */
+    deletionAwaiting?: boolean;
+    /** Why a deleted sale was deleted. Only set on a deleted sale that has a reason. */
+    cancelReason?: string;
 };
 
 /**

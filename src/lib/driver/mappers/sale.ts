@@ -33,6 +33,8 @@ export type SaleLineInput = Pick<
     | "createdAt"
     | "isEdited"
     | "amountDiffers"
+    | "deletionAwaiting"
+    | "cancelReason"
 >;
 
 export function pair(usd: string, lbp: string): Amounts {
@@ -45,6 +47,7 @@ export function mapSale(dto: SaleLineInput): Sale {
         id: dto.id,
         number: dto.saleNumber,
         clientPhone: dto.clientNumber ?? "Shop sale",
+        clientNumber: dto.clientNumber,
         time: formatTime(dto.createdAt),
         date: formatDay(dto.createdAt),
         status: dto.status,
@@ -56,9 +59,11 @@ export function mapSale(dto: SaleLineInput): Sale {
         method: dto.method,
         isEdited: dto.isEdited,
         amountDiffers: dto.amountDiffers,
+        deletionAwaiting: dto.deletionAwaiting,
     };
 
     if (dto.note !== null) sale.note = dto.note;
+    if (dto.cancelReason !== null) sale.cancelReason = dto.cancelReason;
     // Only a collected sale has collected money. A waiting sale has none yet.
     if (dto.moneyTaken === "COLLECTED") {
         sale.totalCollected = pair(dto.totalCollectedUsd, dto.totalCollectedLbp);

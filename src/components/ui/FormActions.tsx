@@ -13,13 +13,23 @@ type FormActionsProps = {
     cancelOnPhone?: boolean;
     /** A short note above the buttons, on phone only. Desktop shows its own note in the form. */
     hint?: ReactNode;
+    /** A short note under the buttons, on phone and desktop, e.g. why Save is locked. */
+    hintBelow?: ReactNode;
 };
 
 /**
  * Cancel and submit buttons. On desktop they sit right-aligned at the end of the form.
  * On phone, submit is full width and stuck to the bottom.
  */
-export function FormActions({ cancelHref, submitLabel, submitDisabled, onCancel, cancelOnPhone = true, hint }: FormActionsProps) {
+export function FormActions({
+    cancelHref,
+    submitLabel,
+    submitDisabled,
+    onCancel,
+    cancelOnPhone = true,
+    hint,
+    hintBelow,
+}: FormActionsProps) {
     return (
         <BottomBar>
             {hint && <p className="mb-2 text-center text-[13px] text-muted md:hidden">{hint}</p>}
@@ -35,6 +45,7 @@ export function FormActions({ cancelHref, submitLabel, submitDisabled, onCancel,
                     </Button>
                 </div>
             </div>
+            {hintBelow && <p className="mt-2 text-center text-[13px] text-muted md:text-right">{hintBelow}</p>}
         </BottomBar>
     );
 }

@@ -57,6 +57,8 @@ const ERROR_TEXT: Record<string, string> = {
     VOID_REASON_INVALID: "This cash-up could not be cancelled. Please try again.",
     LEGACY_AMENDMENT_UNSUPPORTED: UNSUPPORTED_CHANGE_TEXT,
     AMENDMENT_FIELD_UNSUPPORTED: UNSUPPORTED_CHANGE_TEXT,
+    // The screen is ready but the backend does not take this yet (see realSaleWrites.ts).
+    FEATURE_NOT_READY: "This is not available yet. Try again after the next update.",
     ...VALIDATION_ERROR_TEXT,
 };
 

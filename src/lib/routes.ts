@@ -8,6 +8,7 @@ export const routes = {
 		sales: "/sales",
 		addSale: "/sales/new",
 		completeDelivery: (id: string) => `/sales/${id}/complete`,
+		editSale: (id: string) => `/sales/${id}/edit`,
 		cashOuts: "/cash-outs",
 		countCash: "/count-cash",
 		addCashOut: "/cash-outs/new",

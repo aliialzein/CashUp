@@ -2,7 +2,7 @@ import { totalCollected } from "@/lib/driver/sales/collected";
 import type { CashOut, CashUpDetail, Sale } from "@/types/driver/cash-up";
 
 /** Anything a delivered sale can carry besides its basics. */
-type SaleExtras = Partial<Omit<Sale, "id" | "number" | "clientPhone" | "date" | "time" | "status" | "amount">>;
+type SaleExtras = Partial<Omit<Sale, "id" | "number" | "clientPhone" | "clientNumber" | "date" | "time" | "status" | "amount">>;
 
 function delivered(
     number: number,
@@ -13,7 +13,9 @@ function delivered(
     lbp: string,
     extras: SaleExtras = {},
 ): Sale {
-    return { id: `s-${number}`, number, clientPhone, date, time, status: "DELIVERED", amount: { usd, lbp }, ...extras };
+    // The saved number has no spaces; "Shop sale" is only the display text of a sale without one.
+    const clientNumber = clientPhone === "Shop sale" ? null : clientPhone.replace(/\s/g, "");
+    return { id: `s-${number}`, number, clientPhone, clientNumber, date, time, status: "DELIVERED", amount: { usd, lbp }, ...extras };
 }
 
 function cashOut(id: string, reason: CashOut["reason"], time: string, usd: string, lbp: string, note?: string): CashOut {

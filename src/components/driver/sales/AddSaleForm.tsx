@@ -1,46 +1,61 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
-import { AmountPairField } from "@/components/ui/AmountPairField";
+import { useRef, useState, type FormEvent } from "react";
 import { FormActions } from "@/components/ui/FormActions";
-import { SectionLabel } from "@/components/ui/SectionLabel";
-import { TextField } from "@/components/ui/driver/TextField";
+import { errorText } from "@/lib/driver/cash-up/actionResult";
+import { addSale } from "@/lib/driver/sales/actions";
+import { isClientNumberError } from "@/lib/driver/sales/clientNumber";
+import { EMPTY_SALE_FORM, toSaleFormInput, type SaleFormValues } from "@/lib/driver/sales/saleForm";
 import { hasAmount } from "@/lib/format/amountInput";
-import type { Amounts } from "@/lib/format/money";
 import { useResetOnHide } from "@/lib/hooks/useResetOnHide";
+import { SaleFields } from "./SaleFields";
 
-const EMPTY_AMOUNT: Amounts = { usd: "", lbp: "" };
-
-const LATER_HINT = "Payment method and what the client paid are added when you complete the delivery.";
+const LATER_HINT = "Tip and payment are recorded when you complete the delivery.";
 
 type AddSaleFormProps = {
     /** Where Cancel and Save go: the page the driver came from. */
     returnHref: string;
 };
 
+/** A new sale is always "to deliver". */
 export function AddSaleForm({ returnHref }: AddSaleFormProps) {
     const router = useRouter();
-    const [amount, setAmount] = useState<Amounts>(EMPTY_AMOUNT);
-    const [fee, setFee] = useState<Amounts>(EMPTY_AMOUNT);
-    const [phone, setPhone] = useState("");
-    const [note, setNote] = useState("");
+    const [values, setValues] = useState<SaleFormValues>(EMPTY_SALE_FORM);
+    const [isSaving, setIsSaving] = useState(false);
+    /** The code of the last refused save; its text is the red line, and a client number code also marks that field. */
+    const [errorCode, setErrorCode] = useState<string | null>(null);
+    /**
+     * One key per save attempt, so a double click or a retry never records the sale twice. Made on the first
+     * Save click, not while rendering (Next prerenders this form and refuses random values there). Kept after a
+     * refused save; emptied by reset() after success. Same as AddCashOutForm.
+     */
+    const saveKeyRef = useRef<string | null>(null);
 
-    const canSave = hasAmount(amount.usd) || hasAmount(amount.lbp);
+    const canSave = hasAmount(values.amount.usd) || hasAmount(values.amount.lbp);
 
     function reset() {
-        setAmount(EMPTY_AMOUNT);
-        setFee(EMPTY_AMOUNT);
-        setPhone("");
-        setNote("");
+        setValues(EMPTY_SALE_FORM);
+        setErrorCode(null);
+        saveKeyRef.current = null;
     }
 
     useResetOnHide(reset);
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        if (!canSave) return;
-        // TODO: send { amount, fee, phone, note } to the API.
+        if (!canSave || isSaving) return;
+
+        const saveKey = (saveKeyRef.current ??= crypto.randomUUID());
+        setIsSaving(true);
+        setErrorCode(null);
+        const result = await addSale({ saveKey, ...toSaleFormInput(values) });
+        setIsSaving(false);
+
+        if (!result.ok) {
+            setErrorCode(result.code);
+            return;
+        }
         reset();
         router.push(returnHref);
     }
@@ -51,41 +66,17 @@ export function AddSaleForm({ returnHref }: AddSaleFormProps) {
             onSubmit={handleSubmit}
             className="mx-auto w-full max-w-[640px] space-y-5 md:rounded-xl md:border md:border-line md:bg-surface md:p-7"
         >
-            {/* flex gap, not space-y: the phone-only hint is hidden on desktop, and space-y would still leave a margin for it. */}
-            <div className="flex flex-col gap-2 [&>h2]:mb-0">
-                <SectionLabel>Amount to collect</SectionLabel>
-                <AmountPairField label="Amount to collect" value={amount} onChange={setAmount} />
-                <p className="text-[13px] text-muted md:hidden">Leave a currency at 0 if it is not used. Nothing is converted.</p>
-            </div>
-
-            <div className="space-y-2">
-                <SectionLabel>Delivery fee (optional)</SectionLabel>
-                <AmountPairField label="Delivery fee" value={fee} onChange={setFee} />
-            </div>
-
-            {/* The client number is shown in the mono font, like the other numbers. */}
-            <div className="[&_input]:font-mono">
-                <TextField
-                    label="Client number"
-                    placeholder="+961 …"
-                    inputMode="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                />
-            </div>
-            <TextField
-                label="Note (optional)"
-                placeholder="Gate code, floor, instructions"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-            />
+            <SaleFields values={values} onChange={setValues} clientNumberInvalid={isClientNumberError(errorCode)} />
 
             <p className="hidden text-[13px] text-muted md:block">{LATER_HINT}</p>
+
+            {/* Same style as AddCashOutForm. On the phone the buttons are stuck to the bottom, so this sits right above that bar. */}
+            {errorCode && <p className="text-sm text-red-600">{errorText(errorCode)}</p>}
 
             <FormActions
                 cancelHref={returnHref}
                 submitLabel="Save sale"
-                submitDisabled={!canSave}
+                submitDisabled={!canSave || isSaving}
                 onCancel={reset}
                 cancelOnPhone={false}
                 hint={LATER_HINT}

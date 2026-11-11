@@ -7,6 +7,7 @@ function sale(overrides: Partial<Sale>): Sale {
         id: "s-1",
         number: 1,
         clientPhone: "",
+        clientNumber: null,
         time: "10:00",
         status: "DELIVERED",
         amount: { usd: "25", lbp: "120000" },

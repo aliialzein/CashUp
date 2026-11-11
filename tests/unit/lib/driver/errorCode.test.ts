@@ -127,6 +127,7 @@ describe("errorText", () => {
         ["NOTE_TOO_LONG", "The note can have at most 500 characters."],
         ["CONTROL_CHARACTER", "Remove the special characters from the text."],
         ["INVALID_UUID", "Something went wrong. Please refresh and try again."],
+        ["FEATURE_NOT_READY", "This is not available yet. Try again after the next update."],
     ])("gives %s its own text", (code, text) => {
         expect(errorText(code)).toBe(text);
     });

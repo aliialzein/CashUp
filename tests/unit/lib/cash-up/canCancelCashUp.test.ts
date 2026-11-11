@@ -6,6 +6,7 @@ const sale: Sale = {
     id: "s-1",
     number: 1,
     clientPhone: "Shop sale",
+    clientNumber: null,
     time: "09:00",
     status: "DELETED",
     amount: { usd: "1", lbp: "0" },

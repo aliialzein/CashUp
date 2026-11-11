@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/driver/cash-up/actionResult";
 import { toErrorCode } from "@/lib/driver/cash-up/errorCode";
+import { toNote } from "@/lib/driver/toNote";
 import { USE_MOCKS } from "@/lib/driver/useMocks";
 import type { Amounts } from "@/lib/format/money";
 import { toBackendAmounts } from "@/lib/money/toBackendMoney";
@@ -24,12 +25,6 @@ export type AddCashOutInput = {
 };
 
 const VALIDATION_ERROR: ActionResult = { ok: false, code: "VALIDATION_ERROR" };
-
-/** A blank note is no note, so the backend stores null instead of an empty text. */
-function toNote(note: string): string | null {
-    const trimmedNote = note.trim();
-    return trimmedNote === "" ? null : trimmedNote;
-}
 
 /** Cash-outs show on their own page and in the Today ledger. */
 function refreshCashOutPages(): void {
