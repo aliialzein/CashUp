@@ -2,7 +2,7 @@ import Decimal from "decimal.js";
 import type { Currency } from "@/lib/format/money";
 import { DENOMINATIONS, type CashCount } from "./denominations";
 
-/** One row of the save-count request: PUT /api/v1/cash-ups/:id/count */
+/** One line of a saved count, in the backend's form. */
 export type CountLineInput = {
     currency: Currency;
     denomination: string;
@@ -12,9 +12,8 @@ export type CountLineInput = {
 const CURRENCIES: readonly Currency[] = ["USD", "LBP"];
 
 /**
- * Turns the form state into the lines the API expects.
- * Every note is sent, zeros included, so a recount can never leave an old number behind.
- * The API wants the denomination with two decimals: "20" -> "20.00".
+ * Turns the form state into count lines: one per note, zeros included (realCountWrites sends only the counted ones).
+ * The backend wants the denomination with two decimals, like its toMoneyString: "20" -> "20.00", "0.10" -> "0.10".
  */
 export function toCountLines(counts: CashCount): CountLineInput[] {
     return CURRENCIES.flatMap((currency) =>

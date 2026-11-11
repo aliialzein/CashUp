@@ -128,6 +128,8 @@ describe("errorText", () => {
         ["CONTROL_CHARACTER", "Remove the special characters from the text."],
         ["INVALID_UUID", "Something went wrong. Please refresh and try again."],
         ["FEATURE_NOT_READY", "This is not available yet. Try again after the next update."],
+        ["INVALID_DENOMINATION", "One of these notes cannot be saved. Check your count."],
+        ["DUPLICATE_COUNT_LINE", "Something went wrong. Please refresh and try again."],
     ])("gives %s its own text", (code, text) => {
         expect(errorText(code)).toBe(text);
     });

@@ -30,6 +30,9 @@ const VALIDATION_ERROR_TEXT: Record<string, string> = {
     CONTROL_CHARACTER: "Remove the special characters from the text.",
     // A broken key or id: the driver cannot cause or fix it by typing.
     INVALID_UUID: "Something went wrong. Please refresh and try again.",
+    INVALID_DENOMINATION: "One of these notes cannot be saved. Check your count.",
+    // The app never sends a note twice, so the driver cannot cause it.
+    DUPLICATE_COUNT_LINE: "Something went wrong. Please refresh and try again.",
 };
 
 const ERROR_TEXT: Record<string, string> = {
