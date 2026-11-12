@@ -61,6 +61,12 @@ describe('common schema rules', () => {
         expect(openCashUpSchema.safeParse({ referenceRate: '10000000.01' }).success).toBe(false);
         expect(openCashUpSchema.safeParse({ businessId: uuid() }).success).toBe(false);
     });
+    it('trims delivered-sale deletion request reasons and enforces 3–200 characters', () => {
+        expect(requestDeleteSaleSchema.parse({ reason: '  abc  ' })).toEqual({ reason: 'abc' });
+        expect(requestDeleteSaleSchema.parse({ reason: `  ${'x'.repeat(200)}  ` }).reason).toHaveLength(200);
+        for (const reason of ['   ', '  ab  ', 'x'.repeat(201), 'bad\nreason'])
+            expect(requestDeleteSaleSchema.safeParse({ reason }).success).toBe(false);
+    });
     it('trims text, bounds lengths, and rejects control characters', () => {
         expect(cancelSaleSchema.parse({ reason: '  Needs correction  ' }).reason).toBe('Needs correction');
         expect(cancelSaleSchema.safeParse({ reason: '  no ' }).success).toBe(false);

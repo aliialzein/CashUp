@@ -12,9 +12,10 @@ import { AuditRepository } from "../audit/audit.repository";
 import { SaleRepository } from "../sales/sales.repository";
 import { CashOutRepository } from "../cash-outs/cash-outs.repository";
 import { AuditAction, AuditEntityType, CashUpStatus, SaleStatus } from "../../generated/prisma/enums";
-import { DuplicateError } from "../../shared/errors/persistence-errors";
+import { DuplicateError, isUniqueViolation } from "../../shared/errors/persistence-errors";
 import type { CurrentMember } from '../auth/auth.types';
-import { canReview, canListReviewCashUp } from "../auth/auth.service";
+import { canReview, canListReviewCashUp, requireOwnerPermission } from "../auth/auth.service";
+import type { OwnerCashUpSummaryDto, OwnerCashUpDetailDto } from './cash-ups.types';
 import { recordAudit } from "../audit/audit.service";
 import { type CashUpDto, type CountDto, type SavedCountDto, type CashUpOwnDto, type CashUpReviewDto, type OpenCashUpSummaryDto, type CashUpHistoryRowDto } from "./cash-ups.types";
 import { BusinessRuleError, ConflictError, EntityNotFoundError, ForbiddenError } from "../../shared/errors/service-errors";
@@ -193,7 +194,12 @@ export async function returnCashUpToOpen(cashUpId: string, reason: string): Prom
                 throw new EntityNotFoundError();
             cashUpLifecycleAssertReviewer(actor, owner.role, owner.id, settings.isSolo);
             await assertSupportedPendingAmendments(cashUpRepository, cashUpId);
-            const returned = await cashUpRepository.returnToOpen(cashUpId, reason);
+            let returned;
+            try { returned = await cashUpRepository.returnToOpen(cashUpId, reason); }
+            catch (error) {
+                if (isUniqueViolation(error)) throw new ConflictError('CASHUP_ALREADY_OPEN');
+                throw error;
+            }
             await recordAudit(auditRepository, actor, {
                 action: AuditAction.CASHUP_RETURNED,
                 entityType: CASH_UP_ENTITY,
@@ -352,6 +358,56 @@ export async function replaceOwnCounts(cashUpId: string, input: SaveCountLines):
     }
 }
 const REVIEW_SCAN_BATCH = 100;
+function mapOwnerSummary(
+    row: NonNullable<Awaited<ReturnType<CashUpRepository['findOwnerSummary']>>>,
+    actor: CurrentMember, isSolo: boolean,
+): OwnerCashUpSummaryDto {
+    return {
+        id: row.id, number: row.number, status: row.status, openedAt: row.openedAt.toISOString(),
+        staffName: row.membership.user.fullName, salesCount: row._count.sales,
+        returnReason: row.returnReason, voidReason: row.voidReason,
+        canReview: canReview({ reviewer: actor.role, reviewerMembershipId: actor.membershipId,
+            cashUpOwner: row.membership.role, ownerMembershipId: row.membershipId, isSolo }).allowed,
+        requests: row.requests.map(request => ({
+            ...mapSaleDeletionRequest(request),
+            saleNumber: request.sale?.saleNumber ?? null,
+            requestedByName: request.requestedBy.user.fullName,
+            decidedByName: request.decidedBy?.user.fullName ?? null,
+            canDecide: row.status === 'OPEN' && request.status === 'AWAITING_OWNER'
+                && (request.requestedById !== actor.membershipId || isSolo),
+        })),
+    };
+}
+/** Owner navigation exposes metadata only; financial review continues to use canReview. */
+export async function listOwnerCashUps(): Promise<OwnerCashUpSummaryDto[]> {
+    const actor = await requireCurrentMember();
+    requireOwnerPermission(actor);
+    try {
+        const db = getPrisma();
+        const settings = await requireCashUpBusiness(new BusinessRepository(actor.businessId, db));
+        const rows = await new CashUpRepository(actor.businessId, db).listOwnerSummaries();
+        return rows.map(row => mapOwnerSummary(row, actor, settings.isSolo));
+    } catch (error) { throw translatePersistenceError(error); }
+}
+export async function getOwnerCashUpDetail(id: string): Promise<OwnerCashUpDetailDto> {
+    const actor = await requireCurrentMember();
+    requireOwnerPermission(actor);
+    id = uuid.parse(id);
+    try {
+        const db = getPrisma();
+        const settings = await requireCashUpBusiness(new BusinessRepository(actor.businessId, db));
+        const row = await new CashUpRepository(actor.businessId, db).findOwnerSummary(id);
+        if (!row) throw new EntityNotFoundError();
+        const summary = mapOwnerSummary(row, actor, settings.isSolo);
+        if (row.status === 'OPEN' || !summary.canReview) return { ...summary, review: null, edits: [] };
+        const review = await getCashUpReview(id);
+        const edits = await new SaleRepository(actor.businessId, db).listEditsForCashUp(id);
+        return { ...summary, review, edits: edits.map(edit => ({
+            id: edit.id, saleId: edit.saleId, field: edit.field, oldValue: edit.oldValue,
+            newValue: edit.newValue, createdAt: edit.createdAt.toISOString(), editedByName: edit.editedBy.user.fullName,
+        })) };
+    } catch (error) { throw translatePersistenceError(error); }
+}
 export async function getOwnCashUp(id: string): Promise<CashUpOwnDto> {
     const actor = await requireCurrentMember();
     id = uuid.parse(id);
@@ -570,8 +626,6 @@ async function cashUpQueryFilterReviewable<T extends {
     return visible;
 }
 function cashUpQueryAssertReviewable(actor: CurrentMember, ownerRole: typeof actor.role, ownerMembershipId: string, isSolo: boolean): void {
-    if (ownerMembershipId === actor.membershipId)
-        throw new EntityNotFoundError();
     const decision = canReview({
         reviewer: actor.role,
         reviewerMembershipId: actor.membershipId,

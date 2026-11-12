@@ -34,6 +34,9 @@ it.each([
   [user('MANAGER'), '/onboarding'],
   [user('STAFF'), '/onboarding'],
   [user('OWNER', 'INACTIVE'), '/onboarding'],
+  [user('MANAGER', 'INACTIVE'), '/onboarding'],
+  [user('STAFF', 'INACTIVE'), '/onboarding'],
+  [{ ...user('STAFF'), membership: null }, '/onboarding'],
 ] as const)('redirects authenticated users consistently to %s', async (currentUser, destination) => {
   jest.mocked(auth.getCurrentUser).mockResolvedValue(currentUser);
   await expect(RequireAnonymous({ children: createElement('div', null, 'auth') })).rejects.toThrow(`REDIRECT:${destination}`);

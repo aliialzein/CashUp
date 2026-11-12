@@ -11,6 +11,6 @@ export function computeDeliveryFlags(
 ): { amountDiffers: boolean } {
   const balance = checkSaleBalance({ ...order, ...confirmation }, referenceRate);
   return {
-    amountDiffers: !balance.balanced || (order.method !== null && order.method !== confirmation.method),
+    amountDiffers: !balance.balanced,
   };
 }
