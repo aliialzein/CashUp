@@ -34,6 +34,8 @@ const VALIDATION_ERROR_TEXT: Record<string, string> = {
     // The app never sends a note twice, so the driver cannot cause it.
     DUPLICATE_COUNT_LINE: "Something went wrong. Please refresh and try again.",
     REFERENCE_RATE_EXCEEDS_MAX: "This rate is too high. Check the number you typed.",
+    // The app never sends a payment with a new sale, so this only shows if that ever breaks.
+    PAYMENT_NOT_ALLOWED_FOR_PENDING_SALE: "This sale is still waiting for delivery. Add the payment at Complete delivery.",
 };
 
 const ERROR_TEXT: Record<string, string> = {
@@ -54,7 +56,13 @@ const ERROR_TEXT: Record<string, string> = {
     // Made by the app (toStartErrorCode): the backend's "not positive / not money" refusal, about today's rate.
     REFERENCE_RATE_INVALID: "Enter a rate above 0, or clear the field.",
     SALE_ALREADY_CANCELLED: "This sale was already deleted.",
-    SALE_CANNOT_BE_CANCELLED: "This sale can no longer be deleted.",
+    SALE_CANNOT_BE_CANCELLED: "This sale was delivered. Use Request deletion to ask the owner.",
+    SALE_ALREADY_DELIVERED: "This sale was already delivered, so it can no longer be edited.",
+    SALE_DELETION_REQUEST_EXISTS: "You already asked to delete this sale. Wait for the owner's answer.",
+    SALE_DELETION_REQUIRES_DELIVERED: "This sale is not delivered yet. You can delete it directly.",
+    // Only the owner's decision on a deletion request gives these two.
+    SALE_DELETION_STATE_CONFLICT: "This sale changed in the meantime. Refresh and try again.",
+    REQUEST_ALREADY_DECIDED: "This request was already answered. Refresh to see it.",
     CASHOUT_ALREADY_CANCELLED: "This cash-out was already deleted.",
     ENTITY_NOT_FOUND: "We could not find this. Refresh and try again.",
     CONFLICT: "Something changed in the meantime. Refresh and try again.",
@@ -64,7 +72,7 @@ const ERROR_TEXT: Record<string, string> = {
     VOID_REASON_INVALID: "This cash-up could not be cancelled. Please try again.",
     LEGACY_AMENDMENT_UNSUPPORTED: UNSUPPORTED_CHANGE_TEXT,
     AMENDMENT_FIELD_UNSUPPORTED: UNSUPPORTED_CHANGE_TEXT,
-    // The screen is ready but the backend does not take this yet (see realSaleWrites.ts).
+    // The screen is ready but the backend does not take this yet (see realCountWrites.ts).
     FEATURE_NOT_READY: "This is not available yet. Try again after the next update.",
     ...VALIDATION_ERROR_TEXT,
 };

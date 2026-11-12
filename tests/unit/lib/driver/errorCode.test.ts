@@ -1,5 +1,6 @@
 import { openCashUpSchema } from "@/modules/cash-ups/cash-ups.validation";
 import { createCashOutSchema } from "@/modules/cash-outs/cash-outs.validation";
+import { createSaleSchema } from "@/modules/sales/sales.validation";
 import { ConflictError, ForbiddenError, UnauthenticatedError } from "@/shared/errors/service-errors";
 import { clientNumber, uuid } from "@/shared/validation/common";
 import { errorText, isKnownValidationCode } from "@/lib/driver/cash-up/actionResult";
@@ -65,6 +66,12 @@ describe("toErrorCode with the backend's stable validation codes", () => {
         );
     });
 
+    it("passes the refusal of a payment on a \"to deliver\" sale on to the screen, even for a 0.00 tip", () => {
+        const pendingSale = { status: "TO_DELIVER", businessAmountUsd: "10.00", clientNumber: "+96170123456" };
+        expect(codeOfFailedParse(createSaleSchema, { ...pendingSale, tipUsd: "0.00" })).toBe("PAYMENT_NOT_ALLOWED_FOR_PENDING_SALE");
+        expect(codeOfFailedParse(createSaleSchema, { ...pendingSale, method: "CASH" })).toBe("PAYMENT_NOT_ALLOWED_FOR_PENDING_SALE");
+    });
+
     it("never passes a raw zod message on to the screen", () => {
         // An unknown key gives the zod message 'Unrecognized key: "unknownField"', which is not a code.
         expect(codeOfFailedParse(createCashOutSchema, { ...VALID_CASH_OUT, unknownField: 1 })).toBe("VALIDATION_ERROR");
@@ -111,7 +118,7 @@ describe("errorText", () => {
         ["SALE_NOT_BALANCED", "The amounts do not add up. Check what the client paid and the change."],
         ["SALE_NOT_AWAITING_DELIVERY", "This sale was already delivered."],
         ["SALE_ALREADY_CANCELLED", "This sale was already deleted."],
-        ["SALE_CANNOT_BE_CANCELLED", "This sale can no longer be deleted."],
+        ["SALE_CANNOT_BE_CANCELLED", "This sale was delivered. Use Request deletion to ask the owner."],
         ["CASHOUT_ALREADY_CANCELLED", "This cash-out was already deleted."],
         ["ENTITY_NOT_FOUND", "We could not find this. Refresh and try again."],
         ["CONFLICT", "Something changed in the meantime. Refresh and try again."],
@@ -139,6 +146,12 @@ describe("errorText", () => {
         ["SALE_REQUIRES_REFERENCE_RATE", "Change in both currencies needs today's rate. Start the next cash-up with the rate."],
         ["REFERENCE_RATE_EXCEEDS_MAX", "This rate is too high. Check the number you typed."],
         ["CASHUP_NOT_EMPTY", "Only an empty cash-up can be cancelled."],
+        ["PAYMENT_NOT_ALLOWED_FOR_PENDING_SALE", "This sale is still waiting for delivery. Add the payment at Complete delivery."],
+        ["SALE_ALREADY_DELIVERED", "This sale was already delivered, so it can no longer be edited."],
+        ["SALE_DELETION_REQUEST_EXISTS", "You already asked to delete this sale. Wait for the owner's answer."],
+        ["SALE_DELETION_REQUIRES_DELIVERED", "This sale is not delivered yet. You can delete it directly."],
+        ["SALE_DELETION_STATE_CONFLICT", "This sale changed in the meantime. Refresh and try again."],
+        ["REQUEST_ALREADY_DECIDED", "This request was already answered. Refresh to see it."],
     ])("gives %s its own text", (code, text) => {
         expect(errorText(code)).toBe(text);
     });

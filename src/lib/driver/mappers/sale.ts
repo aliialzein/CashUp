@@ -7,7 +7,7 @@ import { formatDay, formatTime } from "./businessTime";
  * The fields of the backend sale line that mapSale reads. Taken from SaleLineDto, so a backend rename
  * is a compile error here. Money is one string per currency ("0.00" means "none").
  * - moneyTaken: COLLECTED = the money is in the drawer, NOT_YET = still to collect, CANCELLED = deleted.
- * - totalCollectedUsd/Lbp: what the sale collects, or will collect. Only a COLLECTED sale really holds it.
+ * - The payment (method, tip, totalCollected, changeGiven) is null until the sale is delivered.
  */
 export type SaleLineInput = Pick<
     SaleLineDto,
@@ -41,6 +41,12 @@ export function pair(usd: string, lbp: string): Amounts {
     return { usd, lbp };
 }
 
+/** Both currencies, or undefined while the backend has no value yet. A missing payment never becomes zeros. */
+function optionalPair(usd: string | null, lbp: string | null): Amounts | undefined {
+    if (usd === null || lbp === null) return undefined;
+    return pair(usd, lbp);
+}
+
 /** Backend sale line -> the Sale the driver screens already use. */
 export function mapSale(dto: SaleLineInput): Sale {
     const sale: Sale = {
@@ -53,10 +59,7 @@ export function mapSale(dto: SaleLineInput): Sale {
         status: dto.status,
         amount: pair(dto.businessAmountUsd, dto.businessAmountLbp),
         deliveryFee: pair(dto.deliveryFeeUsd, dto.deliveryFeeLbp),
-        tip: pair(dto.tipUsd, dto.tipLbp),
         discount: pair(dto.discountUsd, dto.discountLbp),
-        changeGiven: pair(dto.changeGivenUsd, dto.changeGivenLbp),
-        method: dto.method,
         isEdited: dto.isEdited,
         amountDiffers: dto.amountDiffers,
         deletionAwaiting: dto.deletionAwaiting,
@@ -64,10 +67,16 @@ export function mapSale(dto: SaleLineInput): Sale {
 
     if (dto.note !== null) sale.note = dto.note;
     if (dto.cancelReason !== null) sale.cancelReason = dto.cancelReason;
-    // Only a collected sale has collected money. A waiting sale has none yet.
-    if (dto.moneyTaken === "COLLECTED") {
-        sale.totalCollected = pair(dto.totalCollectedUsd, dto.totalCollectedLbp);
-    }
+
+    // The payment exists only once the sale is delivered: a "to deliver" sale gets none of these fields.
+    if (dto.method !== null) sale.method = dto.method;
+    const tip = optionalPair(dto.tipUsd, dto.tipLbp);
+    if (tip) sale.tip = tip;
+    const changeGiven = optionalPair(dto.changeGivenUsd, dto.changeGivenLbp);
+    if (changeGiven) sale.changeGiven = changeGiven;
+    // Only a collected sale has collected money (a deleted sale may still carry its old payment).
+    const totalCollected = optionalPair(dto.totalCollectedUsd, dto.totalCollectedLbp);
+    if (dto.moneyTaken === "COLLECTED" && totalCollected) sale.totalCollected = totalCollected;
 
     return sale;
 }

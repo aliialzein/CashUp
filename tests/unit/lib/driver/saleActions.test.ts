@@ -177,3 +177,23 @@ describe("deleteSale and requestSaleDeletion", () => {
         });
     });
 });
+
+describe("the sale lifecycle codes of the merged backend", () => {
+    // PAYMENT_NOT_ALLOWED_FOR_PENDING_SALE is a validation code: it is tested with its text (step 3 of run 9).
+    it.each([
+        ["editSale", "SALE_ALREADY_DELIVERED", new BusinessRuleError("SALE_ALREADY_DELIVERED")],
+        ["deleteSale", "SALE_CANNOT_BE_CANCELLED", new BusinessRuleError("SALE_CANNOT_BE_CANCELLED")],
+        ["requestSaleDeletion", "SALE_DELETION_REQUEST_EXISTS", new ConflictError("SALE_DELETION_REQUEST_EXISTS")],
+        ["requestSaleDeletion", "SALE_DELETION_REQUIRES_DELIVERED", new BusinessRuleError("SALE_DELETION_REQUIRES_DELIVERED")],
+    ] as const)("%s passes the backend's %s on to the screen as its code", async (action, code, error) => {
+        gateway[action].mockRejectedValue(error);
+
+        const run = {
+            editSale: () => actions.editSale(SALE_ID, { note: "Gate 2" }),
+            deleteSale: () => actions.deleteSale(SALE_ID, "Client cancelled"),
+            requestSaleDeletion: () => actions.requestSaleDeletion(SALE_ID, "Typed twice"),
+        }[action];
+
+        await expect(run()).resolves.toEqual({ ok: false, code });
+    });
+});

@@ -77,10 +77,34 @@ describe("mapSale", () => {
         expect(sale.changeGiven).toEqual({ usd: "0.00", lbp: "50000.00" });
     });
 
-    it("leaves totalCollected out for a sale that is still waiting", () => {
-        const sale = mapSale(dto({ status: "TO_DELIVER", moneyTaken: "NOT_YET" }));
-        expect(sale.totalCollected).toBeUndefined();
+    it("gives a waiting sale no payment at all: the backend's nulls never become zeros", () => {
+        const sale = mapSale(
+            dto({
+                status: "TO_DELIVER",
+                moneyTaken: "NOT_YET",
+                method: null,
+                tipUsd: null,
+                tipLbp: null,
+                totalCollectedUsd: null,
+                totalCollectedLbp: null,
+                changeGivenUsd: null,
+                changeGivenLbp: null,
+            }),
+        );
         expect(sale.status).toBe("TO_DELIVER");
+        expect(sale).not.toHaveProperty("method");
+        expect(sale).not.toHaveProperty("tip");
+        expect(sale).not.toHaveProperty("totalCollected");
+        expect(sale).not.toHaveProperty("changeGiven");
+        // The order itself is still there.
+        expect(sale.amount).toEqual({ usd: "10.00", lbp: "0.00" });
+        expect(sale.deliveryFee).toEqual({ usd: "2.00", lbp: "0.00" });
+    });
+
+    it("keeps a delivered sale's tip and change", () => {
+        const sale = mapSale(dto({ tipUsd: "1.00", changeGivenUsd: "3.00" }));
+        expect(sale.tip).toEqual({ usd: "1.00", lbp: "0.00" });
+        expect(sale.changeGiven).toEqual({ usd: "3.00", lbp: "0.00" });
     });
 
     it("names a sale without a client number a shop sale, but keeps the saved number null", () => {
