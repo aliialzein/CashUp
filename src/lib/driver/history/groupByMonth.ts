@@ -8,6 +8,8 @@ export type MonthGroup = {
     items: CashUpSummary[];
 };
 
+// Only writes the label of a month key that is already the Beirut month (isoDate comes from formatIsoDay).
+// The key is read as midnight UTC on the 1st, so formatting it in UTC can never move it to another month.
 const monthFormatter = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 
 /** Splits a newest-first list into one group per month, keeping the order. */
