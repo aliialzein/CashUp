@@ -257,8 +257,23 @@ describe('BusinessSetupService', () => {
         await expect(leaveSoloWithOtherMember.service.setBusinessSolo(actor(), { isSolo: false })).rejects.toMatchObject({ code: 'SOLO_CHANGE_BLOCKED' });
     });
     it('creates and lists hashed join codes with derived statuses only', async () => {
-        const createdJoinCode = joinCode();
+    const fixedNow = new Date('2026-01-15T12:00:00.000Z');
+    const futureExpiry = new Date('2026-01-22T12:00:00.000Z');
+    const pastExpiry = new Date('2026-01-14T12:00:00.000Z');
+
+    jest.useFakeTimers();
+    jest.setSystemTime(fixedNow);
+
+    try {
+        const createdJoinCode = joinCode({
+            expiresAt: futureExpiry,
+            maxUses: 1,
+            usedCount: 0,
+            revokedAt: null,
+        });
+
         let recordedHash = '';
+
         const setup = service({
             businesses: { getBusiness: async () => business },
             joinCodes: {
@@ -268,20 +283,44 @@ describe('BusinessSetupService', () => {
                 },
                 listJoinCodes: async () => [
                     createdJoinCode,
-                    joinCode({ id: 'expired', expiresAt: new Date('2020-01-01T00:00:00.000Z') }),
-                    joinCode({ id: 'used', usedCount: 1 }),
-                    joinCode({ id: 'revoked', revokedAt: now }),
+                    joinCode({
+                        id: 'expired',
+                        expiresAt: pastExpiry,
+                        maxUses: 1,
+                        usedCount: 0,
+                        revokedAt: null,
+                    }),
+                    joinCode({
+                        id: 'used',
+                        expiresAt: futureExpiry,
+                        maxUses: 1,
+                        usedCount: 1,
+                        revokedAt: null,
+                    }),
+                    joinCode({
+                        id: 'revoked',
+                        expiresAt: futureExpiry,
+                        maxUses: 1,
+                        usedCount: 0,
+                        revokedAt: fixedNow,
+                    }),
                 ],
             },
         });
+
         const created = await setup.service.createJoinCode(actor(), {
             expiresInDays: 7,
             maxUses: 1,
         });
+
         expect(created.code).toMatch(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{12}$/);
-        expect(recordedHash).toBe(createHash('sha256').update(created.code).digest('hex'));
+        expect(recordedHash).toBe(
+            createHash('sha256').update(created.code).digest('hex'),
+        );
         expect(recordedHash).not.toContain(created.code);
+
         const listed = await setup.service.listJoinCodes(actor());
+
         expect(listed.map((entry) => entry.status)).toEqual([
             'active',
             'expired',
@@ -289,7 +328,11 @@ describe('BusinessSetupService', () => {
             'revoked',
         ]);
         expect(JSON.stringify(listed)).not.toMatch(/codeHash|23456789ABCD/);
-    });
+    }
+    finally {
+        jest.useRealTimers();
+    }
+});
     it('revokes a tenant-visible join code', async () => {
         const setup = service({
             businesses: { getBusiness: async () => business },

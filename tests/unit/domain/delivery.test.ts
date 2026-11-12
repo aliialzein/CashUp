@@ -10,9 +10,12 @@ it('compares net collection to final business + fee + tip - discount, including 
   expect(computeDeliveryFlags(order, { ...paid, totalCollectedUsd: '21' }).amountDiffers).toBe(true);
   expect(computeDeliveryFlags(order, { ...paid, totalCollectedLbp: '1000' }).amountDiffers).toBe(true);
 });
-it('does not invent an expected method but retains flags when a method was known', () => {
+it('ignores payment-method changes, including historical expected methods', () => {
   expect(computeDeliveryFlags(order, { ...paid, method: 'WHISH' }).amountDiffers).toBe(false);
-  expect(computeDeliveryFlags({ ...order, method: 'CASH' }, { ...paid, method: 'WHISH' }).amountDiffers).toBe(true);
+  expect(computeDeliveryFlags({ ...order, method: 'CASH' }, { ...paid, method: 'WHISH' }).amountDiffers).toBe(false);
+});
+it.each(['CASH', 'WHISH', 'OMT'] as const)('flags real financial differences paid by %s', method => {
+  expect(computeDeliveryFlags({ ...order, method: 'CASH' }, { ...paid, method, totalCollectedUsd: '21' }).amountDiffers).toBe(true);
 });
 it('compares both currency movements exactly at the cash-up reference rate', () => {
   const equivalent = { totalCollectedUsd: '0', totalCollectedLbp: '1790000', changeGivenUsd: '0', changeGivenLbp: '716000', method: 'CASH' as const };
