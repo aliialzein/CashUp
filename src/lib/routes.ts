@@ -1,0 +1,23 @@
+export const routes = {
+	login: "/login",
+	onboarding: "/onboarding",
+	driver: {
+		today: "/today",
+		history: "/history",
+		account: "/account",
+		sales: "/sales",
+		addSale: "/sales/new",
+		completeDelivery: (id: string) => `/sales/${id}/complete`,
+		editSale: (id: string) => `/sales/${id}/edit`,
+		cashOuts: "/cash-outs",
+		countCash: "/count-cash",
+		addCashOut: "/cash-outs/new",
+		historyDetail: (id: string) => `/history/${id}`,
+		historySales: (id: string) => `/history/${id}/sales`,
+		historyCashOuts: (id: string) => `/history/${id}/cash-outs`,
+		switchBusiness: "/account/switch-business",
+		language: "/account/language",
+		password: "/account/password",
+		startCashUp: "/start",
+	},
+} as const;
