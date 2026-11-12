@@ -3,7 +3,7 @@ import {
   RequestStatus,
   RequestType,
   Currency,
-} from "@/types/cash-up";
+} from "@/types/owner/cash-up";
 import {
   ChevronRight,
   Lock,

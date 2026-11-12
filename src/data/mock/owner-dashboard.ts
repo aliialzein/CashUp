@@ -1,4 +1,4 @@
-import { HomeDashboardData } from "@/types/home-dashboard";
+import { HomeDashboardData } from "@/types/owner/home-dashboard";
 
 export const mockHomeData: HomeDashboardData = {
   stats: {
