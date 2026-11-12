@@ -1,13 +1,15 @@
 import { checkSaleBalance, assertDiscountWithinDue } from '../../../src/domain/money/sale-balance';
 import { D, MoneyError } from '../../../src/domain/money/money';
 import { createSaleSchema } from '../../../src/modules/sales/sales.validation';
-const base = createSaleSchema.parse({
+const parsedBase = createSaleSchema.parse({ tipUsd: '0.00', tipLbp: '0.00', totalCollectedLbp: '0.00', changeGivenUsd: '0.00', changeGivenLbp: '0.00',
     status: 'DELIVERED',
     businessAmountUsd: '10',
     deliveryFeeUsd: '2',
     totalCollectedUsd: '12',
     method: 'CASH'
 });
+if (parsedBase.status !== 'DELIVERED') throw new Error('Expected delivered fixture');
+const base = parsedBase;
 describe('currency pair sale balance', () => {
     it('balances USD, LBP and both currencies independently', () => {
         expect(checkSaleBalance(base).balanced).toBe(true);

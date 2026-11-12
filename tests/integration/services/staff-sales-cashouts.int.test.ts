@@ -44,22 +44,18 @@ describe('Staff sales and cash-outs', () => {
         const lbpInput = createSaleSchema.parse({
             businessAmountUsd: '0.00',
             deliveryFeeUsd: '0.00',
-            tipUsd: '0.00',
-            tipLbp: '0.00',
+
             discountUsd: '0.00',
             discountLbp: '0.00',
-            totalCollectedUsd: '0.00',
-            changeGivenUsd: '0.00',
-            changeGivenLbp: '0.00',
+
             status: 'TO_DELIVER',
             businessAmountLbp: '500000.00',
             deliveryFeeLbp: '0.00',
-            totalCollectedLbp: '500000.00',
-            method: 'CASH',
+
             clientNumber: '+961123456',
         });
         const lbpSale = await services.sales.create(staff, cashUp.id, lbpInput, randomUUID());
-        await services.sales.confirmDelivery(staff, cashUp.id, lbpSale.saleId, confirmDeliverySchema.parse({
+        await services.sales.confirmDelivery(staff, cashUp.id, lbpSale.saleId, confirmDeliverySchema.parse({ tipUsd: '0.00', tipLbp: '0.00',
             totalCollectedUsd: '0.00',
             changeGivenUsd: '0.00',
             changeGivenLbp: '0.00',
@@ -90,7 +86,7 @@ describe('Staff sales and cash-outs', () => {
         const { businessA } = await seedBusinesses();
         const staff = await staffActor(businessA);
         const cashUp = await services.lifecycle.open(staff, { referenceRate: '89500' });
-        const mixedSale = createSaleSchema.parse({
+        const mixedSale = createSaleSchema.parse({ tipUsd: '0.00', tipLbp: '0.00', totalCollectedLbp: '0.00',
             status: 'DELIVERED',
             businessAmountUsd: '12',
             totalCollectedUsd: '20',
@@ -105,14 +101,13 @@ describe('Staff sales and cash-outs', () => {
             changeGivenUsd: '5.00',
             changeGivenLbp: '268500.00',
         });
-        await expect(services.sales.create(staff, cashUp.id, createSaleSchema.parse({
-            ...mixedSale,
+        await expect(services.sales.create(staff, cashUp.id, createSaleSchema.parse({ ...mixedSale,
             changeGivenLbp: '270000',
         }), randomUUID())).rejects.toMatchObject({ code: 'SALE_NOT_BALANCED' });
 
         const staffWithoutRate = await staffActor(businessA, 2);
         const cashUpWithoutRate = await services.lifecycle.open(staffWithoutRate, {});
-        await expect(services.sales.create(staffWithoutRate, cashUpWithoutRate.id, createSaleSchema.parse({
+        await expect(services.sales.create(staffWithoutRate, cashUpWithoutRate.id, createSaleSchema.parse({ tipUsd: '0.00', tipLbp: '0.00', totalCollectedLbp: '0.00',
             status: 'DELIVERED',
             businessAmountUsd: '12',
             totalCollectedUsd: '20',
@@ -120,7 +115,7 @@ describe('Staff sales and cash-outs', () => {
             changeGivenLbp: '268500',
             method: 'CASH',
         }), randomUUID())).rejects.toMatchObject({ code: 'SALE_REQUIRES_REFERENCE_RATE' });
-        await expect(services.sales.create(staffWithoutRate, cashUpWithoutRate.id, createSaleSchema.parse({
+        await expect(services.sales.create(staffWithoutRate, cashUpWithoutRate.id, createSaleSchema.parse({ tipUsd: '0.00', tipLbp: '0.00', totalCollectedLbp: '0.00', changeGivenUsd: '0.00', changeGivenLbp: '0.00',
             status: 'DELIVERED',
             businessAmountUsd: '12',
             totalCollectedUsd: '12',
@@ -129,37 +124,34 @@ describe('Staff sales and cash-outs', () => {
         const plannedSale = createSaleSchema.parse({
             status: 'TO_DELIVER',
             businessAmountUsd: '12',
-            totalCollectedUsd: '12',
-            method: 'CASH',
+
             clientNumber: '+961123456',
         });
         const sameCurrencyDiscrepancy = await services.sales.create(staffWithoutRate, cashUpWithoutRate.id, plannedSale, randomUUID());
-        await expect(services.sales.confirmDelivery(staffWithoutRate, cashUpWithoutRate.id, sameCurrencyDiscrepancy.saleId, confirmDeliverySchema.parse({
+        await expect(services.sales.confirmDelivery(staffWithoutRate, cashUpWithoutRate.id, sameCurrencyDiscrepancy.saleId, confirmDeliverySchema.parse({ tipUsd: '0.00', tipLbp: '0.00', totalCollectedLbp: '0.00', changeGivenUsd: '0.00', changeGivenLbp: '0.00',
             totalCollectedUsd: '13',
             method: 'CASH',
         }))).resolves.toMatchObject({ sale: { amountDiffers: true } });
         const mixedDelivery = await services.sales.create(staffWithoutRate, cashUpWithoutRate.id, plannedSale, randomUUID());
-        await expect(services.sales.confirmDelivery(staffWithoutRate, cashUpWithoutRate.id, mixedDelivery.saleId, confirmDeliverySchema.parse({
+        await expect(services.sales.confirmDelivery(staffWithoutRate, cashUpWithoutRate.id, mixedDelivery.saleId, confirmDeliverySchema.parse({ tipUsd: '0.00', tipLbp: '0.00', totalCollectedLbp: '0.00',
             totalCollectedUsd: '20',
             changeGivenUsd: '5',
             changeGivenLbp: '268500',
             method: 'CASH',
         }))).rejects.toMatchObject({ code: 'SALE_REQUIRES_REFERENCE_RATE' });
     });
-    it('keeps delivery discrepancies accepted, compares planned and actual tender by rate, and preserves drawer currencies', async () => {
+    it('keeps delivery discrepancies accepted, compares final due by rate, and preserves drawer currencies', async () => {
         const { businessA } = await seedBusinesses();
         const staff = await staffActor(businessA);
         const cashUp = await services.lifecycle.open(staff, { referenceRate: '89500' });
         const plannedSale = createSaleSchema.parse({
             status: 'TO_DELIVER',
             businessAmountUsd: '12',
-            totalCollectedUsd: '20',
-            changeGivenUsd: '8',
-            method: 'CASH',
+
             clientNumber: '+961123456',
         });
         const mixedDelivery = await services.sales.create(staff, cashUp.id, plannedSale, randomUUID());
-        const delivered = await services.sales.confirmDelivery(staff, cashUp.id, mixedDelivery.saleId, confirmDeliverySchema.parse({
+        const delivered = await services.sales.confirmDelivery(staff, cashUp.id, mixedDelivery.saleId, confirmDeliverySchema.parse({ tipUsd: '0.00', tipLbp: '0.00', totalCollectedLbp: '0.00',
             totalCollectedUsd: '20',
             changeGivenUsd: '5',
             changeGivenLbp: '268500',
@@ -176,7 +168,7 @@ describe('Staff sales and cash-outs', () => {
         });
 
         const equivalentTender = await services.sales.create(staff, cashUp.id, plannedSale, randomUUID());
-        await expect(services.sales.confirmDelivery(staff, cashUp.id, equivalentTender.saleId, confirmDeliverySchema.parse({
+        await expect(services.sales.confirmDelivery(staff, cashUp.id, equivalentTender.saleId, confirmDeliverySchema.parse({ tipUsd: '0.00', tipLbp: '0.00', changeGivenUsd: '0.00',
             totalCollectedUsd: '0',
             totalCollectedLbp: '1790000',
             changeGivenLbp: '716000',
@@ -184,13 +176,13 @@ describe('Staff sales and cash-outs', () => {
         }))).resolves.toMatchObject({ sale: { amountDiffers: false } });
 
         const methodChange = await services.sales.create(staff, cashUp.id, plannedSale, randomUUID());
-        await expect(services.sales.confirmDelivery(staff, cashUp.id, methodChange.saleId, confirmDeliverySchema.parse({
+        await expect(services.sales.confirmDelivery(staff, cashUp.id, methodChange.saleId, confirmDeliverySchema.parse({ tipUsd: '0.00', tipLbp: '0.00', totalCollectedLbp: '0.00', changeGivenLbp: '0.00',
             totalCollectedUsd: '20',
             changeGivenUsd: '8',
             method: 'WHISH',
-        }))).resolves.toMatchObject({ sale: { amountDiffers: true } });
+        }))).resolves.toMatchObject({ sale: { amountDiffers: false } });
         const amountChange = await services.sales.create(staff, cashUp.id, plannedSale, randomUUID());
-        await expect(services.sales.confirmDelivery(staff, cashUp.id, amountChange.saleId, confirmDeliverySchema.parse({
+        await expect(services.sales.confirmDelivery(staff, cashUp.id, amountChange.saleId, confirmDeliverySchema.parse({ tipUsd: '0.00', tipLbp: '0.00', totalCollectedLbp: '0.00', changeGivenLbp: '0.00',
             totalCollectedUsd: '21',
             changeGivenUsd: '8',
             method: 'CASH',

@@ -504,7 +504,7 @@ describe("CashUp persistence against PostgreSQL", () => {
         }, { maxWait: 5000, timeout: 15000 });
         const { sale } = await prisma.$transaction(async (tx) => {
             const repos = repositoriesForTest(({ businessId: business.id }).businessId, tx);
-            return repos.sales.create(makeSaleInput(cashUp.id));
+            return repos.sales.create(makeSaleInput(cashUp.id, { status: SaleStatus.TO_DELIVER }));
         }, { maxWait: 5000, timeout: 15000 });
         await prisma.$transaction(async (tx) => {
             const repos = repositoriesForTest(({ businessId: business.id }).businessId, tx);
@@ -531,7 +531,7 @@ describe("CashUp persistence against PostgreSQL", () => {
         }, { maxWait: 5000, timeout: 15000 });
         const delivered = await prisma.$transaction(async (tx) => {
             const repos = repositoriesForTest(({ businessId: business.id }).businessId, tx);
-            return repos.sales.markDelivered(delivery.sale.id, {
+            return repos.sales.markDelivered(delivery.sale.id, { tipUsd: '0.00', tipLbp: '0.00', deliveryFeeUsd: '0.00', deliveryFeeLbp: '0.00',
                 totalCollectedLbp: '0.00',
                 changeGivenUsd: '0.00',
                 changeGivenLbp: '0.00',
@@ -543,7 +543,7 @@ describe("CashUp persistence against PostgreSQL", () => {
         expect(delivered.status).toBe(SaleStatus.DELIVERED);
         await expect(prisma.$transaction(async (tx) => {
             const repos = repositoriesForTest(({ businessId: business.id }).businessId, tx);
-            return repos.sales.markDelivered(delivery.sale.id, {
+            return repos.sales.markDelivered(delivery.sale.id, { tipUsd: '0.00', tipLbp: '0.00', deliveryFeeUsd: '0.00', deliveryFeeLbp: '0.00',
                 totalCollectedLbp: '0.00',
                 changeGivenUsd: '0.00',
                 changeGivenLbp: '0.00',

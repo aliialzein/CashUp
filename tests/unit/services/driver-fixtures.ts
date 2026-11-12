@@ -19,6 +19,7 @@ export function sale(values: Partial<Sale> = {}): Sale {
         businessAmountUsd: money('10'), businessAmountLbp: money(), deliveryFeeUsd: money('2'), deliveryFeeLbp: money(),
         tipUsd: money(), tipLbp: money(), discountUsd: money(), discountLbp: money(),
         totalCollectedUsd: money('12'), totalCollectedLbp: money('3000'), changeGivenUsd: money('1'), changeGivenLbp: money('100'),
+        legacyPendingPayment: null,
         method: 'CASH', clientNumber: null, note: null, amountDiffers: false, isEdited: false, deletionAwaiting: false,
         cancelReason: null, idempotencyKey: null, createdAt: date, updatedAt: date, deliveredAt: date, deletedAt: null, ...values
     };
@@ -37,8 +38,8 @@ export function deliveredTotals(sales: readonly Sale[]): SaleTotalsRow[] {
     return sales.filter(row => row.status === 'DELIVERED').flatMap(row => (['USD', 'LBP'] as const).map(currency => {
         const suffix = currency === 'USD' ? 'Usd' : 'Lbp';
         return {
-            currency, method: row.method, count: 1, businessAmount: row[`businessAmount${suffix}`], deliveryFee: row[`deliveryFee${suffix}`],
-            totalCollected: row[`totalCollected${suffix}`], tip: row[`tip${suffix}`], discount: row[`discount${suffix}`]
+            currency, method: row.method!, count: 1, businessAmount: row[`businessAmount${suffix}`], deliveryFee: row[`deliveryFee${suffix}`],
+            totalCollected: row[`totalCollected${suffix}`]!, tip: row[`tip${suffix}`]!, discount: row[`discount${suffix}`]
         };
     }));
 }

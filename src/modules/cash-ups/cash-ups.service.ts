@@ -23,7 +23,7 @@ import { countDenominations, computeExpectedAndGap, summarizeSales, walletTotals
 import { toMoneyString } from "../../domain/money/money";
 import { type PageQuery } from "../../shared/validation/common";
 import { mapCashOut } from "../cash-outs/cash-outs.mapper";
-import { mapSaleLine } from "../sales/sales.mapper";
+import { mapSaleLine, mapSaleDeletionRequest } from "../sales/sales.mapper";
 import 'server-only';
 const CASH_UP_ENTITY = AuditEntityType.CASH_UP;
 export async function openCashUp(input: OpenCashUpInput): Promise<CashUpDto> {
@@ -230,6 +230,12 @@ export async function voidOwnOpenCashUp(cashUpId: string, reason: string): Promi
             });
             if (sale)
                 throw new BusinessRuleError('CASHUP_NOT_EMPTY');
+            const cashOut = await tx.cashOut.findFirst({
+                where: { cashUpId, cashUp: { businessId: actor.businessId } },
+                select: { id: true },
+            });
+            if (cashOut)
+                throw new BusinessRuleError('CASHUP_NOT_EMPTY');
             const voided = await cashUps.voidCashUp(cashUpId, parsed.data.reason);
             await recordAudit(audit, actor, {
                 action: AuditAction.CASHUP_VOIDED, entityType: CASH_UP_ENTITY,
@@ -381,11 +387,11 @@ export async function getOwnOpenCashUp(): Promise<CashUpOwnDto | null> {
 async function cashUpQueryLoadOwnDetail(cashUp: CashUpRow, db: PrismaClient = getPrisma()): Promise<CashUpOwnDto> {
     const sales = new SaleRepository(cashUp.businessId, db);
     const cashOuts = new CashOutRepository(cashUp.businessId, db);
-    const [rows, summary, expenses] = await Promise.all([
+    const [rows, summary, expenses, requests] = await Promise.all([
         sales.list(cashUp.id, { statuses: Object.values(SaleStatus) }),
-        sales.countByStatus(cashUp.id), cashOuts.listByCashUp(cashUp.id),
+        sales.countByStatus(cashUp.id), cashOuts.listByCashUp(cashUp.id), sales.listDeletionRequests(cashUp.id),
     ]);
-    return mapOwnCashUp(cashUp, rows, expenses, summary);
+    return mapOwnCashUp(cashUp, rows, expenses, summary, requests.map(mapSaleDeletionRequest));
 }
 export async function listOwnCashUps(query: PageQuery): Promise<CashUpHistoryRowDto[]> {
     const actor = await requireCurrentMember();
@@ -505,7 +511,7 @@ export async function getCashUpReview(id: string): Promise<CashUpReviewDto> {
         if (!cashUp)
             throw new EntityNotFoundError();
         cashUpQueryAssertReviewable(actor, cashUp.membership.role, cashUp.membershipId, settings.isSolo);
-        const [sales, salesSummary, cashOuts, countEntries, flags, saleTotals, changes, counted] = await Promise.all([
+        const [sales, salesSummary, cashOuts, countEntries, flags, saleTotals, changes, counted, requests] = await Promise.all([
             saleRepository.list(id, { statuses: Object.values(SaleStatus) }),
             saleRepository.countByStatus(id),
             cashOutRepository.listByCashUp(id),
@@ -514,10 +520,12 @@ export async function getCashUpReview(id: string): Promise<CashUpReviewDto> {
             saleRepository.totalsByCurrencyAndMethod(id),
             saleRepository.changeGivenByCurrency(id),
             countEntryRepository.countedTotals(id),
+            saleRepository.listDeletionRequests(id),
         ]);
         return {
             ...mapCashUp(cashUp),
             sales: sales.map(mapSaleLine),
+            requests: requests.map(mapSaleDeletionRequest),
             salesSummary,
             cashOuts: cashOuts.map(mapCashOut),
             countEntries: countEntries.map(mapCountEntry),

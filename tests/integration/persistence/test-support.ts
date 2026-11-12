@@ -125,8 +125,8 @@ export async function seedBusinesses(): Promise<Fixtures> {
         },
     };
 }
-export function makeSaleInput(cashUpId: string, overrides: Partial<CreateSaleInput> = {}) {
-    return {
+export function makeSaleInput(cashUpId: string, overrides: Partial<CreateSaleInput> = {}): CreateSaleInput {
+    const input = {
         cashUpId,
         status: SaleStatus.DELIVERED,
         method: PaymentMethod.CASH,
@@ -144,6 +144,11 @@ export function makeSaleInput(cashUpId: string, overrides: Partial<CreateSaleInp
         changeGivenLbp: '0.00',
         ...overrides,
     };
+    if (input.status === SaleStatus.TO_DELIVER) {
+        return { ...input, method: null, tipUsd: null, tipLbp: null,
+            totalCollectedUsd: null, totalCollectedLbp: null, changeGivenUsd: null, changeGivenLbp: null };
+    }
+    return input;
 }
 /** Concrete repository fixtures; each test chooses its own Prisma transaction boundary. */
 export function repositoriesForTest(businessId: string, db: Db = prisma) {

@@ -42,7 +42,7 @@ it('signs up with a real Argon2id hash and stores only a token hash, issuing a s
   expect(session.expiresAt.getTime() - Date.now()).toBeGreaterThan(6 * 86400000);
   expect(jar.set).toHaveBeenCalledWith(SESSION_COOKIE, token, expect.objectContaining({ httpOnly: true, secure: true, sameSite: 'lax', path: '/' }));
   expect(repository.lockSignupEmail).toHaveBeenCalledWith('name@example.test', tx);
-  expect(repository.consumeAuthAttempt).toHaveBeenCalledWith('signup', expect.stringMatching(/^[a-f0-9]{64}$/), tx);
+  expect(repository.consumeAuthAttempt).toHaveBeenCalledWith('signup', expect.stringMatching(/^[a-f0-9]{64}$/));
 });
 it('refuses existing mixed-case/social emails without linking accounts', async () => {
   jest.mocked(repository.usersMatchingEmail).mockResolvedValue([user({ provider: 'GOOGLE' })]);
@@ -127,4 +127,32 @@ it('rejects attempts denied by the database before credential queries or session
   await expect(run(() => login({ email: 'name@example.test', password: 'password123' }))).rejects.toMatchObject({ code: 'TOO_MANY_ATTEMPTS' });
   expect(repository.usersMatchingEmail).not.toHaveBeenCalled();
   expect(repository.createSession).not.toHaveBeenCalled();
+});
+
+it('stops before account persistence and cookie access when the rate-limit table is missing', async () => {
+  const failure = new Prisma.PrismaClientKnownRequestError('Raw query failed', {
+    code: 'P2010', clientVersion: 'test', meta: { code: '42P01' },
+  });
+  jest.mocked(repository.consumeAuthAttempt).mockRejectedValueOnce(failure);
+  await expect(run(() => signup(input))).rejects.toBe(failure);
+  expect(transaction).not.toHaveBeenCalled();
+  expect(repository.lockSignupEmail).not.toHaveBeenCalled();
+  expect(repository.createLocalUser).not.toHaveBeenCalled();
+  expect(repository.createSession).not.toHaveBeenCalled();
+  expect(jar.set).not.toHaveBeenCalled();
+});
+
+it('does not acquire an interactive transaction before rejecting invalid login credentials', async () => {
+  jest.mocked(repository.usersMatchingEmail).mockResolvedValue([]);
+  await expect(run(() => login({ email: input.email, password: input.password }))).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
+  expect(repository.consumeAuthAttempt).toHaveBeenCalledWith('login', expect.stringMatching(/^[a-f0-9]{64}$/));
+  expect(transaction).not.toHaveBeenCalled();
+  expect(jar.set).not.toHaveBeenCalled();
+});
+
+it('uses one transaction only for verified login session rotation', async () => {
+  jest.mocked(repository.usersMatchingEmail).mockResolvedValue([user({ passwordHash: await hash(input.password) })]);
+  await run(() => login({ email: input.email, password: input.password }));
+  expect(transaction).toHaveBeenCalledTimes(1);
+  expect(repository.createSession).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user' }), tx);
 });

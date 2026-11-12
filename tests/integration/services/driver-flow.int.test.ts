@@ -3,7 +3,7 @@ import { createSaleSchema } from '../../../src/modules/sales/sales.validation';
 import { legacyAmendmentFixtures } from '../../fixtures/legacy-amendments';
 import { prisma, resetDatabase, seedBusinesses, services, staffActor, managerActor } from './service-test-support';
 import { repositoriesForTest, makeSaleInput } from '../persistence/test-support';
-const saleInput = createSaleSchema.parse({ status: 'DELIVERED', businessAmountUsd: '10', totalCollectedUsd: '10', method: 'CASH' });
+const saleInput = createSaleSchema.parse({ tipUsd: '0.00', tipLbp: '0.00', totalCollectedLbp: '0.00', changeGivenUsd: '0.00', changeGivenLbp: '0.00', status: 'DELIVERED', businessAmountUsd: '10', totalCollectedUsd: '10', method: 'CASH' });
 beforeEach(resetDatabase);
 afterAll(async () => { await prisma.$disconnect(); });
 it('reads the own open cash-up and zero counts, then freezes the same ledger on submit', async () => {
@@ -54,7 +54,7 @@ it.each(['DELIVERED', 'DELETED'] as const)('rejects voiding with a %s sale and p
     const actor = await staffActor(businessA);
     const opened = await services.lifecycle.open(actor, {});
     const input = status === 'DELETED'
-        ? createSaleSchema.parse({ ...saleInput, status: 'TO_DELIVER', clientNumber: '+961123456' })
+        ? createSaleSchema.parse({ businessAmountUsd: '10', status: 'TO_DELIVER', clientNumber: '+961123456' })
         : saleInput;
     const { sale } = await services.sales.create(actor, opened.id, input, randomUUID());
     if (status === 'DELETED') await services.sales.cancel(actor, opened.id, sale.id, 'Customer cancelled');

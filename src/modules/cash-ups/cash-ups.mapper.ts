@@ -120,8 +120,20 @@ export function mapOwnCashUp(
     sales: readonly Sale[],
     cashOuts: readonly CashOut[],
     salesSummary: SalesSummaryDto,
+    requests: readonly import('../sales/sales.types').SaleDeletionRequestDto[] = [],
 ): CashUpOwnDto {
-    const delivered = sales.filter(sale => sale.status === 'DELIVERED');
+    const delivered = sales.filter((sale): sale is Sale & {
+        method: NonNullable<Sale['method']>; tipUsd: NonNullable<Sale['tipUsd']>; tipLbp: NonNullable<Sale['tipLbp']>;
+        totalCollectedUsd: NonNullable<Sale['totalCollectedUsd']>; totalCollectedLbp: NonNullable<Sale['totalCollectedLbp']>;
+        changeGivenUsd: NonNullable<Sale['changeGivenUsd']>; changeGivenLbp: NonNullable<Sale['changeGivenLbp']>;
+    } => {
+        if (sale.status !== 'DELIVERED') return false;
+        if (sale.method === null || sale.tipUsd === null || sale.tipLbp === null ||
+            sale.totalCollectedUsd === null || sale.totalCollectedLbp === null ||
+            sale.changeGivenUsd === null || sale.changeGivenLbp === null)
+            throw new Error('Delivered sale has incomplete payment');
+        return true;
+    });
 
     const ledger = buildCashLedger({
         floatUsd: row.floatUsd,
@@ -165,6 +177,7 @@ export function mapOwnCashUp(
         sales: sales.map(mapSaleLine),
         cashOuts: cashOuts.map(mapCashOut),
         salesSummary,
+        requests,
         ledger,
     };
 }
