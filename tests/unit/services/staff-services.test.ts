@@ -399,6 +399,17 @@ describe('SaleService', () => {
         expect(app.repos.sales.markDelivered).toHaveBeenCalledWith(saleId, expect.objectContaining({ amountDiffers: true, }));
         expect(app.audit.record).toHaveBeenCalledTimes(1);
     });
+    it.each([['10.00', false], ['11.00', true]] as const)('compares historical CASH orders paid by WHISH financially (%s USD)', async (totalCollectedUsd, amountDiffers) => {
+        const app = setup({
+            saleStatus: 'TO_DELIVER',
+            saleValues: { method: 'CASH', businessAmountUsd: new Prisma.Decimal('10.00') },
+        });
+        await app.sales.confirmDelivery(app.actor, cashUpId, saleId, {
+            tipUsd: '0.00', tipLbp: '0.00', totalCollectedUsd, totalCollectedLbp: '0.00',
+            changeGivenUsd: '0.00', changeGivenLbp: '0.00', method: 'WHISH',
+        });
+        expect(app.repos.sales.markDelivered).toHaveBeenCalledWith(saleId, expect.objectContaining({ method: 'WHISH', amountDiffers }));
+    });
     it('rejects delivery confirmation on a collected sale', async () => {
         const app = setup();
         await expect(app.sales.confirmDelivery(app.actor, cashUpId, saleId, { tipUsd: '0.00', tipLbp: '0.00',

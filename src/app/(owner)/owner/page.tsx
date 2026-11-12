@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from 'react';
+import { listOwnerCashUps } from '@/modules/cash-ups/cash-ups.service';
 
 const stats = [
   {
@@ -18,7 +20,13 @@ const stats = [
   },
 ];
 
-export default function OwnerDashboardPage() {
+async function DashboardContent() {
+  const cashUps = await listOwnerCashUps();
+  const counts = [
+    cashUps.filter(row => row.status === 'OPEN').length,
+    cashUps.filter(row => row.status === 'SUBMITTED').length,
+    cashUps.filter(row => row.status === 'APPROVED').length,
+  ];
   return (
     <div className="space-y-8">
       {/* Welcome */}
@@ -36,7 +44,7 @@ export default function OwnerDashboardPage() {
 
       {/* Statistics */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {stats.map((stat) => (
+        {stats.map((stat, index) => (
           <div
             key={stat.title}
             className="rounded-2xl border border-[#E5EEE8] bg-white p-5 shadow-sm"
@@ -51,7 +59,8 @@ export default function OwnerDashboardPage() {
               </span>
             </div>
 
-            <p className="mt-4 text-sm text-[#718077]">{stat.description}</p>
+            <p className="mt-4 text-2xl font-bold text-[#145B37]">{counts[index]}</p>
+            <p className="mt-1 text-sm text-[#718077]">{stat.description}</p>
           </div>
         ))}
       </section>
@@ -79,4 +88,8 @@ export default function OwnerDashboardPage() {
       </section>
     </div>
   );
+}
+
+export default function OwnerDashboardPage() {
+  return <Suspense fallback={<p role="status">Loading dashboard…</p>}><DashboardContent /></Suspense>;
 }

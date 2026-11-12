@@ -1,7 +1,8 @@
-import type { CashUpCardData } from "@/components/owner/cash-up-view-models";
+import type { OwnerCashUpDetailDto } from '../../../modules/cash-ups/cash-ups.types';
+import { ownerDate } from '../owner-format';
 
 interface Props {
-  cashUp: CashUpCardData;
+  cashUp: OwnerCashUpDetailDto;
 }
 
 export default function ReviewHeader({ cashUp }: Props) {
@@ -9,22 +10,22 @@ export default function ReviewHeader({ cashUp }: Props) {
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 className="text-2xl font-bold text-[#145B37]">
-          Review: {cashUp.membership.user.fullName}
+          Cash-up #{cashUp.number}: {cashUp.staffName}
         </h1>
 
         <p className="mt-1 text-sm text-[#718078]">
-          Opened {cashUp.openedAt.toLocaleString()}
+          Opened {ownerDate(cashUp.openedAt)}
         </p>
 
-        {cashUp.closedAt && (
+        {cashUp.review?.closedAt && (
           <p className="text-sm text-[#718078]">
-            Closed {cashUp.closedAt.toLocaleString()}
+            Closed {ownerDate(cashUp.review.closedAt)}
           </p>
         )}
       </div>
 
       <span className="w-fit rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
-        Submitted
+        {cashUp.status}
       </span>
     </div>
   );

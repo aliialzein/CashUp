@@ -1,6 +1,6 @@
 import type { CashUpStatus, Currency } from '../../generated/prisma/enums';
 import type { ExpectedGap, CurrencySalesSummary, CashLedger } from '../../domain/money/cash-up-totals';
-import { SaleLineDto } from '../sales/sales.types';
+import { SaleLineDto, type SaleDeletionRequestDto } from '../sales/sales.types';
 import { SalesSummaryDto } from '../sales/sales.types';
 import { CashOutDto } from '../cash-outs/cash-outs.types';
 export interface CashUpDto {
@@ -83,4 +83,32 @@ export interface CashUpReviewDto extends CashUpWithSalesDto {
         readonly amountDiffers: number;
         readonly deletionAwaiting: number;
     };
+}
+
+export interface OwnerSaleDeletionRequestDto extends SaleDeletionRequestDto {
+    readonly saleNumber: number | null;
+    readonly requestedByName: string;
+    readonly decidedByName: string | null;
+    readonly canDecide: boolean;
+}
+export interface OwnerCashUpSummaryDto {
+    readonly id: string;
+    readonly number: number;
+    readonly status: CashUpStatus;
+    readonly openedAt: string;
+    readonly staffName: string;
+    readonly salesCount: number;
+    readonly returnReason: string | null;
+    readonly voidReason: string | null;
+    readonly canReview: boolean;
+    readonly requests: readonly OwnerSaleDeletionRequestDto[];
+}
+export interface OwnerCashUpDetailDto extends OwnerCashUpSummaryDto {
+    /** OPEN records retain summary-only visibility. Review policy still governs financial detail. */
+    readonly review: CashUpReviewDto | null;
+    readonly edits: readonly {
+        readonly id: string; readonly saleId: string; readonly field: string;
+        readonly oldValue: string | null; readonly newValue: string | null;
+        readonly createdAt: string; readonly editedByName: string;
+    }[];
 }

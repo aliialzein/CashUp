@@ -1,49 +1,23 @@
-import { Suspense } from "react";
-import { notFound } from "next/navigation";
+import { Suspense } from 'react';
+import Link from 'next/link';
+import { ownerCashUpPage } from '../../../queries';
+import CashUpSalesList from '@/components/owner/cash-up-sales/CashUpSalesList';
+import ReviewFlags from '@/components/owner/cash-up-review/ReviewFlags';
 
-import { mockCashUps } from "@/data/mock/cash-ups";
-import { CashUpStatus } from "@/components/owner/cash-up-view-models";
-
-import CashUpSalesList from "@/components/owner/cash-up-sales/CashUpSalesList";
-
-interface Props {
-  params: Promise<{ cashUpId: string }>;
-}
-
-function SalesSkeleton() {
-  return (
-    <div className="animate-pulse space-y-4">
-      <div className="h-20 rounded-xl bg-[#E5EEE8]" />
-      <div className="h-40 rounded-xl bg-[#E5EEE8]" />
-      <div className="h-40 rounded-xl bg-[#E5EEE8]" />
-    </div>
-  );
-}
-
+interface Props { params: Promise<{ cashUpId: string }> }
 async function SalesContent({ params }: Props) {
-  const { cashUpId } = await params;
-
-  const cashUp = mockCashUps.find((item) => item.id === cashUpId);
-
-  if (!cashUp || cashUp.status !== CashUpStatus.SUBMITTED) {
-    notFound();
-  }
-
-  return (
-    <CashUpSalesList
-      sales={cashUp.sales}
-      requests={cashUp.requests}
-      employeeName={cashUp.membership.user.fullName}
-    />
-  );
+  const cashUp = await ownerCashUpPage((await params).cashUpId);
+  return <>
+    <Link href={'/owner/cash-ups/' + cashUp.id + '/review'} className="text-sm text-[#167344]">← Cash-up details</Link>
+    {cashUp.review ? <CashUpSalesList cashUp={cashUp} /> : <>
+      <h1 className="text-2xl font-bold text-[#145B37]">Cash-up Sales</h1>
+      <p className="text-sm text-[#718078]">Financial sales details are available after submission to an eligible reviewer. Requests and their decisions remain available below.</p>
+      <ReviewFlags requests={cashUp.requests} />
+    </>}
+  </>;
 }
-
 export default function CashUpSalesPage({ params }: Props) {
-  return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-6">
-      <Suspense fallback={<SalesSkeleton />}>
-        <SalesContent params={params} />
-      </Suspense>
-    </main>
-  );
+  return <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-6">
+    <Suspense fallback={<p role="status">Loading sales…</p>}><SalesContent params={params} /></Suspense>
+  </div>;
 }

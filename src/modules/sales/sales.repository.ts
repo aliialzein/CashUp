@@ -340,6 +340,13 @@ export class SaleRepository {
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
   }
+  listEditsForCashUp(cashUpId: string) {
+    return this.db.saleEdit.findMany({
+      where: { sale: { cashUpId, businessId: this.businessId } },
+      include: { editedBy: { select: { user: { select: { fullName: true } } } } },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+  }
   async createDeletionRequest(cashUpId: string, saleId: string, requestedById: string, reason: string): Promise<Request> {
     return this.db.request.create({ data: {
       businessId: this.businessId, cashUpId, saleId, requestedById, reason, type: 'DELETE_SALE',
