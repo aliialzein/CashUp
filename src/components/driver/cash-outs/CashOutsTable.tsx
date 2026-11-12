@@ -3,7 +3,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { buttonVariantClasses } from "@/components/ui/driver/Button";
 import { cashOutReasonLabel } from "@/lib/driver/cash-out/reasonText";
-import { formatOutflow, outflowParts } from "@/lib/format/money";
+import { formatOutflow } from "@/lib/format/money";
 import type { CashOut } from "@/types/driver/cash-up";
 
 const TH = "h-10 px-5 font-medium whitespace-nowrap";
@@ -59,15 +59,11 @@ export function CashOutsTable({ cashOuts, empty = TODAY_EMPTY, onDelete }: CashO
                             <td className={`${TD} font-heading font-semibold whitespace-nowrap`}>{cashOutReasonLabel(cashOut)}</td>
                             <td className={`${TD} font-mono text-[13px] whitespace-nowrap text-muted`}>{cashOut.time}</td>
                             <td className={`${TD} text-muted`}>{noteCell(cashOut)}</td>
-                            {/* One line per currency, like the sales tables. */}
+                            {/* One line that never wraps, like the sales tables on desktop. */}
                             <td
-                                className={`${TD} py-2 text-right font-mono font-semibold whitespace-nowrap ${cashOut.isDeleted ? "text-muted line-through" : "text-danger"}`}
+                                className={`${TD} text-right font-mono font-semibold whitespace-nowrap ${cashOut.isDeleted ? "text-muted line-through" : "text-danger"}`}
                             >
-                                {outflowParts(cashOut.amount).map((part) => (
-                                    <span key={part} className="block">
-                                        {part}
-                                    </span>
-                                ))}
+                                {formatOutflow(cashOut.amount)}
                             </td>
                             {onDelete && (
                                 <td className={`${TD} w-px text-right whitespace-nowrap`}>

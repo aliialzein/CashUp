@@ -45,7 +45,7 @@ function LockedSaleRow({ sale, expandable }: LockedSaleRowProps) {
                 <span className="whitespace-nowrap">
                     <Badge tone={tone}>{label}</Badge>
                 </span>
-                {/* USD on one line and LBP on the next, on every row. */}
+                {/* One line "USD · LBP" on every row (AmountLines). */}
                 <span className="font-mono text-[13px] font-semibold">
                     <AmountLines amounts={amounts} />
                 </span>

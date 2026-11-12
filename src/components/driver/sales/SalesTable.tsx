@@ -62,7 +62,7 @@ function SaleRow({ sale, expandable, onDelete, onRequestDeletion }: SaleRowProps
                         <SaleStatusBadge status={sale.status} />
                     </span>
                 </td>
-                {/* USD on one line and LBP on the next, on every row; a waiting or deleted row adds its label below. */}
+                {/* One line "USD · LBP" on every row (AmountLines); a waiting or deleted row adds its label below. */}
                 <td className={`${TD} py-2 font-mono text-[13px] font-semibold ${collected ? "" : "text-muted"}`}>
                     <AmountLines amounts={amounts} />
                     {!collected && <span className="block font-sans text-xs font-normal">{label.toLowerCase()}</span>}

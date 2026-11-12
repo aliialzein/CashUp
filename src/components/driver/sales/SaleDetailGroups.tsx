@@ -11,12 +11,19 @@ function NoneText() {
     return <span className="text-muted">None</span>;
 }
 
-/** USD on one line and LBP under it, so a long pair never breaks in the middle. "None" when both are zero. */
+/**
+ * Both currencies of an amount, never broken in the middle. "None" when both are zero.
+ * Phone (the sale cards): USD on one line and LBP under it, so a long pair fits next to its label.
+ * From tablet up (the tables and the opened sale): one line, "15.00 USD · 0 LBP".
+ */
 export function AmountLines({ amounts }: { amounts: Amounts }) {
     if (isZeroAmounts(amounts)) return <NoneText />;
     return (
-        <span className="flex flex-col whitespace-nowrap">
+        <span className="flex flex-col whitespace-nowrap md:flex-row md:gap-1.5">
             <span>{formatMoney(amounts.usd, "USD")}</span>
+            <span aria-hidden="true" className="hidden md:inline">
+                ·
+            </span>
             <span>{formatMoney(amounts.lbp, "LBP")}</span>
         </span>
     );
