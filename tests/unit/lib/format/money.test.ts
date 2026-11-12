@@ -5,6 +5,7 @@ import {
 	formatNumber,
 	formatOutflow,
 	formatSignedAmounts,
+	outflowParts,
 } from "../../../../src/lib/format/money";
 
 describe("formatNumber", () => {
@@ -43,5 +44,13 @@ describe("formatOutflow", () => {
 		expect(formatOutflow({ usd: "5", lbp: "0" })).toBe("-5.00 USD");
 		expect(formatOutflow({ usd: "0", lbp: "200000" })).toBe("-200,000 LBP");
 		expect(formatOutflow({ usd: "5", lbp: "200000" })).toBe("-5.00 USD · -200,000 LBP");
+	});
+});
+
+describe("outflowParts", () => {
+	it("gives one entry per currency that has an amount, for one line each in the desktop table", () => {
+		expect(outflowParts({ usd: "5", lbp: "200000" })).toEqual(["-5.00 USD", "-200,000 LBP"]);
+		expect(outflowParts({ usd: "5", lbp: "0" })).toEqual(["-5.00 USD"]);
+		expect(outflowParts({ usd: "0", lbp: "200000" })).toEqual(["-200,000 LBP"]);
 	});
 });

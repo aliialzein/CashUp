@@ -1,12 +1,12 @@
 "use client";
 
 import { useId, useState, type ComponentProps } from "react";
+import { AmountLines } from "@/components/driver/sales/SaleDetailGroups";
 import { SaleDetailsCells } from "@/components/driver/sales/SaleDetailsCells";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Collapse } from "@/components/ui/Collapse";
 import { Icon } from "@/components/ui/Icon";
-import { formatAmounts } from "@/lib/format/money";
 import { saleAmountLine } from "@/lib/driver/sales/collected";
 import { CLIENT_PAID_LABEL } from "@/lib/driver/sales/saleLabels";
 import type { Sale, SaleStatus } from "@/types/driver/cash-up";
@@ -40,12 +40,15 @@ function LockedSaleRow({ sale, expandable }: LockedSaleRowProps) {
         <div className="border-b border-subtle last:border-b-0">
             <div className={`${expandable ? COLUMNS_WITH_DETAILS : COLUMNS} h-14 text-sm`}>
                 <span className="font-heading font-semibold">#{sale.number}</span>
-                <span className="font-mono text-[13px]">{sale.clientPhone}</span>
-                <span className="font-mono text-[13px] text-muted">{sale.time}</span>
-                <span>
+                <span className="font-mono text-[13px] whitespace-nowrap">{sale.clientPhone}</span>
+                <span className="font-mono text-[13px] whitespace-nowrap text-muted">{sale.time}</span>
+                <span className="whitespace-nowrap">
                     <Badge tone={tone}>{label}</Badge>
                 </span>
-                <span className="font-mono text-[13px] font-semibold">{formatAmounts(amounts)}</span>
+                {/* USD on one line and LBP on the next, on every row. */}
+                <span className="font-mono text-[13px] font-semibold">
+                    <AmountLines amounts={amounts} />
+                </span>
                 {expandable &&
                     (hasDetails ? (
                         <button
@@ -88,7 +91,7 @@ export function LockedSalesTable({ sales, expandable = false }: LockedSalesTable
     return (
         <Card as="section" aria-label="Sales" className="overflow-hidden">
             <div
-                className={`${expandable ? COLUMNS_WITH_DETAILS : COLUMNS} h-10 border-b border-line bg-canvas text-xs font-medium tracking-wider text-muted uppercase`}
+                className={`${expandable ? COLUMNS_WITH_DETAILS : COLUMNS} h-10 border-b border-line bg-canvas text-xs font-medium tracking-wider whitespace-nowrap text-muted uppercase`}
             >
                 <span>Sale</span>
                 <span>Client</span>

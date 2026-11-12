@@ -17,10 +17,12 @@ type AppShellProps = {
 /**
  * Frame shared by every signed-in page.
  * Desktop: a top bar with the logo, the menu and the business. Phone: the bars depend on the page (see phoneChrome).
+ * The bar and the page use the full width up to 1600px, with 32px side padding on desktop (16px on phone).
+ * Forms and small screens set their own narrower width inside it.
  */
 export function AppShell({ nav, identity, children }: AppShellProps) {
 	const barContent = (
-		<div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 md:h-16 md:px-8">
+		<div className="mx-auto flex h-14 max-w-400 items-center justify-between px-4 md:h-16 md:px-8">
 			<div className="hidden items-center md:flex">
 				<span className="mr-6 flex items-center gap-2.5">
 					<span
@@ -46,7 +48,7 @@ export function AppShell({ nav, identity, children }: AppShellProps) {
 			</Suspense>
 
 			{/* The extra bottom space on phone keeps the last field clear of the tab bar and the sticky buttons. */}
-			<main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-4 pb-28 md:px-8 md:pt-7 md:pb-12">{children}</main>
+			<main className="mx-auto w-full max-w-400 flex-1 px-4 pt-4 pb-28 md:px-8 md:pt-7 md:pb-12">{children}</main>
 
 			<Suspense fallback={<PhoneTabBarFallback items={nav} />}>
 				<PhoneTabBar items={nav} />

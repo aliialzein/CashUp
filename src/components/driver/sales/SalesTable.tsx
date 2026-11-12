@@ -13,11 +13,14 @@ import { routes } from "@/lib/routes";
 import { saleAmountLine } from "@/lib/driver/sales/collected";
 import { CLIENT_PAID_LABEL } from "@/lib/driver/sales/saleLabels";
 import type { Sale } from "@/types/driver/cash-up";
+import { AmountLines } from "./SaleDetailGroups";
 import { SaleDetailsCells } from "./SaleDetailsCells";
 import { SaleStatusBadge } from "./SaleStatusBadge";
 
-const TH = "h-10 px-5 font-medium";
+const TH = "h-10 px-5 font-medium whitespace-nowrap";
 const TD = "h-14 px-5";
+/** The last column takes only the width of its buttons, so they keep their size at the right edge. */
+const ACTIONS = "w-px whitespace-nowrap";
 const SMALL_BUTTON = "inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-[13px] font-semibold whitespace-nowrap";
 
 type SaleRowProps = {
@@ -43,13 +46,13 @@ function SaleRow({ sale, expandable, onDelete, onRequestDeletion }: SaleRowProps
             <tr>
                 <td className={`${TD} font-heading font-semibold`}>#{sale.number}</td>
                 <td className={`${TD} font-mono text-[13px]`}>
-                    {sale.clientPhone}
+                    <span className="whitespace-nowrap">{sale.clientPhone}</span>
                     {sale.status === "DELETED" && sale.cancelReason && (
                         <span className="block font-sans text-xs text-muted">Deleted: {sale.cancelReason}</span>
                     )}
                 </td>
-                <td className={`${TD} font-mono text-[13px] text-muted`}>{sale.time}</td>
-                <td className={TD}>
+                <td className={`${TD} font-mono text-[13px] whitespace-nowrap text-muted`}>{sale.time}</td>
+                <td className={`${TD} whitespace-nowrap`}>
                     <span className="inline-flex items-center gap-1.5">
                         {lockedInOpenCashUp && (
                             <span role="img" aria-label="Locked" className="text-muted">
@@ -59,11 +62,12 @@ function SaleRow({ sale, expandable, onDelete, onRequestDeletion }: SaleRowProps
                         <SaleStatusBadge status={sale.status} />
                     </span>
                 </td>
-                <td className={`${TD} font-mono text-[13px] font-semibold ${collected ? "" : "text-muted"}`}>
-                    {formatAmounts(amounts)}
-                    {!collected && <span className="ml-2 font-sans text-xs font-normal">{label.toLowerCase()}</span>}
+                {/* USD on one line and LBP on the next, on every row; a waiting or deleted row adds its label below. */}
+                <td className={`${TD} py-2 font-mono text-[13px] font-semibold ${collected ? "" : "text-muted"}`}>
+                    <AmountLines amounts={amounts} />
+                    {!collected && <span className="block font-sans text-xs font-normal">{label.toLowerCase()}</span>}
                 </td>
-                <td className={TD}>
+                <td className={`${TD} ${ACTIONS}`}>
                     <div className="flex items-center justify-end gap-2">
                         {sale.status === "TO_DELIVER" && (
                             <>
@@ -157,7 +161,7 @@ export function SalesTable({ sales, expandable = false, onDelete, onRequestDelet
                         <th className={TH}>Time</th>
                         <th className={TH}>Status</th>
                         <th className={TH}>{CLIENT_PAID_LABEL}</th>
-                        <th className={TH}>
+                        <th className={`${TH} ${ACTIONS}`}>
                             <span className="sr-only">Actions</span>
                         </th>
                     </tr>

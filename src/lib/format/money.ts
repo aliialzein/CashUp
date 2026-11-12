@@ -43,8 +43,8 @@ export function formatSignedAmounts(amounts: Amounts): string {
 	return `${formatNumber(amounts.usd, "USD", { signed: true })} USD · ${formatNumber(amounts.lbp, "LBP", { signed: true })} LBP`;
 }
 
-/** Money leaving the drawer. Shows only the currencies that have an amount: "-5.00 USD" or "-5.00 USD · -200,000 LBP". */
-export function formatOutflow(amounts: Amounts): string {
+/** Money leaving the drawer, one entry per currency that has an amount: ["-5.00 USD", "-200,000 LBP"]. */
+export function outflowParts(amounts: Amounts): string[] {
 	const parts: string[] = [];
 
 	if (hasAmount(amounts.usd))
@@ -53,5 +53,10 @@ export function formatOutflow(amounts: Amounts): string {
 	if (hasAmount(amounts.lbp))
 		parts.push(formatMoney(`-${amounts.lbp}`, "LBP"));
 
-	return parts.join(" · ");
+	return parts;
+}
+
+/** Money leaving the drawer on one line. Shows only the currencies that have an amount: "-5.00 USD" or "-5.00 USD · -200,000 LBP". */
+export function formatOutflow(amounts: Amounts): string {
+	return outflowParts(amounts).join(" · ");
 }

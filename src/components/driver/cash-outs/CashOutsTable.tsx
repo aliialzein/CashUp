@@ -3,10 +3,10 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { buttonVariantClasses } from "@/components/ui/driver/Button";
 import { cashOutReasonLabel } from "@/lib/driver/cash-out/reasonText";
-import { formatOutflow } from "@/lib/format/money";
+import { formatOutflow, outflowParts } from "@/lib/format/money";
 import type { CashOut } from "@/types/driver/cash-up";
 
-const TH = "h-10 px-5 font-medium";
+const TH = "h-10 px-5 font-medium whitespace-nowrap";
 const TD = "h-14 px-5";
 
 export type EmptyText = { title: string; text: string };
@@ -43,7 +43,7 @@ export function CashOutsTable({ cashOuts, empty = TODAY_EMPTY, onDelete }: CashO
                         <th className={`${TH} w-24`}>Time</th>
                         <th className={TH}>Note</th>
                         <th className={`${TH} w-64 text-right`}>Amount</th>
-                        {onDelete && <th className={`${TH} w-32 text-right`}>Action</th>}
+                        {onDelete && <th className={`${TH} w-px text-right`}>Action</th>}
                     </tr>
                 </thead>
                 <tbody>
@@ -56,16 +56,21 @@ export function CashOutsTable({ cashOuts, empty = TODAY_EMPTY, onDelete }: CashO
                     )}
                     {cashOuts.map((cashOut) => (
                         <tr key={cashOut.id} className="border-b border-subtle last:border-b-0">
-                            <td className={`${TD} font-heading font-semibold`}>{cashOutReasonLabel(cashOut)}</td>
-                            <td className={`${TD} font-mono text-[13px] text-muted`}>{cashOut.time}</td>
+                            <td className={`${TD} font-heading font-semibold whitespace-nowrap`}>{cashOutReasonLabel(cashOut)}</td>
+                            <td className={`${TD} font-mono text-[13px] whitespace-nowrap text-muted`}>{cashOut.time}</td>
                             <td className={`${TD} text-muted`}>{noteCell(cashOut)}</td>
+                            {/* One line per currency, like the sales tables. */}
                             <td
-                                className={`${TD} text-right font-mono font-semibold whitespace-nowrap ${cashOut.isDeleted ? "text-muted line-through" : "text-danger"}`}
+                                className={`${TD} py-2 text-right font-mono font-semibold whitespace-nowrap ${cashOut.isDeleted ? "text-muted line-through" : "text-danger"}`}
                             >
-                                {formatOutflow(cashOut.amount)}
+                                {outflowParts(cashOut.amount).map((part) => (
+                                    <span key={part} className="block">
+                                        {part}
+                                    </span>
+                                ))}
                             </td>
                             {onDelete && (
-                                <td className={`${TD} text-right`}>
+                                <td className={`${TD} w-px text-right whitespace-nowrap`}>
                                     {!cashOut.isDeleted && (
                                         <button
                                             type="button"
