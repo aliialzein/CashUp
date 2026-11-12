@@ -84,13 +84,19 @@ money strings. To change currency, denomination, or amount limits, edit
 
 ## Seeding a dev business
 
+For a repeatable STAFF **login** fixture with a dedicated development business,
+use `npm run db:seed:staff` after configuring the verified local target and
+environment credentials in [development staff setup](docs/development-staff.md).
+The driver UI is missing from this checkout; [Stage 2 readiness](docs/driver-integration-readiness.md)
+records the available frontend branch and the remaining integration blocker.
+
 Run the SQL in `scripts/dev-seed.sql` in the Supabase SQL editor for the dev project only. It creates one multi-user dev business with a fixed Owner, Manager, and two Staff members and is safe to apply repeatedly because every insert uses `ON CONFLICT DO NOTHING`. Seeded users are not login credentials. Use the real signup flow; no development identity override remains.
 
 ## Application calls
 
 Server Components call feature services for reads. Thin Server Actions validate commands and call feature services for writes. Services resolve the current session/member internally, enforce permissions and lifecycle rules, and call concrete repositories. Repositories own Prisma queries; financial calculations remain in the pure money domain.
 
-The internal REST API and its transport infrastructure have been removed. Login, signup, logout and business onboarding use the existing Server Actions. Driver integration is deferred; owner business pages still use their existing view models.
+The internal REST API and its transport infrastructure have been removed. Login, signup, logout and business onboarding use the existing Server Actions. Driver integration is deferred. Owner pages read authenticated services and use Server Actions for cash-up and sale-deletion decisions; see [owner workspace](docs/owner-workspace.md).
 
 Sale/cash-out creation commands retain required UUID idempotencyKey values and database uniqueness. Reuse a key for retries of the same command. Mutable-sale retries may fail with IDEMPOTENCY_REPLAY_UNVERIFIABLE; closed-record retries still fail lifecycle checks. No opening-response cache or transport replay store remains. See [service contracts](docs/service-consolidation.md), [local auth](docs/local-auth.md), and [transport removal](docs/transport-removal.md).
 
@@ -106,3 +112,33 @@ localhost port `55432`, with no URL query parameters. CI supplies the same Postg
 Never point this suite at a development or production database: fixtures reset its tables.
 The Compose service uses tmpfs; after testing, stop it with
 `docker compose --file docker-compose.test.yml down` to discard its data.
+
+### Signup schema prerequisite
+
+Signup consumes its database-backed rate limit before creating a user. A database
+missing `auth_attempts` therefore fails before the user/session transaction; missing
+`sessions` would roll back that transaction. Passing mocked unit tests does not
+establish that the runtime database has these tables.
+
+For an existing database whose migration history ends at
+`20261107190934_money_pairs_and_cashup_numbers`, the required committed migrations are:
+
+- `20261108000000_local_sessions`
+- `20261108000100_session_rls`
+- `20261108000200_auth_attempts`
+
+Confirm that Next.js `DATABASE_URL` and the migration `DIRECT_URL` identify the
+intended development project, database and schema before applying them through the
+existing `npm run db:migrate:deploy` command. Next.js loads `.env.local` ahead of
+`.env`; the Prisma CLI configuration loads `.env` through dotenv instead. Do not
+copy or print connection strings when comparing targets. Restart the development
+server after correcting environment configuration because `getPrisma()` caches
+its first client. Do not use `db push`, resets, or permission changes for this issue.
+
+After the approved migration deployment, submit a unique disposable account at
+`/signup`. Check one user, an Argon2id password hash, and one session containing
+only the token hash. Confirm the browser receives the HttpOnly `cashup_session`
+cookie, reaches `/onboarding`, and remains authenticated after refresh. In a fresh
+signed-out browser context, repeat the same signup and verify the safe duplicate
+error and unchanged user/session counts. Check persistence before retrying any
+ambiguous submission.

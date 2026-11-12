@@ -90,7 +90,7 @@ it('preserves duplicate/mismatch protection and refuses both original and edited
   const member = await staffActor(businessA);
   await withTestMember(member, prisma, async () => {
     const opened = await openCashUp({});
-    const command = { ...createSaleSchema.parse({ businessAmountUsd: '10', totalCollectedUsd: '10', method: 'CASH', status: 'DELIVERED' }), idempotencyKey: randomUUID() };
+    const command = { ...createSaleSchema.parse({ businessAmountUsd: '10', status: 'TO_DELIVER', clientNumber: '+961123456' }), idempotencyKey: randomUUID() };
     const first = await createSale(opened.id, command);
     expect((await createSale(opened.id, command)).replayed).toBe(true);
     await expect(createSale(opened.id, { ...command, note: 'different command' })).rejects.toMatchObject({ code: 'IDEMPOTENCY_KEY_REUSED' });
@@ -102,6 +102,7 @@ it('preserves duplicate/mismatch protection and refuses both original and edited
     expect(await prisma.auditLog.count({ where: { businessId: member.businessId } })).toBe(auditCount);
     expect(await prisma.sale.count({ where: { cashUpId: opened.id } })).toBe(1);
     expect((await prisma.cashUp.findUniqueOrThrow({ where: { id: opened.id } })).lastSaleNumber).toBe(1);
+    await confirmSaleDelivery(opened.id, first.saleId, { method: 'CASH', totalCollectedUsd: '10', totalCollectedLbp: '0', changeGivenUsd: '0', changeGivenLbp: '0', tipUsd: '0', tipLbp: '0' });
     await replaceOwnCounts(opened.id, { lines: [{ currency: 'USD', denomination: '1.00', quantity: 0 }] });
     await submitCashUp(opened.id);
     await expect(createSale(opened.id, command)).rejects.toMatchObject({ code: 'CASHUP_NOT_OPEN' });
@@ -113,10 +114,10 @@ it('does not accept a matching mutable current payload after delivery confirmati
   const member = await staffActor(businessA);
   await withTestMember(member, prisma, async () => {
     const opened = await openCashUp({});
-    const command = { ...createSaleSchema.parse({ businessAmountUsd: '10', totalCollectedUsd: '10', method: 'CASH', status: 'TO_DELIVER', clientNumber: '+9611234567' }), idempotencyKey: randomUUID() };
+    const command = { ...createSaleSchema.parse({ businessAmountUsd: '10',   status: 'TO_DELIVER', clientNumber: '+9611234567' }), idempotencyKey: randomUUID() };
     const first = await createSale(opened.id, command);
-    await confirmSaleDelivery(opened.id, first.saleId, { totalCollectedUsd: '10.00', totalCollectedLbp: '0.00', changeGivenUsd: '0.00', changeGivenLbp: '0.00', method: 'CASH' });
-    for (const retry of [command, { ...command, status: 'DELIVERED' as const }]) {
+    await confirmSaleDelivery(opened.id, first.saleId, { tipUsd: '0.00', tipLbp: '0.00', totalCollectedUsd: '10.00', totalCollectedLbp: '0.00', changeGivenUsd: '0.00', changeGivenLbp: '0.00', method: 'CASH' });
+    for (const retry of [command, { ...command, status: 'DELIVERED' as const, method: 'CASH' as const, tipUsd: '0', tipLbp: '0', totalCollectedUsd: '10', totalCollectedLbp: '0', changeGivenUsd: '0', changeGivenLbp: '0' }]) {
       await expect(createSale(opened.id, retry)).rejects.toMatchObject({ code: 'IDEMPOTENCY_REPLAY_UNVERIFIABLE' });
     }
   });

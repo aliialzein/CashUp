@@ -36,7 +36,7 @@ describe('validation output remains persistence-compatible', () => {
             cashUpId: 'cash-up-id',
             idempotencyKey: '0399f1fb-cd14-40d0-9388-7024fcdd9579',
         } satisfies PersistenceCreateSaleInput;
-        const confirmation = confirmDeliverySchema.parse({
+        const confirmation = confirmDeliverySchema.parse({ tipUsd: '0.00', tipLbp: '0.00',
             totalCollectedLbp: '0.00',
             changeGivenUsd: '0.00',
             changeGivenLbp: '0.00',
@@ -45,7 +45,11 @@ describe('validation output remains persistence-compatible', () => {
         });
         const confirmationInput = {
             ...confirmation,
-            ...computeDeliveryFlags({ totalCollectedLbp: '0.00', totalCollectedUsd: '10', method: 'CASH' }, confirmation),
+            deliveryFeeUsd: '0', deliveryFeeLbp: '0',
+            ...computeDeliveryFlags({
+                businessAmountUsd: '10', businessAmountLbp: '0', deliveryFeeUsd: '0', deliveryFeeLbp: '0',
+                tipUsd: '0', tipLbp: '0', discountUsd: '0', discountLbp: '0', method: null,
+            }, confirmation),
         } satisfies PersistenceConfirmDeliveryInput;
         const cashOut = createCashOutSchema.parse({
             amountLbp: '0.00', note: null,

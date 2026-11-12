@@ -122,7 +122,7 @@ describe("cash-up write serialization", () => {
         if (operation === "sales.edit") {
             saleId = (await prisma.$transaction(async (tx) => {
                 const repos = repositoriesForTest(({ businessId: business.id }).businessId, tx);
-                return repos.sales.create(makeSaleInput(cashUp.id));
+                return repos.sales.create(makeSaleInput(cashUp.id, { status: SaleStatus.TO_DELIVER }));
             }, { maxWait: 5000, timeout: 15000 })).sale.id;
         }
         else if (operation === "cashOuts.update" || operation === "cashOuts.cancel") {
@@ -183,7 +183,7 @@ describe("cash-up write serialization", () => {
                         { currency: Currency.USD, denomination: "10.00", quantity: 9 },
                     ]);
                 case "sales.markDelivered":
-                    return repos.sales.markDelivered(saleId!, {
+                    return repos.sales.markDelivered(saleId!, { tipUsd: '0.00', tipLbp: '0.00', deliveryFeeUsd: '0.00', deliveryFeeLbp: '0.00',
                         totalCollectedLbp: '0.00',
                         changeGivenUsd: '0.00',
                         changeGivenLbp: '0.00',
@@ -282,7 +282,7 @@ describe("cash-up write serialization", () => {
         }, { maxWait: 5000, timeout: 15000 });
         const { sale } = await prisma.$transaction(async (tx) => {
             const repos = repositoriesForTest(({ businessId: business.id }).businessId, tx);
-            return repos.sales.create(makeSaleInput(cashUp.id));
+            return repos.sales.create(makeSaleInput(cashUp.id, { status: SaleStatus.TO_DELIVER }));
         }, { maxWait: 5000, timeout: 15000 });
         const acquired = deferred();
         const release = deferred();

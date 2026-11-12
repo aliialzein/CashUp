@@ -23,7 +23,7 @@ export interface RepositoryMocks {
     readonly memberships: AwaitableMethods<ConcreteRepositories['memberships'], 'findById' | 'getMember' | 'listMembers' | 'setMemberStatus' | 'replaceManager'>;
     readonly joinCodes: AwaitableMethods<ConcreteRepositories['joinCodes'], 'listJoinCodes' | 'createJoinCode' | 'revokeJoinCode'>;
     readonly cashUps: AwaitableMethods<ConcreteRepositories['cashUps'], 'pendingSaleAmendmentFields' | 'findOpenByMembership' | 'voidCashUp' | 'open' | 'findOwn' | 'findForReview' | 'findById' | 'listOwn' | 'listOpenSummaries' | 'listSubmitted' | 'listReviewed' | 'lockForUpdate' | 'submit' | 'approve' | 'returnToOpen' | 'countUnresolvedCashUpsForUser'>;
-    readonly sales: AwaitableMethods<ConcreteRepositories['sales'], 'hasReplayChanges' | 'create' | 'findById' | 'edit' | 'markDelivered' | 'cancelToDeliver' | 'list' | 'countAwaitingDelivery' | 'countByStatus' | 'flagCounts' | 'totalsByCurrencyAndMethod' | 'changeGivenByCurrency'>;
+    readonly sales: AwaitableMethods<ConcreteRepositories['sales'], 'listDeletionRequests' | 'hasReplayChanges' | 'create' | 'findById' | 'edit' | 'markDelivered' | 'cancelToDeliver' | 'list' | 'countAwaitingDelivery' | 'countByStatus' | 'flagCounts' | 'totalsByCurrencyAndMethod' | 'changeGivenByCurrency'>;
     readonly cashOuts: AwaitableMethods<ConcreteRepositories['cashOuts'], 'create' | 'findById' | 'listByCashUp' | 'cancel'>;
     readonly counts: AwaitableMethods<ConcreteRepositories['counts'], 'listByCashUp' | 'countedTotals' | 'saveLines'>;
     readonly audit: AwaitableMethods<ConcreteRepositories['audit'], 'append'>;
@@ -78,6 +78,7 @@ export function mockRepositories(overrides: RepositoryMockOverrides = {}): Repos
             ...overrides.cashUps,
         },
         sales: {
+            listDeletionRequests: async () => [],
             hasReplayChanges: async () => false,
             create: unused,
             findById: unused,
@@ -117,7 +118,10 @@ export function mockRepositories(overrides: RepositoryMockOverrides = {}): Repos
     return mocks;
 }
 /** A transaction boundary fake; query behavior is mocked at concrete repository methods. */
-export function testDatabase() {
-    const tx = {} as Prisma.TransactionClient;
+export function testDatabase(
+    saleFindFirst: () => Promise<unknown | null> = async () => null,
+    cashOutFindFirst: () => Promise<unknown | null> = async () => null,
+) {
+    const tx = { sale: { findFirst: jest.fn(saleFindFirst) }, cashOut: { findFirst: jest.fn(cashOutFindFirst) } } as unknown as Prisma.TransactionClient;
     return { $transaction: jest.fn(async (work: (client: Prisma.TransactionClient) => Promise<unknown>) => work(tx)) } as unknown as PrismaClient;
 }

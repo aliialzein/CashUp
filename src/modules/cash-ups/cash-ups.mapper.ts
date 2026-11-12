@@ -112,29 +112,74 @@ export function mapOpenCashUpSummary(row: OpenCashUpSummaryRow): OpenCashUpSumma
         requestsCount: row._count.requests,
     };
 }
-/** A ledger is derived from the same delivered rows shown in this response. */
-export function mapOwnCashUp(row: CashUpRow, sales: readonly Sale[], cashOuts: readonly CashOut[], salesSummary: SalesSummaryDto): CashUpOwnDto {
-    const delivered = sales.filter(sale => sale.status === 'DELIVERED');
-    const ledger = row.status === 'OPEN' ? buildCashLedger({
-        floatUsd: row.floatUsd, floatLbp: row.floatLbp,
-        sales: delivered.flatMap(sale => (['USD', 'LBP'] as const).map(currency => {
-            const suffix = currency === 'USD' ? 'Usd' : 'Lbp';
-            return {
-                currency, method: sale.method, count: 1,
-                businessAmount: sale[`businessAmount${suffix}`], deliveryFee: sale[`deliveryFee${suffix}`],
-                totalCollected: sale[`totalCollected${suffix}`], tip: sale[`tip${suffix}`], discount: sale[`discount${suffix}`]
-            };
-        })),
+/** Ledger derived from the delivered sales and cash-outs in this response.
+ * Saved cash-up snapshot fields remain unchanged.
+ */
+export function mapOwnCashUp(
+    row: CashUpRow,
+    sales: readonly Sale[],
+    cashOuts: readonly CashOut[],
+    salesSummary: SalesSummaryDto,
+    requests: readonly import('../sales/sales.types').SaleDeletionRequestDto[] = [],
+): CashUpOwnDto {
+    const delivered = sales.filter((sale): sale is Sale & {
+        method: NonNullable<Sale['method']>; tipUsd: NonNullable<Sale['tipUsd']>; tipLbp: NonNullable<Sale['tipLbp']>;
+        totalCollectedUsd: NonNullable<Sale['totalCollectedUsd']>; totalCollectedLbp: NonNullable<Sale['totalCollectedLbp']>;
+        changeGivenUsd: NonNullable<Sale['changeGivenUsd']>; changeGivenLbp: NonNullable<Sale['changeGivenLbp']>;
+    } => {
+        if (sale.status !== 'DELIVERED') return false;
+        if (sale.method === null || sale.tipUsd === null || sale.tipLbp === null ||
+            sale.totalCollectedUsd === null || sale.totalCollectedLbp === null ||
+            sale.changeGivenUsd === null || sale.changeGivenLbp === null)
+            throw new Error('Delivered sale has incomplete payment');
+        return true;
+    });
+
+    const ledger = buildCashLedger({
+        floatUsd: row.floatUsd,
+        floatLbp: row.floatLbp,
+        sales: delivered.flatMap(sale =>
+            (['USD', 'LBP'] as const).map(currency => {
+                const suffix = currency === 'USD' ? 'Usd' : 'Lbp';
+
+                return {
+                    currency,
+                    method: sale.method,
+                    count: 1,
+                    businessAmount: sale[`businessAmount${suffix}`],
+                    deliveryFee: sale[`deliveryFee${suffix}`],
+                    totalCollected: sale[`totalCollected${suffix}`],
+                    tip: sale[`tip${suffix}`],
+                    discount: sale[`discount${suffix}`],
+                };
+            }),
+        ),
         change: delivered.flatMap(sale => [
             { currency: 'USD' as const, total: sale.changeGivenUsd },
             { currency: 'LBP' as const, total: sale.changeGivenLbp },
         ]),
         cashOuts: cashOuts.flatMap(cashOut => [
-            { currency: 'USD' as const, total: cashOut.amountUsd, status: cashOut.status },
-            { currency: 'LBP' as const, total: cashOut.amountLbp, status: cashOut.status },
+            {
+                currency: 'USD' as const,
+                total: cashOut.amountUsd,
+                status: cashOut.status,
+            },
+            {
+                currency: 'LBP' as const,
+                total: cashOut.amountLbp,
+                status: cashOut.status,
+            },
         ]),
-    }) : null;
-    return { ...mapCashUp(row), sales: sales.map(mapSaleLine), cashOuts: cashOuts.map(mapCashOut), salesSummary, ledger };
+    });
+
+    return {
+        ...mapCashUp(row),
+        sales: sales.map(mapSaleLine),
+        cashOuts: cashOuts.map(mapCashOut),
+        salesSummary,
+        requests,
+        ledger,
+    };
 }
 export interface CountEntryRow {
     id: string;

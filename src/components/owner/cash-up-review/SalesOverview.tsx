@@ -1,9 +1,9 @@
 import Link from "next/link";
-import type { CashUpCardData } from "@/components/owner/cash-up-view-models";
+import type { OwnerCashUpDetailDto } from '../../../modules/cash-ups/cash-ups.types';
 import { RequestStatus } from "@/components/owner/cash-up-view-models";
 
 interface Props {
-  cashUp: CashUpCardData;
+  cashUp: OwnerCashUpDetailDto;
 }
 
 export default function SalesOverview({ cashUp }: Props) {
@@ -20,7 +20,7 @@ export default function SalesOverview({ cashUp }: Props) {
           <h2 className="font-semibold text-[#0f172a]">Sales Overview</h2>
 
           <p className="mt-1 text-sm text-[#718078]">
-            {cashUp.sales.length} sales recorded in this cash-up
+            {cashUp.salesCount} sales recorded in this cash-up
           </p>
         </div>
 
@@ -36,7 +36,7 @@ export default function SalesOverview({ cashUp }: Props) {
         <div className="rounded-xl bg-[#F7FAF8] p-3">
           <p className="text-xs text-[#718078]">Total Sales</p>
           <p className="mt-1 text-xl font-bold text-[#145B37]">
-            {cashUp.sales.length}
+            {cashUp.salesCount}
           </p>
         </div>
 

@@ -120,21 +120,21 @@ describe('service DTO mappers', () => {
         const sale = mapSaleLine({
             businessAmountLbp: '0.00',
             deliveryFeeLbp: '0.00',
-            tipLbp: '0.00',
+            tipLbp: status === 'TO_DELIVER' ? null : '0.00',
             discountLbp: '0.00',
-            totalCollectedLbp: '0.00',
-            changeGivenLbp: '0.00',
+            totalCollectedLbp: status === 'TO_DELIVER' ? null : '0.00',
+            changeGivenLbp: status === 'TO_DELIVER' ? null : '0.00',
             id: 'sale-id',
             cashUpId: 'cash-up-id',
             saleNumber: 1,
             status,
             businessAmountUsd: { toString: () => '8' },
             deliveryFeeUsd: { toString: () => '2' },
-            tipUsd: '0.00',
+            tipUsd: status === 'TO_DELIVER' ? null : '0.00',
             discountUsd: '0.00',
-            totalCollectedUsd: { toString: () => '10' },
-            method: 'CASH',
-            changeGivenUsd: '0.00',
+            totalCollectedUsd: status === 'TO_DELIVER' ? null : { toString: () => '10' },
+            method: status === 'TO_DELIVER' ? null : 'CASH',
+            changeGivenUsd: status === 'TO_DELIVER' ? null : '0.00',
             clientNumber: null,
             note: null,
             amountDiffers: false,
@@ -146,9 +146,10 @@ describe('service DTO mappers', () => {
             cancelReason: status === 'DELETED' ? 'Cancelled' : null,
         });
         expect(sale.id).toBe('sale-id');
-        const expected: Pick<SaleLineDto, 'moneyTaken' | 'totalCollectedUsd' | 'totalCollectedLbp'> = { moneyTaken, totalCollectedUsd: '10.00', totalCollectedLbp: '0.00' };
+        const expected: Pick<SaleLineDto, 'moneyTaken' | 'totalCollectedUsd' | 'totalCollectedLbp'> = { moneyTaken, totalCollectedUsd: status === 'TO_DELIVER' ? null : '10.00', totalCollectedLbp: status === 'TO_DELIVER' ? null : '0.00' };
         void amountCollected;
         void amountExpected;
         expect(sale).toMatchObject(expected);
+        if (status === 'TO_DELIVER') expect(sale).toMatchObject({ method: null, tipUsd: null, tipLbp: null, changeGivenUsd: null, changeGivenLbp: null });
     });
 });

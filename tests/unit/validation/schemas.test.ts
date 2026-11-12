@@ -6,6 +6,7 @@ import { cashUpHistoryQuerySchema, openCashUpSchema, requestVoidCashUpSchema, re
 import { confirmDeliverySchema } from '../../../src/modules/sales/sales.validation';
 import { createCashOutSchema, updateCashOutSchema, validateMergedCashOut } from '../../../src/modules/cash-outs/cash-outs.validation';
 import { toValidationError } from '../../../src/shared/validation/errors';
+import { checkSaleBalance } from '../../../src/domain/money/sale-balance';
 const uuid = () => randomUUID();
 const validSale = () => ({
     businessAmountLbp: '0.00',
@@ -60,6 +61,12 @@ describe('common schema rules', () => {
         expect(openCashUpSchema.safeParse({ referenceRate: '10000000.01' }).success).toBe(false);
         expect(openCashUpSchema.safeParse({ businessId: uuid() }).success).toBe(false);
     });
+    it('trims delivered-sale deletion request reasons and enforces 3–200 characters', () => {
+        expect(requestDeleteSaleSchema.parse({ reason: '  abc  ' })).toEqual({ reason: 'abc' });
+        expect(requestDeleteSaleSchema.parse({ reason: `  ${'x'.repeat(200)}  ` }).reason).toHaveLength(200);
+        for (const reason of ['   ', '  ab  ', 'x'.repeat(201), 'bad\nreason'])
+            expect(requestDeleteSaleSchema.safeParse({ reason }).success).toBe(false);
+    });
     it('trims text, bounds lengths, and rejects control characters', () => {
         expect(cancelSaleSchema.parse({ reason: '  Needs correction  ' }).reason).toBe('Needs correction');
         expect(cancelSaleSchema.safeParse({ reason: '  no ' }).success).toBe(false);
@@ -83,22 +90,24 @@ describe('pair financial validation', () => {
             totalCollectedLbp: '1000'
         },
     ])('accepts independent pairs %j', pair => {
-        const sale = createSaleSchema.parse({ status: 'DELIVERED', method: 'CASH', ...pair });
+        const sale = createSaleSchema.parse({ tipUsd: '0.00', tipLbp: '0.00', totalCollectedUsd: '0.00', totalCollectedLbp: '0.00', changeGivenUsd: '0.00', changeGivenLbp: '0.00', status: 'DELIVERED', method: 'CASH', ...pair });
         expect(sale.tipUsd).toBe('0.00');
         expect(sale.discountLbp).toBe('0.00');
         expect(validateMergedSale(sale, { note: 'Updated note' }).success).toBe(true);
     });
     it('requires positive business money, balance, client number and currency-specific limits', () => {
         expect(createSaleSchema.safeParse({ status: 'DELIVERED', method: 'CASH' }).success).toBe(false);
-        expect(createSaleSchema.safeParse({ ...validSale(), totalCollectedUsd: '9.99' }).success).toBe(false);
+        const unbalancedSale = createSaleSchema.parse({ ...validSale(), totalCollectedUsd: '9.99' });
+        expect(checkSaleBalance({ ...validSale(), ...unbalancedSale, tipUsd: '0', tipLbp: '0', totalCollectedUsd: '9.99', totalCollectedLbp: '0', changeGivenUsd: '0', changeGivenLbp: '0' }).balanced).toBe(false);
         expect(createSaleSchema.safeParse({ ...validSale(), discountUsd: '11' }).success).toBe(false);
         expect(createSaleSchema.safeParse({ ...validSale(), status: 'TO_DELIVER' }).success).toBe(false);
-        const sale = createSaleSchema.parse({ ...validSale(), status: 'TO_DELIVER', clientNumber: '+961123456' });
+        const sale = createSaleSchema.parse({ status: 'TO_DELIVER', businessAmountUsd: '10', clientNumber: '+961123456' });
         expect(validateMergedSale(sale, { clientNumber: null }).success).toBe(false);
         expect(createSaleSchema.safeParse({ ...validSale(), businessAmountUsd: '1000000.01', totalCollectedUsd: '1000000.01' }).success).toBe(false);
         expect(createSaleSchema.safeParse({
             status: 'DELIVERED',
             method: 'CASH',
+            tipUsd: '0', tipLbp: '0', totalCollectedUsd: '0', changeGivenUsd: '0', changeGivenLbp: '0',
             businessAmountLbp: '100000000000',
             totalCollectedLbp: '100000000000'
         }).success).toBe(true);

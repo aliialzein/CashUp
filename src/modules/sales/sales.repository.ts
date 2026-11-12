@@ -2,7 +2,7 @@ import 'server-only';
 import { getPrisma } from '../../shared/db/prisma';
 import type { Db } from '../../shared/db/types';
 import { Prisma } from '../../generated/prisma/client';
-import type { Sale } from '../../generated/prisma/client';
+import type { Request, Sale } from '../../generated/prisma/client';
 import { SaleStatus } from '../../generated/prisma/enums';
 import type { Currency, PaymentMethod } from '../../generated/prisma/enums';
 import { DuplicateError, NotFoundError, StaleStateError, isUniqueViolation } from '../../shared/errors/persistence-errors';
@@ -17,21 +17,21 @@ export interface CreateSaleInput {
   businessAmountLbp: Money;
   deliveryFeeUsd: Money;
   deliveryFeeLbp: Money;
-  tipUsd: Money;
-  tipLbp: Money;
+  tipUsd: Money | null;
+  tipLbp: Money | null;
   discountUsd: Money;
   discountLbp: Money;
-  totalCollectedUsd: Money;
-  totalCollectedLbp: Money;
-  changeGivenUsd: Money;
-  changeGivenLbp: Money;
-  method: PaymentMethod;
+  totalCollectedUsd: Money | null;
+  totalCollectedLbp: Money | null;
+  changeGivenUsd: Money | null;
+  changeGivenLbp: Money | null;
+  method: PaymentMethod | null;
   clientNumber?: string | null;
   note?: string | null;
   /** Client-generated UUID so a double tap saves the sale once (NFR7). */
   idempotencyKey?: string | null;
 }
-/** Fields a person may edit while the cash-up is OPEN (FR9). Each change is logged. */
+/** Fields a person may edit on a pending sale while the cash-up is OPEN (FR9). Each change is logged. */
 const EDITABLE_FIELDS = [
   'businessAmountUsd',
   'businessAmountLbp',
@@ -50,6 +50,10 @@ const EDITABLE_FIELDS = [
 export type EditableSaleField = (typeof EDITABLE_FIELDS)[number];
 export type SaleChanges = Partial<Pick<CreateSaleInput, EditableSaleField>>;
 export interface ConfirmDeliveryInput {
+  deliveryFeeUsd: Money;
+  deliveryFeeLbp: Money;
+  tipUsd: Money;
+  tipLbp: Money;
   totalCollectedUsd: Money;
   totalCollectedLbp: Money;
   changeGivenUsd: Money;
@@ -188,11 +192,11 @@ export class SaleRepository {
   /**
    * FR9: edit a saved sale while the cash-up is open. Writes one SaleEdit row per changed
    * field (old and new value) and sets the "edited" marker. Call inside a transaction.
-   * Sales that are deleted or locked for deletion cannot be edited.
+   * Only pending sales can be edited; delivered, deleted or deletion-locked sales are ineligible.
    */
   async edit(id: string, changes: SaleChanges, editedById: string): Promise<Sale> {
     const current = await this.lockSaleForUpdate(id);
-    if (current.status === SaleStatus.DELETED || current.deletionAwaiting) {
+    if (current.status !== SaleStatus.TO_DELIVER || current.deletionAwaiting) {
       throw new StaleStateError('Sale');
     }
     const data: Prisma.SaleUncheckedUpdateManyInput = {};
@@ -220,7 +224,7 @@ export class SaleRepository {
       where: {
         id,
         businessId: this.businessId,
-        status: { not: SaleStatus.DELETED },
+        status: SaleStatus.TO_DELIVER,
         deletionAwaiting: false,
         cashUp: { status: 'OPEN' },
       },
@@ -244,6 +248,10 @@ export class SaleRepository {
       data: {
         status: SaleStatus.DELIVERED,
         deliveredAt: new Date(),
+        deliveryFeeUsd: confirm.deliveryFeeUsd,
+        deliveryFeeLbp: confirm.deliveryFeeLbp,
+        tipUsd: confirm.tipUsd,
+        tipLbp: confirm.tipLbp,
         totalCollectedUsd: confirm.totalCollectedUsd,
         totalCollectedLbp: confirm.totalCollectedLbp,
         changeGivenUsd: confirm.changeGivenUsd,
@@ -289,7 +297,7 @@ export class SaleRepository {
       throw new StaleStateError('Sale');
     return this.requireById(id);
   }
-  /** Request withdrawn or rejected: the sale becomes editable again. */
+  /** Request withdrawn or rejected: clear the request flag; delivered edits remain forbidden. */
   async releaseDeletionLock(id: string): Promise<Sale> {
     await this.lockSaleForUpdate(id);
     const { count } = await this.db.sale.updateMany({
@@ -298,6 +306,7 @@ export class SaleRepository {
         businessId: this.businessId,
         status: SaleStatus.DELIVERED,
         deletionAwaiting: true,
+        cashUp: { status: 'OPEN' },
       },
       data: { deletionAwaiting: false },
     });
@@ -314,12 +323,44 @@ export class SaleRepository {
         businessId: this.businessId,
         status: SaleStatus.DELIVERED,
         deletionAwaiting: true,
+        cashUp: { status: 'OPEN' },
       },
       data: { status: SaleStatus.DELETED, deletedAt: new Date(), deletionAwaiting: false },
     });
     if (count === 0)
       throw new StaleStateError('Sale');
     return this.requireById(id);
+  }
+  findDeletionRequest(id: string): Promise<Request | null> {
+    return this.db.request.findFirst({ where: { id, businessId: this.businessId, type: 'DELETE_SALE' } });
+  }
+  listDeletionRequests(cashUpId: string): Promise<Request[]> {
+    return this.db.request.findMany({
+      where: { businessId: this.businessId, cashUpId, type: 'DELETE_SALE' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+  }
+  listEditsForCashUp(cashUpId: string) {
+    return this.db.saleEdit.findMany({
+      where: { sale: { cashUpId, businessId: this.businessId } },
+      include: { editedBy: { select: { user: { select: { fullName: true } } } } },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+  }
+  async createDeletionRequest(cashUpId: string, saleId: string, requestedById: string, reason: string): Promise<Request> {
+    return this.db.request.create({ data: {
+      businessId: this.businessId, cashUpId, saleId, requestedById, reason, type: 'DELETE_SALE',
+    } });
+  }
+  async decideDeletionRequest(id: string, approved: boolean, decidedById: string, decisionReason: string, selfApproved: boolean): Promise<Request> {
+    const { count } = await this.db.request.updateMany({
+      where: { id, businessId: this.businessId, type: 'DELETE_SALE', status: 'AWAITING_OWNER', cashUp: { status: 'OPEN' } },
+      data: { status: approved ? 'APPROVED' : 'REJECTED', decidedById, decisionReason, selfApproved, decidedAt: new Date() },
+    });
+    if (count !== 1) throw new StaleStateError('Request');
+    const request = await this.findDeletionRequest(id);
+    if (!request) throw new NotFoundError('Request');
+    return request;
   }
   // -------------------------------------------------------------- submit gate
   /** FR19: submit is allowed only when this is 0. */
@@ -381,7 +422,7 @@ export class SaleRepository {
       const suffix = currency === 'USD' ? 'Usd' : 'Lbp';
       return {
         currency,
-        method: row.method,
+        method: requireDeliveredMethod(row.method),
         count: row._count._all,
         businessAmount: row._sum[`businessAmount${suffix}`] ?? ZERO,
         deliveryFee: row._sum[`deliveryFee${suffix}`] ?? ZERO,
@@ -470,4 +511,9 @@ function asText(value: unknown, money: boolean): string | null {
   if (value == null)
     return null;
   return money ? new Prisma.Decimal(value as Money).toFixed(2) : String(value);
+}
+
+function requireDeliveredMethod(method: PaymentMethod | null): PaymentMethod {
+  if (method === null) throw new Error('Delivered sale has no payment method');
+  return method;
 }

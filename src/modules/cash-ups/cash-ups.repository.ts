@@ -69,6 +69,34 @@ export class CashUpRepository {
         }
     }
     // ----------------------------------------------------------------- reads
+    private ownerSummarySelect() {
+        return {
+            id: true, number: true, status: true, openedAt: true, membershipId: true,
+            returnReason: true, voidReason: true,
+            membership: { select: { role: true, user: { select: { fullName: true } } } },
+            _count: { select: { sales: true } },
+            requests: {
+                where: { businessId: this.businessId, type: 'DELETE_SALE' as const },
+                orderBy: [{ createdAt: 'desc' as const }, { id: 'desc' as const }],
+                include: {
+                    sale: { select: { saleNumber: true } },
+                    requestedBy: { select: { user: { select: { fullName: true } } } },
+                    decidedBy: { select: { user: { select: { fullName: true } } } },
+                },
+            },
+        } satisfies Prisma.CashUpSelect;
+    }
+    listOwnerSummaries() {
+        return this.db.cashUp.findMany({
+            where: { businessId: this.businessId }, select: this.ownerSummarySelect(),
+            orderBy: [{ openedAt: 'desc' }, { id: 'desc' }],
+        });
+    }
+    findOwnerSummary(id: string) {
+        return this.db.cashUp.findFirst({
+            where: { id, businessId: this.businessId }, select: this.ownerSummarySelect(),
+        });
+    }
     /** Full record, for the person who owns the cash-up. Returns null if it is someone else's. */
     findOwn(id: string, membershipId: string) {
         return this.db.cashUp.findFirst({

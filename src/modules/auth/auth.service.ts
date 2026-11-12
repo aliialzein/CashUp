@@ -8,6 +8,7 @@ import { readSession, createSession, revokeSession, usersMatchingEmail, createLo
 import { AuthFailure, type CurrentUser } from './auth.types';
 import { signupSchema, loginSchema, type SignupInput, type LoginInput } from './auth.validation';
 import { consumeAuthAttempt } from './auth.repository';
+import { reportAuthTransactionFailure } from './auth-diagnostics';
 import 'server-only';
 import { BusinessRuleError, ForbiddenError, UnauthenticatedError } from '../../shared/errors/service-errors';
 import { findActiveMembership, lockMembership } from './auth.repository';
@@ -42,10 +43,29 @@ function cookieOptions(expires: Date) {
   return { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, path: '/', expires };
 }
 
+async function authTransaction<T>(
+  operation: 'signup' | 'login',
+  stage: 'signup-session' | 'login-session',
+  work: (tx: Db) => Promise<T>,
+): Promise<T> {
+  const started = performance.now();
+  let acquisitionMs: number | undefined;
+  try {
+    return await getPrisma().$transaction(tx => {
+      acquisitionMs = Math.round(performance.now() - started);
+      return work(tx);
+    });
+  } catch (error) {
+    reportAuthTransactionFailure(operation, stage, error, {
+      elapsedMs: Math.round(performance.now() - started), acquisitionMs,
+    });
+    throw error;
+  }
+}
 // Fixed windows are persisted atomically; rejected attempts never create account keys.
 async function limitAuthAttempt(operation: 'login' | 'signup', email: string): Promise<void> {
   const emailHash = createHash('sha256').update(email).digest('hex');
-  const allowed = await getPrisma().$transaction(tx => consumeAuthAttempt(operation, emailHash, tx));
+  const allowed = await consumeAuthAttempt(operation, emailHash);
   if (!allowed) throw new AuthFailure('TOO_MANY_ATTEMPTS');
 }
 
@@ -58,7 +78,7 @@ export async function signup(values: SignupInput): Promise<void> {
   const raw = randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + SESSION_AGE);
   try {
-    await getPrisma().$transaction(async tx => {
+    await authTransaction('signup', 'signup-session', async tx => {
       await lockSignupEmail(input.email, tx);
       if ((await usersMatchingEmail(input.email, tx)).length) throw new AuthFailure('SIGNUP_UNAVAILABLE');
       const user = await createLocalUser({ email: input.email, fullName: input.fullName, passwordHash }, tx);
@@ -86,7 +106,7 @@ export async function login(values: LoginInput): Promise<void> {
   const previous = jar.get(SESSION_COOKIE)?.value;
   const raw = randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + SESSION_AGE);
-  await getPrisma().$transaction(async tx => {
+  await authTransaction('login', 'login-session', async tx => {
     if (validToken(previous)) await revokeSession(sessionHash(previous), tx);
     await createSession({ tokenHash: sessionHash(raw), userId: user.id, expiresAt }, tx);
   });
@@ -101,7 +121,14 @@ export async function logout(): Promise<void> {
 }
 
 export function authDestination(user: CurrentUser): string {
-  return user.membership?.status === 'ACTIVE' && user.membership.role === 'OWNER' ? '/owner' : '/onboarding';
+  if (!user.membership || user.membership.status !== 'ACTIVE') return '/onboarding';
+  switch (user.membership.role) {
+    case 'OWNER':
+      return '/owner';
+    case 'MANAGER':
+    case 'STAFF':
+      return '/onboarding';
+  }
 }
 
 export async function requireCurrentMember(): Promise<CurrentMember> {

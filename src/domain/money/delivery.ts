@@ -1,16 +1,16 @@
 import type { PaymentMethod } from './config';
-import { compare, type MoneyLike } from './money';
-export interface DeliveryOrder {
-  totalCollectedUsd: MoneyLike;
-  totalCollectedLbp: MoneyLike;
-  method: PaymentMethod;
-}
-export type DeliveryConfirmation = DeliveryOrder;
-export function computeDeliveryFlags(order: DeliveryOrder, confirmation: DeliveryConfirmation): { amountDiffers: boolean } {
+import type { MoneyLike } from './money';
+import { checkSaleBalance, type SaleBalanceInput } from './sale-balance';
+type PaymentFields = 'totalCollectedUsd' | 'totalCollectedLbp' | 'changeGivenUsd' | 'changeGivenLbp';
+export type DeliveryOrder = Omit<SaleBalanceInput, PaymentFields> & { method: PaymentMethod | null };
+export type DeliveryConfirmation = Pick<SaleBalanceInput, PaymentFields> & { method: PaymentMethod };
+export function computeDeliveryFlags(
+  order: DeliveryOrder,
+  confirmation: DeliveryConfirmation,
+  referenceRate?: MoneyLike,
+): { amountDiffers: boolean } {
+  const balance = checkSaleBalance({ ...order, ...confirmation }, referenceRate);
   return {
-    amountDiffers:
-      compare(order.totalCollectedUsd, confirmation.totalCollectedUsd) !== 0 ||
-      compare(order.totalCollectedLbp, confirmation.totalCollectedLbp) !== 0 ||
-      order.method !== confirmation.method,
+    amountDiffers: !balance.balanced,
   };
 }

@@ -46,6 +46,16 @@ export function compare(left: MoneyLike, right: MoneyLike): -1 | 0 | 1 {
   return result < 0 ? -1 : result > 0 ? 1 : 0;
 }
 
+export function isCurrencyDifferenceBalanced(
+  usdDifference: InstanceType<typeof D>,
+  lbpDifference: InstanceType<typeof D>,
+  referenceRate: MoneyLike,
+): boolean {
+  const rate = parseMoney(referenceRate);
+  if (rate.comparedTo(0) <= 0) throw new MoneyError('INVALID_MONEY');
+  return usdDifference.mul(rate).plus(lbpDifference).isZero();
+}
+
 export function isZero(value: MoneyLike): boolean {
   return parseArithmeticMoney(value).isZero();
 }
