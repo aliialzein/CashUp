@@ -4,13 +4,14 @@ import { useState } from "react";
 import LogoutButton from "@/components/auth/LogoutButton";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House, Wallet, Users, UserRound } from "lucide-react";
+import { House, Wallet, Users } from "lucide-react";
+import { routes } from "@/lib/routes";
 
+// "Account" comes back when an owner account page exists (today /owner/account would be a 404).
 const navigation = [
-  { label: "Home", href: "/owner", icon: House },
-  { label: "Cash-ups", href: "/owner/cash-ups", icon: Wallet },
-  { label: "Team", href: "/owner/team", icon: Users },
-  { label: "Account", href: "/owner/account", icon: UserRound },
+  { label: "Home", href: routes.owner.home, icon: House },
+  { label: "Cash-ups", href: routes.owner.cashUps, icon: Wallet },
+  { label: "Team", href: routes.owner.team, icon: Users },
 ];
 
 export default function OwnerDashboardShell({
@@ -27,6 +28,7 @@ export default function OwnerDashboardShell({
         <div className="flex h-16 items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => setIsOpen(true)}
               aria-label="Open navigation"
               className="flex h-10 w-10 items-center justify-center rounded-xl text-xl text-[#0f172a] transition hover:bg-[#f1f5f9]"
@@ -34,7 +36,7 @@ export default function OwnerDashboardShell({
               ☰
             </button>
 
-            <Link href="/owner" className="flex items-center gap-2">
+            <Link href={routes.owner.home} className="flex items-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0f172a] text-white">
                 C
               </div>
@@ -50,8 +52,8 @@ export default function OwnerDashboardShell({
               Owner Workspace
             </span>
 
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f1f5f9] font-semibold text-[#0f172a]">
-              O
+            <div className="hidden sm:block">
+              <LogoutButton />
             </div>
           </div>
         </div>
@@ -85,8 +87,8 @@ export default function OwnerDashboardShell({
 
               {navigation.map((item) => {
                 const isActive =
-                  item.href === "/owner"
-                    ? pathname === "/owner"
+                  item.href === routes.owner.home
+                    ? pathname === routes.owner.home
                     : pathname.startsWith(item.href);
 
                 return (
@@ -111,8 +113,9 @@ export default function OwnerDashboardShell({
               })}
             </nav>
 
-            <div className="border-t border-[#e2e8f0] p-4">
+            <div className="flex items-center justify-between border-t border-[#e2e8f0] p-4">
               <p className="text-xs text-[#475569]">CashUp · Owner Dashboard</p>
+              <LogoutButton />
             </div>
           </aside>
         </div>

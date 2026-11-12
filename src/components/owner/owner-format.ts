@@ -12,6 +12,12 @@ export function ownerDate(value: string): string {
     timeZone: 'Asia/Beirut', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   }).format(new Date(value));
 }
+/** "08:30", in Beirut time, for "Since …" lines. */
+export function ownerTime(value: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Beirut', hour: '2-digit', minute: '2-digit',
+  }).format(new Date(value));
+}
 export function ownerLedger(review: CashUpReviewDto) {
   const delivered = review.sales.filter(sale => sale.status === 'DELIVERED');
   return buildCashLedger({

@@ -1,149 +1,45 @@
-import {
-  CashUpStatus,
-  RequestStatus,
-  RequestType,
-  Currency,
-} from "@/types/owner/cash-up";
-import {
-  ChevronRight,
-  Lock,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  RotateCcw,
-} from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, Lock } from "lucide-react";
+import type { OwnerCashUpSummaryDto } from "@/modules/cash-ups/cash-ups.types";
+import { nextStep, statusBadge } from "@/lib/owner/cashUpOverview";
+import { routes } from "@/lib/routes";
+import { ownerDate } from "../owner-format";
+import { TONE_BADGE, TONE_TEXT } from "../tone";
 
-type CashUpCardProps = {
-  cashUp: {
-    id: string;
-    status: CashUpStatus;
-    openedAt: Date;
-    selfApproved?: boolean;
-    returnReason?: string | null;
-    gapUsd?: number | null;
-    gapLbp?: number | null;
-    membership: {
-      user: {
-        fullName: string;
-      };
-    };
-    requests: {
-      type: RequestType;
-      status: RequestStatus;
-      createdAt: Date;
-    }[];
-  };
-  onAction?: (cashUpId: string) => void;
-};
-
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en", {
-    day: "numeric",
-    month: "short",
-  }).format(new Date(date));
-}
-
-export default function CashUpCard({ cashUp, onAction }: CashUpCardProps) {
-  const shortId = cashUp.id.length > 3 ? cashUp.id.slice(-3) : cashUp.id;
-
-  const getStatusBadge = () => {
-    switch (cashUp.status) {
-      case CashUpStatus.SUBMITTED:
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-[#eff6ff] text-[#1d4ed8] border border-[#bfdbfe]">
-            Submitted
-          </span>
-        );
-      case CashUpStatus.OPEN:
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]">
-            Open
-          </span>
-        );
-      case CashUpStatus.APPROVED:
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-medium bg-[#ecfdf5] text-[#047857] border border-[#a7f3d0]">
-            <Lock className="w-3 h-3 text-[#047857]" /> Approved
-          </span>
-        );
-      case CashUpStatus.VOID:
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-[#fffbeb] text-[#b45309] border border-[#fde68a]">
-            Returned
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
-
-  const getRightSideDisplay = () => {
-    if (cashUp.status === CashUpStatus.OPEN) {
-      return (
-        <span className="text-sm font-medium text-[#475569]">In progress</span>
-      );
-    }
-
-    if (cashUp.returnReason || cashUp.status === CashUpStatus.VOID) {
-      return (
-        <span className="text-sm font-medium text-[#b45309]">With driver</span>
-      );
-    }
-
-    const gapUsd = cashUp.gapUsd ?? 0;
-    const gapLbp = cashUp.gapLbp ?? 0;
-
-    if (gapUsd !== 0) {
-      return (
-        <span
-          className={`text-sm font-semibold ${gapUsd < 0 ? "text-[#be123c]" : "text-[#b45309]"}`}
-        >
-          USD {gapUsd > 0 ? `+${gapUsd}` : gapUsd}
-        </span>
-      );
-    }
-
-    if (gapLbp !== 0) {
-      return (
-        <span
-          className={`text-sm font-semibold ${gapLbp < 0 ? "text-[#be123c]" : "text-[#b45309]"}`}
-        >
-          LBP {gapLbp.toLocaleString()}
-        </span>
-      );
-    }
-
-    return <span className="text-sm font-medium text-[#047857]">Matches</span>;
-  };
+/** One row of the owner's Cash-ups list. The whole card opens the review page. */
+export default function CashUpCard({ cashUp }: { cashUp: OwnerCashUpSummaryDto }) {
+  const badge = statusBadge(cashUp);
+  const step = nextStep(cashUp);
 
   return (
-    <div
-      onClick={() => onAction?.(cashUp.id)}
-      className="bg-[#ffffff] border border-[#e2e8f0] rounded-xl p-4 shadow-sm hover:border-[#cbd5e1] transition-all cursor-pointer flex items-center justify-between"
+    <Link
+      href={routes.owner.review(cashUp.id)}
+      className="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface p-4 shadow-sm transition hover:border-line-strong focus-visible:outline-2 focus-visible:outline-ink"
     >
-      <div className="space-y-1">
-        <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-[#0f172a]">Cash-up #{shortId}</h3>
-          {getStatusBadge()}
+      <div className="min-w-0 space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="font-semibold text-ink">Cash-up #{cashUp.number}</h3>
+          <span className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-0.5 text-xs font-medium ${TONE_BADGE[badge.tone]}`}>
+            {cashUp.status === "APPROVED" && <Lock className="h-3 w-3" aria-hidden="true" />}
+            {badge.label}
+          </span>
         </div>
 
-        <div className="text-xs text-[#475569] flex items-center gap-1.5 flex-wrap">
-          <span>{cashUp.membership?.user?.fullName || "Unknown"}</span>
-          <span>·</span>
-          <span>{formatDate(cashUp.openedAt)}</span>
-          {cashUp.selfApproved && (
-            <>
-              <span>·</span>
-              <span className="italic text-[#475569]">Self-approved</span>
-            </>
-          )}
-        </div>
+        <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
+          <span>{cashUp.staffName}</span>
+          <span aria-hidden="true">·</span>
+          <span>{ownerDate(cashUp.openedAt)}</span>
+          <span aria-hidden="true">·</span>
+          <span>
+            {cashUp.salesCount} sale{cashUp.salesCount === 1 ? "" : "s"}
+          </span>
+        </p>
       </div>
 
-      <div className="flex items-center gap-2">
-        {getRightSideDisplay()}
-        <ChevronRight className="w-4 h-4 text-[#475569]" />
+      <div className="flex shrink-0 items-center gap-2">
+        <span className={`text-sm font-medium ${TONE_TEXT[step.tone]}`}>{step.label}</span>
+        <ChevronRight className="h-4 w-4 text-muted" aria-hidden="true" />
       </div>
-    </div>
+    </Link>
   );
 }

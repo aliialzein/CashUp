@@ -6,6 +6,7 @@ import { ZodError } from 'zod';
 import { requireCurrentMember, requireOwnerPermission } from '../../../modules/auth/auth.service';
 import { approveCashUp, returnCashUpToOpen } from '../../../modules/cash-ups/cash-ups.service';
 import { decideSaleDeletion } from '../../../modules/sales/sales.service';
+import { createJoinCode } from '../../../modules/business/business.service';
 import { ServiceError, UnauthenticatedError } from '../../../shared/errors/service-errors';
 import { toValidationError } from '../../../shared/validation/errors';
 
@@ -44,6 +45,20 @@ export async function approveCashUpAction(cashUpId: string): Promise<OwnerAction
 export async function returnCashUpAction(cashUpId: string, reason: string): Promise<OwnerActionResult> {
   try { await requireOwner(); const result = await returnCashUpToOpen(cashUpId, reason); refresh(result.id); return { ok: true }; }
   catch (error) { return failure(error); }
+}
+export type JoinCodeResult = { ok: true; code: string; expiresAt: string } | Extract<OwnerActionResult, { ok: false }>;
+
+/** A new one-time join code (backend defaults: 1 use, valid 7 days). The plain code is only returned here, once. */
+export async function createJoinCodeAction(): Promise<JoinCodeResult> {
+  try {
+    await requireOwner();
+    const result = await createJoinCode({ maxUses: 1, expiresInDays: 7 });
+    revalidatePath('/owner/team');
+    return { ok: true, code: result.code, expiresAt: result.expiresAt };
+  } catch (error) {
+    const result = failure(error);
+    return result.ok ? { ok: false, code: 'UNEXPECTED_ERROR', message: 'Unable to create a code. Please try again.' } : result;
+  }
 }
 export async function decideSaleDeletionAction(requestId: string, decision: 'APPROVE' | 'REFUSE', reason: string): Promise<OwnerActionResult> {
   try {

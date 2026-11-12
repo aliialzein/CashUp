@@ -1,17 +1,16 @@
 import { CashUpStatus, SaleStatus, Currency, PaymentMethod, RequestType, RequestStatus, type CashUpCardData } from '../../components/owner/cash-up-view-models';
 
 export const mockCashUps: CashUpCardData[] = [
-  // 1. الحالة الأولى: SUBMITTED مع وجود عجز USD (Gap USD منفی)
   {
     id: "a1000000-0000-4000-8000-000000000001",
     status: CashUpStatus.SUBMITTED,
 
-    openedAt: new Date("2026-10-27T07:30:00Z"),
-    countStartedAt: new Date("2026-10-27T13:30:00Z"),
-    closedAt: new Date("2026-10-27T14:00:00Z"),
+    openedAt: new Date("2026-11-02T07:30:00Z"),
+    countStartedAt: new Date("2026-11-02T13:30:00Z"),
+    closedAt: new Date("2026-11-02T14:00:00Z"),
     approvedAt: null,
     voidedAt: null,
-    updatedAt: new Date("2026-10-27T14:00:00Z"),
+    updatedAt: new Date("2026-11-02T14:00:00Z"),
 
     floatUsd: 100,
     floatLbp: 15000000,
@@ -21,8 +20,8 @@ export const mockCashUps: CashUpCardData[] = [
     expectedLbp: 25000000,
     countedUsd: 440,
     countedLbp: 25000000,
-    gapUsd: -2.0, // تظهر كـ USD -2.00 أو LBP -10,000 حسب التصميم
-    gapLbp: null,
+    gapUsd: -10,
+    gapLbp: 0,
 
     selfApproved: false,
     returnReason: null,
@@ -33,92 +32,32 @@ export const mockCashUps: CashUpCardData[] = [
       role: "STAFF",
       user: {
         id: "u1000000-0000-4000-8000-000000000001",
-        fullName: "Mohamad",
+        fullName: "Ahmad Khalil",
       },
     },
 
     approvedBy: null,
-    sales: [],
-    cashOuts: [],
-    countEntries: [],
-    requests: [
-      {
-        id: "r1000000-0000-4000-8000-000000000001",
-        type: RequestType.DELETE_SALE,
-        status: RequestStatus.AWAITING_OWNER,
-        reason: "Wrong entry",
-        requestedBy: {
-          role: "STAFF",
-          user: { fullName: "Mohamad" },
-        },
-        saleId: null,
-        sale: null,
-        decisionReason: null,
-        decidedBy: null,
-        selfApproved: false,
-        createdAt: new Date("2026-10-27T13:45:00Z"),
-        decidedAt: null,
-      },
-    ],
-  },
 
-  // 2. الحالة الثانية: SUBMITTED تطابق تام (Matches)
-  {
-    id: "a1000000-0000-4000-8000-000000000002",
-    status: CashUpStatus.SUBMITTED,
-
-    openedAt: new Date("2026-10-28T08:00:00Z"),
-    countStartedAt: new Date("2026-10-28T14:00:00Z"),
-    closedAt: new Date("2026-10-28T14:30:00Z"),
-    approvedAt: null,
-    voidedAt: null,
-    updatedAt: new Date("2026-10-28T14:30:00Z"),
-
-    floatUsd: 100,
-    floatLbp: 10000000,
-    referenceRate: 89500,
-
-    expectedUsd: 312, //312
-    expectedLbp: 15000000,
-    countedUsd: 300,
-    countedLbp: 15000000,
-    gapUsd: -12,
-    gapLbp: 0,
-
-    selfApproved: false,
-    returnReason: null,
-    voidReason: null,
-
-    membership: {
-      id: "m1000000-0000-4000-8000-000000000002",
-      role: "STAFF",
-      user: {
-        id: "u1000000-0000-4000-8000-000000000002",
-        fullName: "Rami",
-      },
-    },
-
-    approvedBy: null,
     sales: [
       {
         id: "s1000000-0000-4000-8000-000000000001",
         saleNumber: 1,
         status: SaleStatus.DELIVERED,
 
-        businessAmount: 50,
+        businessAmount: 100,
         deliveryFee: 5,
-        tip: 2,
-        discount: null,
-        totalCollected: 57,
+        tip: 3,
+        discount: 0,
+        totalCollected: 108,
 
         currency: Currency.USD,
         method: PaymentMethod.CASH,
 
-        changeGiven: null,
-        changeCurrency: null,
+        changeGiven: 0,
+        changeCurrency: Currency.USD,
 
-        clientNumber: "70123456",
-        note: null,
+        clientNumber: "03XXXXXX",
+        note: "First floor",
 
         mixedChange: false,
         amountDiffers: false,
@@ -127,97 +66,77 @@ export const mockCashUps: CashUpCardData[] = [
 
         cancelReason: null,
 
-        createdAt: new Date("2026-10-28T09:00:00Z"),
-        deliveredAt: new Date("2026-10-28T09:30:00Z"),
+        createdAt: new Date("2026-11-02T08:15:00Z"),
+        deliveredAt: new Date("2026-11-02T08:45:00Z"),
         deletedAt: null,
 
         edits: [],
       },
+
       {
         id: "s1000000-0000-4000-8000-000000000002",
         saleNumber: 2,
         status: SaleStatus.DELIVERED,
 
-        businessAmount: 70,
+        businessAmount: 200,
         deliveryFee: 5,
         tip: null,
-        discount: null,
-        totalCollected: 75,
+        discount: 10,
+        totalCollected: 195,
 
         currency: Currency.USD,
-        method: PaymentMethod.CASH,
+        method: PaymentMethod.WHISH,
 
         changeGiven: null,
         changeCurrency: null,
 
-        clientNumber: "71123456",
-        note: "Paid in cash",
+        clientNumber: "71XXXXXX",
+        note: null,
 
         mixedChange: false,
-        amountDiffers: false,
-        isEdited: false,
+        amountDiffers: true,
+        isEdited: true,
         deletionAwaiting: false,
 
         cancelReason: null,
 
-        createdAt: new Date("2026-10-28T10:00:00Z"),
-        deliveredAt: new Date("2026-10-28T10:20:00Z"),
+        createdAt: new Date("2026-11-02T09:30:00Z"),
+        deliveredAt: new Date("2026-11-02T10:00:00Z"),
         deletedAt: null,
 
-        edits: [],
+        edits: [
+          {
+            id: "se1000000-0000-4000-8000-000000000001",
+            field: "deliveryFee",
+            oldValue: "10",
+            newValue: "5",
+            createdAt: new Date("2026-11-02T09:45:00Z"),
+            editedBy: {
+              fullName: "Ahmad Khalil",
+            },
+          },
+        ],
       },
+
       {
         id: "s1000000-0000-4000-8000-000000000003",
         saleNumber: 3,
-        status: SaleStatus.DELIVERED,
+        status: SaleStatus.TO_DELIVER,
 
-        businessAmount: 100,
-        deliveryFee: 5,
-        tip: 5,
-        discount: null,
-        totalCollected: 110,
-
-        currency: Currency.USD,
-        method: PaymentMethod.CASH,
-
-        changeGiven: null,
-        changeCurrency: null,
-
-        clientNumber: "76123456",
-        note: null,
-
-        mixedChange: false,
-        amountDiffers: false,
-        isEdited: false,
-        deletionAwaiting: false,
-
-        cancelReason: null,
-
-        createdAt: new Date("2026-10-28T11:00:00Z"),
-        deliveredAt: new Date("2026-10-28T11:30:00Z"),
-        deletedAt: null,
-
-        edits: [],
-      },
-      {
-        id: "s1000000-0000-4000-8000-000000000004",
-        saleNumber: 4,
-        status: SaleStatus.DELIVERED,
-
-        businessAmount: 65,
-        deliveryFee: 5,
+        businessAmount: 15000000,
+        deliveryFee: 500000,
         tip: null,
         discount: null,
-        totalCollected: 70,
+        totalCollected: null,
 
-        currency: Currency.USD,
-        method: PaymentMethod.CASH,
+        currency: Currency.LBP,
+        method: null,
 
         changeGiven: null,
         changeCurrency: null,
 
-        clientNumber: "79123456",
-        note: null,
+        clientNumber: "70XXXXXX",
+        note: "Pending delivery",
 
         mixedChange: false,
         amountDiffers: false,
@@ -226,192 +145,79 @@ export const mockCashUps: CashUpCardData[] = [
 
         cancelReason: null,
 
-        createdAt: new Date("2026-10-28T12:00:00Z"),
-        deliveredAt: new Date("2026-10-28T12:25:00Z"),
+        createdAt: new Date("2026-11-02T11:00:00Z"),
+        deliveredAt: null,
         deletedAt: null,
 
         edits: [],
       },
     ],
-    cashOuts: [],
-    countEntries: [],
-    requests: [],
-  },
 
-  // 3. الحالة الثالثة: OPEN (قيد العمل / In progress)
-  {
-    id: "a1000000-0000-4000-8000-000000000003",
-    status: CashUpStatus.OPEN,
-
-    openedAt: new Date("2026-10-28T07:00:00Z"),
-    countStartedAt: null,
-    closedAt: null,
-    approvedAt: null,
-    voidedAt: null,
-    updatedAt: new Date("2026-10-28T07:00:00Z"),
-
-    floatUsd: 100,
-    floatLbp: 15000000,
-    referenceRate: 89500,
-
-    expectedUsd: null,
-    expectedLbp: null,
-    countedUsd: null,
-    countedLbp: null,
-    gapUsd: null,
-    gapLbp: null,
-
-    selfApproved: false,
-    returnReason: null,
-    voidReason: null,
-
-    membership: {
-      id: "m1000000-0000-4000-8000-000000000001",
-      role: "STAFF",
-      user: {
-        id: "u1000000-0000-4000-8000-000000000001",
-        fullName: "Mohamad",
+    cashOuts: [
+      {
+        id: "co1000000-0000-4000-8000-000000000001",
+        amount: 20,
+        currency: Currency.USD,
+        reason: "Transportation expense",
+        createdAt: new Date("2026-11-02T12:00:00Z"),
       },
-    },
+    ],
 
-    approvedBy: null,
-    sales: [],
-    cashOuts: [],
-    countEntries: [],
-    requests: [],
-  },
-
-  // 4. الحالة الرابعة: VOID أو RETURNED (مع السائق / With driver)
-  {
-    id: "a1000000-0000-4000-8000-000000000004",
-    status: CashUpStatus.VOID,
-
-    openedAt: new Date("2026-10-26T08:00:00Z"),
-    countStartedAt: new Date("2026-10-26T15:00:00Z"),
-    closedAt: new Date("2026-10-26T15:30:00Z"),
-    approvedAt: null,
-    voidedAt: new Date("2026-10-26T16:00:00Z"),
-    updatedAt: new Date("2026-10-26T16:00:00Z"),
-
-    floatUsd: 100,
-    floatLbp: 10000000,
-    referenceRate: 89500,
-
-    expectedUsd: 250,
-    expectedLbp: 12000000,
-    countedUsd: 200,
-    countedLbp: 12000000,
-    gapUsd: -50,
-    gapLbp: 0,
-
-    selfApproved: false,
-    returnReason: "Discrepancy in collection amounts, returned to driver.",
-    voidReason: "Returned for correction",
-
-    membership: {
-      id: "m1000000-0000-4000-8000-000000000001",
-      role: "STAFF",
-      user: {
-        id: "u1000000-0000-4000-8000-000000000001",
-        fullName: "Mohamad",
+    countEntries: [
+      {
+        id: "ce1000000-0000-4000-8000-000000000001",
+        currency: Currency.USD,
+        denomination: 100,
+        quantity: 4,
+        updatedAt: new Date("2026-11-02T13:50:00Z"),
       },
-    },
-
-    approvedBy: null,
-    sales: [],
-    cashOuts: [],
-    countEntries: [],
-    requests: [],
-  },
-
-  // 5. الحالة الخامسة: APPROVED مطابق (Matches)
-  {
-    id: "a1000000-0000-4000-8000-000000000005",
-    status: CashUpStatus.APPROVED,
-
-    openedAt: new Date("2026-10-25T08:00:00Z"),
-    countStartedAt: new Date("2026-10-25T14:00:00Z"),
-    closedAt: new Date("2026-10-25T14:30:00Z"),
-    approvedAt: new Date("2026-10-25T15:00:00Z"),
-    voidedAt: null,
-    updatedAt: new Date("2026-10-25T15:00:00Z"),
-
-    floatUsd: 100,
-    floatLbp: 15000000,
-    referenceRate: 89500,
-
-    expectedUsd: 500,
-    expectedLbp: 20000000,
-    countedUsd: 500,
-    countedLbp: 20000000,
-    gapUsd: 0,
-    gapLbp: 0,
-
-    selfApproved: false,
-    returnReason: null,
-    voidReason: null,
-
-    membership: {
-      id: "m1000000-0000-4000-8000-000000000002",
-      role: "STAFF",
-      user: {
-        id: "u1000000-0000-4000-8000-000000000002",
-        fullName: "Rami",
+      {
+        id: "ce1000000-0000-4000-8000-000000000002",
+        currency: Currency.USD,
+        denomination: 20,
+        quantity: 2,
+        updatedAt: new Date("2026-11-02T13:50:00Z"),
       },
-    },
-
-    approvedBy: {
-      id: "m1000000-0000-4000-8000-000000000009",
-      role: "OWNER",
-      user: { fullName: "Admin Owner" },
-    },
-
-    sales: [],
-    cashOuts: [],
-    countEntries: [],
-    requests: [],
-  },
-
-  // 6. الحالة السادسة: APPROVED مع Self-approved وعجز USD
-  {
-    id: "a1000000-0000-4000-8000-000000000006",
-    status: CashUpStatus.APPROVED,
-
-    openedAt: new Date("2026-10-24T08:00:00Z"),
-    countStartedAt: new Date("2026-10-24T14:00:00Z"),
-    closedAt: new Date("2026-10-24T14:30:00Z"),
-    approvedAt: new Date("2026-10-24T14:35:00Z"),
-    voidedAt: null,
-    updatedAt: new Date("2026-10-24T14:35:00Z"),
-
-    floatUsd: 100,
-    floatLbp: 15000000,
-    referenceRate: 89500,
-
-    expectedUsd: 350,
-    expectedLbp: 10000000,
-    countedUsd: 348,
-    countedLbp: 10000000,
-    gapUsd: -2.0,
-    gapLbp: 0,
-
-    selfApproved: false,
-    returnReason: null,
-    voidReason: null,
-
-    membership: {
-      id: "m1000000-0000-4000-8000-000000000003",
-      role: "OWNER",
-      user: {
-        id: "u1000000-0000-4000-8000-000000000003",
-        fullName: "Ali",
+      {
+        id: "ce1000000-0000-4000-8000-000000000003",
+        currency: Currency.LBP,
+        denomination: 1000000,
+        quantity: 25,
+        updatedAt: new Date("2026-11-02T13:50:00Z"),
       },
-    },
+    ],
 
-    approvedBy: null,
-    sales: [],
-    cashOuts: [],
-    countEntries: [],
-    requests: [],
+    requests: [
+      {
+        id: "r1000000-0000-4000-8000-000000000001",
+        type: RequestType.DELETE_SALE,
+        status: RequestStatus.AWAITING_OWNER,
+
+        reason: "Sale was entered by mistake.",
+
+        requestedBy: {
+          id: "m1000000-0000-4000-8000-000000000001",
+          role: "STAFF",
+          user: {
+            fullName: "Ahmad Khalil",
+          },
+        },
+
+        saleId: "s1000000-0000-4000-8000-000000000002",
+        sale: {
+          id: "s1000000-0000-4000-8000-000000000002",
+          saleNumber: 2,
+          totalCollected: 195,
+          currency: Currency.USD,
+        },
+
+        decisionReason: null,
+        decidedBy: null,
+        selfApproved: false,
+
+        createdAt: new Date("2026-11-02T13:45:00Z"),
+        decidedAt: null,
+      },
+    ],
   },
 ];

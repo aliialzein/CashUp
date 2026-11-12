@@ -1,43 +1,39 @@
-"use client";
-
-import React from "react";
+import { Suspense } from "react";
 import DoneSection from "@/components/owner/home-dashboard/DoneSection";
 import NeedsDecisionSection from "@/components/owner/home-dashboard/NeedsDecisionSection";
 import OpenNowSection from "@/components/owner/home-dashboard/OpenNowSection";
 import TopStatsCards from "@/components/owner/home-dashboard/TopStatsCards";
-import { mockHomeData } from "@/data/mock/owner-dashboard";
+import { summarizeOwnerHome } from "@/lib/owner/cashUpOverview";
+import { listOwnerCashUps } from "@/modules/cash-ups/cash-ups.service";
 
-export default function OwnerHomePage() {
-  const data = mockHomeData;
+async function HomeContent() {
+  const home = summarizeOwnerHome(await listOwnerCashUps());
 
   return (
-    <div className="space-y-8 bg-[#f8fafc] min-h-screen text-[#0f172a] pb-12">
-      {/* Page Title */}
-      <div>
-        <h1 className="text-2xl font-bold text-[#0f172a] sm:text-3xl">Home</h1>
-      </div>
+    <>
+      <TopStatsCards toReview={home.toReview.length} requestsWaiting={home.waitingRequests} openNow={home.open.length} />
 
-      {/* Top 3 Stat Blocks */}
-      <TopStatsCards
-        toReview={data.stats.toReview}
-        requestsWaiting={data.stats.requestsWaiting}
-        openNow={data.stats.openNow}
-      />
-
-      {/* Middle Grid Section: Needs Decision & Open Now */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <NeedsDecisionSection
-          cashUpsCount={data.cashUpsToReview.count}
-          cashUpNames={data.cashUpsToReview.names}
-          requestsCount={data.requests.count}
-          requestsDescription={data.requests.description}
+          cashUpsCount={home.toReview.length}
+          cashUpNames={home.toReview.map((cashUp) => cashUp.staffName)}
+          requestsCount={home.waitingRequests}
         />
-
-        <OpenNowSection items={data.openCashUps} />
+        <OpenNowSection items={home.open} />
       </div>
 
-      {/* Bottom Section: Done */}
-      <DoneSection />
+      <DoneSection approvedCount={home.approvedCount} />
+    </>
+  );
+}
+
+export default function OwnerHomePage() {
+  return (
+    <div className="space-y-8 pb-12">
+      <h1 className="text-2xl font-bold text-ink sm:text-3xl">Home</h1>
+      <Suspense fallback={<p role="status" className="text-sm text-muted">Loading your business…</p>}>
+        <HomeContent />
+      </Suspense>
     </div>
   );
 }

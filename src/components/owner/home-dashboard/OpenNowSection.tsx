@@ -1,53 +1,44 @@
-import React from "react";
-import { useRouter } from "next/navigation";
-
-interface OpenCashUpItem {
-  id: string;
-  fullName: string;
-  since: string;
-  salesCount: number;
-}
+import type { OwnerCashUpSummaryDto } from "@/modules/cash-ups/cash-ups.types";
+import Link from "next/link";
+import { buttonVariantClasses } from "@/components/ui/driver/Button";
+import SectionHeading from "@/components/ui/SectionHeading";
+import { routes } from "@/lib/routes";
+import { ownerTime } from "../owner-format";
 
 interface OpenNowProps {
-  items: OpenCashUpItem[];
+  items: OwnerCashUpSummaryDto[];
 }
 
 export default function OpenNowSection({ items }: OpenNowProps) {
-  const router = useRouter();
-
   return (
     <div className="space-y-3">
-      <h2 className="text-xs font-bold uppercase tracking-wider text-[#475569]">
-        OPEN NOW
-      </h2>
+      <SectionHeading title="OPEN NOW" />
 
-      <div className="bg-[#ffffff] border border-[#e2e8f0] rounded-2xl shadow-sm divide-y divide-[#e2e8f0]">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="p-4 sm:p-5 flex items-center justify-between hover:bg-[#f1f5f9] transition"
-          >
-            <div className="space-y-1">
-              <h3 className="font-semibold text-[#0f172a]">{item.fullName}</h3>
-              <p className="text-sm text-[#475569]">
-                Since {item.since} · {item.salesCount} sale
-                {item.salesCount === 1 ? "" : "s"}
-              </p>
+      <div className="divide-y divide-line rounded-2xl border border-line bg-surface shadow-sm">
+        {items.length === 0 ? (
+          <p className="p-4 text-sm text-muted sm:p-5">No driver has an open cash-up right now.</p>
+        ) : (
+          items.map((item) => (
+            <div key={item.id} className="flex items-center justify-between gap-4 p-4 sm:p-5">
+              <div className="min-w-0 space-y-1">
+                <h3 className="truncate font-semibold text-ink">{item.staffName}</h3>
+                <p className="text-sm text-muted">
+                  Since {ownerTime(item.openedAt)} · {item.salesCount} sale{item.salesCount === 1 ? "" : "s"}
+                  {item.returnReason !== null && " · Returned"}
+                </p>
+              </div>
+              <Link
+                href={routes.owner.review(item.id)}
+                className={`inline-flex min-h-11 shrink-0 items-center rounded-xl px-4 text-sm font-semibold ${buttonVariantClasses("secondary")}`}
+              >
+                Open
+              </Link>
             </div>
-
-            <button
-              onClick={() => router.push(`/owner/cash-ups/${item.id}`)}
-              className="px-4 py-1.5 rounded-xl border border-[#e2e8f0] bg-[#ffffff] text-sm font-semibold text-[#0f172a] hover:bg-[#f1f5f9] transition"
-            >
-              Open
-            </button>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
-      <p className="text-xs text-[#475569] px-1">
-        You see the details once they submit.
-      </p>
+      <p className="px-1 text-xs text-muted">You see the amounts once they submit.</p>
     </div>
   );
 }
