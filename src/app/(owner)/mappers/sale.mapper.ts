@@ -1,5 +1,5 @@
 import type { SaleDto } from "@/modules/sales/sales.types";
-import { SaleData } from "@/types/cash-up";
+import { SaleData } from "@/types/owner/cash-up";
 
 // mapper from SaleDto to SaleData
 

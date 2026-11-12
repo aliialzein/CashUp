@@ -1,4 +1,4 @@
-import { StaffMember } from "@/types/staff";
+import { StaffMember } from "@/types/owner/staff";
 
 export type StaffCardProps = {
   staff: StaffMember;

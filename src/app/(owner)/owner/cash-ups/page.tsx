@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 
 import CashUpCard from "@/components/owner/cash-ups/CashUpCard";
 import { mockCashUps } from "@/data/mock/cash-ups";
-import { CashUpCardData, CashUpStatus, RequestStatus } from "@/types/cash-up";
+import {
+  CashUpCardData,
+  CashUpStatus,
+  RequestStatus,
+} from "@/types/owner/cash-up";
 
 type FilterType =
   | "ALL"

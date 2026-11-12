@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 
 import InviteStaffCard from "@/components/owner/team/InviteStaffCard";
 import StaffList from "@/components/owner/team/StaffList";
-import { StaffMember } from "@/types/staff";
+import { StaffMember } from "@/types/owner/staff";
 import { mockStaffMembers } from "@/data/mock/staff";
 import { Button } from "@/components/ui/Button";
 import { Plus } from "lucide-react";
