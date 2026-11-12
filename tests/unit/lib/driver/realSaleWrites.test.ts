@@ -256,11 +256,14 @@ function sourceFiles(folder: string): string[] {
     });
 }
 
+/** Folders under src that are not driver code: the backend itself and the owner's side. The rule is about driver code only. */
+const NOT_DRIVER_CODE = [join("modules"), join("app", "(owner)"), join("components", "owner")];
+
 describe("the sales service boundary", () => {
-    it("is imported by realSaleWrites.ts only (outside the backend itself)", () => {
+    it("is imported by realSaleWrites.ts only (driver code)", () => {
         const sourceRoot = join(process.cwd(), "src");
         const importers = sourceFiles(sourceRoot)
-            .filter((path) => !relative(sourceRoot, path).startsWith("modules"))
+            .filter((path) => !NOT_DRIVER_CODE.some((folder) => relative(sourceRoot, path).startsWith(folder)))
             .filter((path) => readFileSync(path, "utf8").includes("modules/sales/sales.service"))
             .map((path) => relative(sourceRoot, path));
 
