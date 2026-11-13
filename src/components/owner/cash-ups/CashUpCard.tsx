@@ -1,21 +1,45 @@
-import Link from 'next/link';
-import type { OwnerCashUpSummaryDto } from '../../../modules/cash-ups/cash-ups.types';
-import { ownerDate } from '../owner-format';
+import Link from "next/link";
+import { ChevronRight, Lock } from "lucide-react";
+import type { OwnerCashUpSummaryDto } from "@/modules/cash-ups/cash-ups.types";
+import { nextStep, statusBadge } from "@/lib/owner/cashUpOverview";
+import { routes } from "@/lib/routes";
+import { ownerDate } from "../owner-format";
+import { TONE_BADGE, TONE_TEXT } from "../tone";
 
+/** One row of the owner's Cash-ups list. The whole card opens the review page. */
 export default function CashUpCard({ cashUp }: { cashUp: OwnerCashUpSummaryDto }) {
-  const latest = cashUp.requests[0];
-  const waiting = cashUp.requests.some(request => request.canDecide);
-  return <article className="flex flex-col gap-5 rounded-2xl border border-[#DCE9E0] bg-white p-5 shadow-sm transition hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
-    <div className="min-w-0 space-y-4">
-      <div><h3 className="truncate text-base font-semibold text-[#145B37]">{cashUp.staffName}</h3>
-        <p className="mt-1 text-sm text-[#718077]">Cash-up #{cashUp.number} · Opened {ownerDate(cashUp.openedAt)}</p></div>
-      <span className="inline-block rounded-full bg-[#EAF5ED] px-3 py-1 text-xs font-semibold text-[#167344]">{cashUp.status}</span>
-      <div className="rounded-xl bg-[#F7FAF8] p-3"><p className="text-xs font-medium text-[#718077]">Latest activity</p>
-        <p className="mt-1 text-sm text-[#145B37]">{latest ? 'Delete sale request · ' + latest.status : cashUp.status === 'SUBMITTED' ? 'Cash-up submitted' : 'No requests yet'}</p>
+  const badge = statusBadge(cashUp);
+  const step = nextStep(cashUp);
+
+  return (
+    <Link
+      href={routes.owner.review(cashUp.id)}
+      className="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface p-4 shadow-sm transition hover:border-line-strong focus-visible:outline-2 focus-visible:outline-ink"
+    >
+      <div className="min-w-0 space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="font-semibold text-ink">Cash-up #{cashUp.number}</h3>
+          <span className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-0.5 text-xs font-medium ${TONE_BADGE[badge.tone]}`}>
+            {cashUp.status === "APPROVED" && <Lock className="h-3 w-3" aria-hidden="true" />}
+            {badge.label}
+          </span>
+        </div>
+
+        <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
+          <span>{cashUp.staffName}</span>
+          <span aria-hidden="true">·</span>
+          <span>{ownerDate(cashUp.openedAt)}</span>
+          <span aria-hidden="true">·</span>
+          <span>
+            {cashUp.salesCount} sale{cashUp.salesCount === 1 ? "" : "s"}
+          </span>
+        </p>
       </div>
-    </div>
-    <Link href={'/owner/cash-ups/' + cashUp.id + '/review'} className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#167344] px-5 text-sm font-semibold text-white shadow-sm hover:bg-[#145B37]">
-      {waiting ? 'Decide' : cashUp.status === 'SUBMITTED' && cashUp.canReview ? 'Review' : 'View'}
+
+      <div className="flex shrink-0 items-center gap-2">
+        <span className={`text-sm font-medium ${TONE_TEXT[step.tone]}`}>{step.label}</span>
+        <ChevronRight className="h-4 w-4 text-muted" aria-hidden="true" />
+      </div>
     </Link>
-  </article>;
+  );
 }

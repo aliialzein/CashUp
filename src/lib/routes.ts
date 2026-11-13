@@ -20,4 +20,11 @@ export const routes = {
 		password: "/account/password",
 		startCashUp: "/start",
 	},
+	owner: {
+		home: "/owner",
+		cashUps: "/owner/cash-ups",
+		review: (id: string) => `/owner/cash-ups/${id}/review`,
+		team: "/owner/team",
+		invite: "/owner/team/invite",
+	},
 } as const;

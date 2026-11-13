@@ -1,95 +1,39 @@
-import Link from "next/link";
-import { Suspense } from 'react';
-import { listOwnerCashUps } from '@/modules/cash-ups/cash-ups.service';
+import { Suspense } from "react";
+import DoneSection from "@/components/owner/home-dashboard/DoneSection";
+import NeedsDecisionSection from "@/components/owner/home-dashboard/NeedsDecisionSection";
+import OpenNowSection from "@/components/owner/home-dashboard/OpenNowSection";
+import TopStatsCards from "@/components/owner/home-dashboard/TopStatsCards";
+import { summarizeOwnerHome } from "@/lib/owner/cashUpOverview";
+import { listOwnerCashUps } from "@/modules/cash-ups/cash-ups.service";
 
-const stats = [
-  {
-    title: "Open Cash-ups",
-    description: "Currently in progress",
-    icon: "◷",
-  },
-  {
-    title: "Awaiting Review",
-    description: "Submitted for review",
-    icon: "▤",
-  },
-  {
-    title: "Approved",
-    description: "Successfully reviewed",
-    icon: "✓",
-  },
-];
+async function HomeContent() {
+  const home = summarizeOwnerHome(await listOwnerCashUps());
 
-async function DashboardContent() {
-  const cashUps = await listOwnerCashUps();
-  const counts = [
-    cashUps.filter(row => row.status === 'OPEN').length,
-    cashUps.filter(row => row.status === 'SUBMITTED').length,
-    cashUps.filter(row => row.status === 'APPROVED').length,
-  ];
   return (
-    <div className="space-y-8">
-      {/* Welcome */}
-      <section>
-        <p className="text-sm font-medium text-[#218653]">OWNER WORKSPACE</p>
+    <>
+      <TopStatsCards toReview={home.toReview.length} requestsWaiting={home.waitingRequests} openNow={home.open.length} />
 
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#145B37] sm:text-3xl">
-          Dashboard Overview
-        </h1>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <NeedsDecisionSection
+          cashUpsCount={home.toReview.length}
+          cashUpNames={home.toReview.map((cashUp) => cashUp.staffName)}
+          requestsCount={home.waitingRequests}
+        />
+        <OpenNowSection items={home.open} />
+      </div>
 
-        <p className="mt-2 text-sm text-[#718077]">
-          Manage your cash-ups and keep track of your business cash flow.
-        </p>
-      </section>
-
-      {/* Statistics */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {stats.map((stat, index) => (
-          <div
-            key={stat.title}
-            className="rounded-2xl border border-[#E5EEE8] bg-white p-5 shadow-sm"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-[#718077]">
-                {stat.title}
-              </span>
-
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF5ED] text-lg text-[#167344]">
-                {stat.icon}
-              </span>
-            </div>
-
-            <p className="mt-4 text-2xl font-bold text-[#145B37]">{counts[index]}</p>
-            <p className="mt-1 text-sm text-[#718077]">{stat.description}</p>
-          </div>
-        ))}
-      </section>
-
-      {/* Cash-ups Section */}
-      <section className="rounded-2xl border border-[#E5EEE8] bg-white p-6 shadow-sm">
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div>
-            <h2 className="text-lg font-bold text-[#145B37]">
-              Cash-up Management
-            </h2>
-
-            <p className="mt-1 text-sm text-[#718077]">
-              {"Review and manage your team's cash handling periods."}
-            </p>
-          </div>
-
-          <Link
-            href="/owner/cash-ups"
-            className="inline-flex items-center justify-center rounded-xl bg-[#167344] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#145B37]"
-          >
-            View Cash-ups →
-          </Link>
-        </div>
-      </section>
-    </div>
+      <DoneSection approvedCount={home.approvedCount} />
+    </>
   );
 }
 
-export default function OwnerDashboardPage() {
-  return <Suspense fallback={<p role="status">Loading dashboard…</p>}><DashboardContent /></Suspense>;
+export default function OwnerHomePage() {
+  return (
+    <div className="space-y-8 pb-12">
+      <h1 className="text-2xl font-bold text-ink sm:text-3xl">Home</h1>
+      <Suspense fallback={<p role="status" className="text-sm text-muted">Loading your business…</p>}>
+        <HomeContent />
+      </Suspense>
+    </div>
+  );
 }

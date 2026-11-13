@@ -17,7 +17,7 @@ export default function SalesOverview({ cashUp }: Props) {
     <section className="rounded-2xl border border-[#E2EBE5] bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="font-semibold text-[#145B37]">Sales Overview</h2>
+          <h2 className="font-semibold text-[#0f172a]">Sales Overview</h2>
 
           <p className="mt-1 text-sm text-[#718078]">
             {cashUp.salesCount} sales recorded in this cash-up
@@ -26,7 +26,7 @@ export default function SalesOverview({ cashUp }: Props) {
 
         <Link
           href={`/owner/cash-ups/${cashUp.id}/sales`}
-          className="inline-flex h-11 items-center justify-center rounded-xl bg-[#167344] px-5 text-sm font-semibold text-white transition hover:bg-[#145B37]"
+          className="inline-flex h-11 items-center justify-center rounded-xl bg-[#0f172a] px-5 text-sm font-semibold text-white transition hover:bg-[#1e293b]"
         >
           View All Sales
         </Link>
