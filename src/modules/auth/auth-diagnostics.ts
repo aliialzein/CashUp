@@ -6,6 +6,31 @@ const PRISMA_ERROR_NAMES = new Set([
   'PrismaClientUnknownRequestError',
 ]);
 
+/** Never emit free-form exception text, SQL, SMTP replies, stacks or configuration. */
+export function sanitizedAuthError(error: unknown) {
+  const value = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+  const rawMessage = typeof value.message === 'string' ? value.message : '';
+  const safeCodes = /^(?:P\d{4}|E(?:AUTH|CONNECTION|CONNREFUSED|CONNRESET|TIMEDOUT|DNS|NOTFOUND|SOCKET|HOSTUNREACH|NETUNREACH|ACCES|PERM|TLS|PROTOCOL|MESSAGE|ENVELOPE|STREAM)|ERR_TLS_CERT_ALTNAME_INVALID|CERT_HAS_EXPIRED|DEPTH_ZERO_SELF_SIGNED_CERT|SELF_SIGNED_CERT_IN_CHAIN|UNABLE_TO_VERIFY_LEAF_SIGNATURE)$/;
+  const code = typeof value.code === 'string' && safeCodes.test(value.code) ? value.code : null;
+  const name = typeof value.name === 'string' && (PRISMA_ERROR_NAMES.has(value.name) || /^(?:Error|TypeError|RangeError|AggregateError|ZodError)$/.test(value.name)) ? value.name : 'Error';
+  // Keep recognizable original diagnostic phrases, excluding arbitrary surrounding data.
+  const phrases = [
+    'Recovery secret is not configured', 'Recovery email is not configured', 'Recovery email delivery failed',
+    'DATABASE_URL is not set', 'Application-specific password required', 'Username and Password not accepted',
+    'Invalid login', 'Missing credentials', 'Connection timeout', 'Greeting never received',
+    'Connection closed', 'Connection terminated', 'Socket timeout', 'self-signed certificate',
+    'certificate has expired', 'unable to verify the first certificate',
+    'getaddrinfo ENOTFOUND', 'connect ECONNREFUSED', 'connect ETIMEDOUT',
+    'Unable to start a transaction in the given time', 'Transaction already closed',
+  ];
+  const message = phrases.find(phrase => rawMessage.includes(phrase))
+    ?? (code?.startsWith('P') ? `Database operation failed (${code})` : 'Unrecognized exception text omitted for privacy');
+  const rawCommand = typeof value.command === 'string' ? value.command.toUpperCase().split(/\s+/)[0] : '';
+  const command = /^(?:CONN|AUTH|EHLO|HELO|STARTTLS|MAIL|RCPT|DATA|QUIT|RSET|NOOP)$/.test(rawCommand) ? rawCommand : null;
+  const responseCode = typeof value.responseCode === 'number' && Number.isInteger(value.responseCode) && value.responseCode >= 100 && value.responseCode <= 599 ? value.responseCode : null;
+  return { name, message, code, command, responseCode };
+}
+
 export function reportUnexpectedAuthFailure(operation: 'signup' | 'login' | 'logout' | 'reset-request' | 'reset-verify' | 'reset-password' | 'reset-email', error: unknown): void {
   const errorType = error instanceof Error
     ? PRISMA_ERROR_NAMES.has(error.name) ? error.name : error.name === 'ZodError' ? 'ZodError' : 'Error'
@@ -16,6 +41,7 @@ export function reportUnexpectedAuthFailure(operation: 'signup' | 'login' | 'log
     operation,
     errorType,
     ...(prismaCode ? { prismaCode } : {}),
+    ...(operation.startsWith('reset-') ? { error: sanitizedAuthError(error) } : {}),
   });
 }
 

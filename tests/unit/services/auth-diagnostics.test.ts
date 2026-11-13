@@ -1,4 +1,4 @@
-import { reportAuthTransactionFailure } from '../../../src/modules/auth/auth-diagnostics';
+import { reportAuthTransactionFailure, reportUnexpectedAuthFailure, sanitizedAuthError } from '../../../src/modules/auth/auth-diagnostics';
 import logger from '../../../src/lib/logger';
 jest.mock('../../../src/lib/logger', () => ({ __esModule: true, default: { error: jest.fn() } }));
 
@@ -22,4 +22,29 @@ it('distinguishes an expired transaction after callback entry', () => {
 it('ignores non-P2028 failures', () => {
   reportAuthTransactionFailure('login', 'login-session', new Error('secret'), { elapsedMs: 1 });
   expect(logger.error).not.toHaveBeenCalled();
+});
+
+it('records the actual recovery configuration exception without changing the public log message', () => {
+  reportUnexpectedAuthFailure('reset-request', new Error('Recovery secret is not configured'));
+  expect(logger.error).toHaveBeenCalledWith('Unexpected authentication failure', {
+    operation: 'reset-request', errorType: 'Error', error: {
+      name: 'Error', message: 'Recovery secret is not configured', code: null, command: null, responseCode: null,
+    },
+  });
+});
+
+it('retains safe SMTP error details while removing credentials, recipients, content and AUTH arguments', () => {
+  const error = Object.assign(new Error('Invalid login: SMTP_PASS=secret person@example.test reset code 012345 full email body token=raw-token'), {
+    code: 'EAUTH', command: 'AUTH PLAIN dXNlcjpwYXNz', responseCode: 535,
+    response: 'private full SMTP reply', config: { pass: 'secret' },
+  });
+  expect(sanitizedAuthError(error)).toEqual({ name: 'Error', message: 'Invalid login', code: 'EAUTH', command: 'AUTH', responseCode: 535 });
+  reportUnexpectedAuthFailure('reset-email', error);
+  expect(JSON.stringify(jest.mocked(logger.error).mock.calls)).not.toMatch(/person@|012345|raw-token|secret|full email|dXNlcj|private full/);
+});
+
+it('omits unfamiliar free-form values in every diagnostic field', () => {
+  expect(sanitizedAuthError({ name: 'secret-name', message: 'secret email body', code: 'secret-code', command: 'secret-command', responseCode: 123456 })).toEqual({
+    name: 'Error', message: 'Unrecognized exception text omitted for privacy', code: null, command: null, responseCode: null,
+  });
 });

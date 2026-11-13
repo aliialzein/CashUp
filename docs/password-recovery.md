@@ -17,8 +17,11 @@ hashing options and sanitized diagnostics reuse the existing auth helpers.
 
 Set these server-only variables using `.env.example`:
 
-- `RESEND_API_KEY`: a Resend sending key.
-- `EMAIL_FROM`: for example `CashUp <passwords@auth.your-domain.com>`.
+- `SMTP_HOST`: `smtp.gmail.com`.
+- `SMTP_PORT`: `465` (implicit TLS, with normal certificate verification).
+- `SMTP_USER`: the sender's full Gmail address.
+- `SMTP_PASS`: a Google App Password for that Gmail account, never its normal password.
+- `EMAIL_FROM`: `CashUp <the_sender_gmail_address>`, matching `SMTP_USER`.
 - `RESET_CODE_SECRET`: an independent cryptographically random secret of at least
   32 bytes; use the same value on every instance. Rotation invalidates pending codes.
 - `RECOVERY_IP_HEADER`: optional header overwritten by your trusted ingress with
@@ -26,10 +29,20 @@ Set these server-only variables using `.env.example`:
   this to an untrusted forwarded header. If unset, clients share the conservative
   `unknown` IP bucket (30 requests/hour), in addition to email and global limits.
 
-Verify your sender domain in Resend and publish its required SPF/DKIM DNS records
-before sending to real users. See [Resend domain setup](https://resend.com/docs/dashboard/domains/introduction).
-The helper uses [Resend's send endpoint](https://resend.com/docs/api-reference/emails/send-email)
-directly; it needs no new package. Tests mock email delivery and never send email.
+Enable Google 2-Step Verification and create a [Google App Password](https://support.google.com/accounts/answer/185833)
+for the sender account (account policy must allow App Passwords). Configure the five
+SMTP/email variables above in Vercel for the environments that send recovery email.
+Keep the existing `RESET_CODE_SECRET` unchanged. `RESEND_API_KEY` is obsolete for the
+application and can be removed from Vercel; no Resend sender-domain verification is
+needed for Gmail SMTP.
+
+The existing server-only email helper uses Nodemailer and awaits `sendMail`, with
+SMTP debug/logger output disabled. See [Nodemailer SMTP configuration](https://nodemailer.com/smtp).
+SMTP has no equivalent to Resend's provider idempotency key; the helper retains its
+three-argument interface and performs one send without retries. Message subject and
+body are unchanged. Existing recovery error handling still returns generic public
+responses and invalidates a failed delivery's challenge. Tests mock Nodemailer and
+never connect to SMTP or send email.
 
 ## Migration
 
@@ -81,12 +94,12 @@ Server Actions retain Next.js's origin/CSRF protections.
 
 ### Manual complete-flow check
 
-Run `npm run dev` with the configured development database and Resend sender, then:
+Run `npm run dev` with the configured development database and Gmail SMTP sender, then:
 
 1. Sign out and open `/login`; select **Forgot password?**.
 2. Enter an existing local development account's email and select **Send reset code**.
    Confirm the generic message, code input and 60-second resend countdown appear.
-3. Check inbox/spam and the Resend Emails dashboard. Paste the latest six-digit code
+3. Check the recipient's inbox/spam. Paste the latest six-digit code
    (including any leading zeros) and select **Verify code**.
 4. Enter matching new passwords of 8–128 characters and select **Reset password**.
    Confirm login opens with the success Alert; sign in with the new password.
@@ -126,24 +139,35 @@ generic action failure rather than a success claim.
 
 ## Verification
 
-For a temporary, manual email-only smoke test, run from the project root with an
-existing local development account's email (Node >=22.15):
+For a no-email diagnostic using the same development environment loading and
+transport configuration as delivery, run:
 
 ```sh
-node --conditions=react-server scripts/password-recovery-smoke.cjs "you@example.com"
+node --conditions=react-server scripts/password-recovery-diagnostic.cjs
 ```
 
-The runner follows `dev-staff-seed.cjs` environment loading (`@next/env`, including
-development `.env.local` precedence), checks account eligibility, calls the real
-request service once, and closes Prisma. It preserves the `server-only` package's
-actual `react-server` condition and uses installed TypeScript for module loading.
-It does not mock delivery, create accounts, change passwords, verify codes, touch
-cookies, retry, or bypass limits. It shares the service's default IP bucket.
+It reports missing variable names, SMTP port/secret validity, sanitized
+`transport.verify()` results and, after SMTP succeeds, read-only database transaction
+and recovery-schema checks. It does not send an email, spend a reset budget, create
+a challenge, or modify account data. TLS certificate verification remains enabled.
+Error output includes only allowlisted name/message/code/command/responseCode details;
+unknown free-form messages, SMTP arguments, replies, SQL, configuration and stacks
+are omitted to avoid disclosing credentials or recovery data.
+
+The email-request smoke runner now checks SMTP variables instead of the obsolete
+Resend key. Unlike the diagnostic above, it sends a real request and should only be
+run manually when that is intended.
+
+`reset-request` failures can occur before SMTP. In particular,
+`Recovery secret is not configured` is raised before opening a database transaction
+when `RESET_CODE_SECRET` is missing or shorter than 32 bytes. Email delivery errors
+are caught separately and logged as `reset-email`. Keep an existing secret intact;
+when adding a missing secret to local `.env`, restart the application so it reloads
+the environment. The runtime and diagnostic follow `.env.local` precedence over `.env`.
 
 The generic service response alone does **not** establish delivery: cooldowns,
-limits and provider failures can also return it. Check the inbox/spam folder and
-the Resend Emails dashboard. This manual request sends at most one real reset
-email; automated checks must not run it with a real recipient.
+limits and provider failures can also return it. Check the recipient's inbox/spam.
+Automated checks must mock delivery and never run a live reset request.
 
 ```sh
 npm test -- --runInBand
