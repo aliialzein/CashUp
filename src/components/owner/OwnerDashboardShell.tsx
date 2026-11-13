@@ -4,7 +4,7 @@ import { useState } from "react";
 import LogoutButton from "@/components/auth/LogoutButton";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House, Wallet, Users } from "lucide-react";
+import { House, Wallet, Users, UserRound } from "lucide-react";
 import { routes } from "@/lib/routes";
 
 // "Account" comes back when an owner account page exists (today /owner/account would be a 404).
@@ -12,6 +12,7 @@ const navigation = [
   { label: "Home", href: routes.owner.home, icon: House },
   { label: "Cash-ups", href: routes.owner.cashUps, icon: Wallet },
   { label: "Team", href: routes.owner.team, icon: Users },
+  { label: "Account", href: "/owner/account", icon: UserRound },
 ];
 
 export default function OwnerDashboardShell({
@@ -52,9 +53,9 @@ export default function OwnerDashboardShell({
               Owner Workspace
             </span>
 
-            <div className="hidden sm:block">
+            {/* <div className="hidden sm:block">
               <LogoutButton />
-            </div>
+            </div> */}
           </div>
         </div>
       </header>
