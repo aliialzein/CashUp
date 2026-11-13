@@ -43,6 +43,8 @@ async function loadRecoveryModules() {
     repository: await fromSource('modules/auth/auth.repository.ts'),
     validation: await fromSource('modules/auth/auth.validation.ts'),
     database: await fromSource('shared/db/prisma.ts'),
+    email: await fromSource('modules/auth/password-recovery.email.ts'),
+    diagnostics: await fromSource('modules/auth/auth-diagnostics.ts'),
   };
 }
 
@@ -57,7 +59,8 @@ async function main() {
   if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') {
     throw new Error('SMOKE_DEVELOPMENT_ONLY');
   }
-  if (!process.env.DATABASE_URL || !process.env.RESEND_API_KEY || !process.env.EMAIL_FROM
+  if (!process.env.DATABASE_URL || !process.env.SMTP_HOST || Number(process.env.SMTP_PORT) !== 465
+      || !process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.EMAIL_FROM
       || Buffer.byteLength(process.env.RESET_CODE_SECRET || '') < 32) {
     throw new Error('SMOKE_CONFIGURATION_REQUIRED');
   }
@@ -68,10 +71,10 @@ async function main() {
     if (matches.length !== 1 || matches[0].provider !== 'LOCAL' || !matches[0].passwordHash) {
       throw new Error('SMOKE_EXISTING_LOCAL_ACCOUNT_REQUIRED');
     }
-    // The real service owns challenges, cooldowns, shared limits and Resend delivery.
+    // The real service owns challenges, cooldowns, shared limits and SMTP delivery.
     // Keep its default IP bucket; never invent a fresh IP to bypass limits.
     console.log(await service.requestPasswordReset(input));
-    console.log('This response does not confirm delivery. Check your inbox/spam and the Resend Emails dashboard. Do not rerun automatically.');
+    console.log('This response does not confirm delivery. Check your inbox/spam. Do not rerun automatically.');
   } finally {
     await database.closePrisma();
   }
