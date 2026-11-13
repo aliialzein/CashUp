@@ -6,7 +6,7 @@ const PRISMA_ERROR_NAMES = new Set([
   'PrismaClientUnknownRequestError',
 ]);
 
-export function reportUnexpectedAuthFailure(operation: 'signup' | 'login' | 'logout', error: unknown): void {
+export function reportUnexpectedAuthFailure(operation: 'signup' | 'login' | 'logout' | 'reset-request' | 'reset-verify' | 'reset-password' | 'reset-email', error: unknown): void {
   const errorType = error instanceof Error
     ? PRISMA_ERROR_NAMES.has(error.name) ? error.name : error.name === 'ZodError' ? 'ZodError' : 'Error'
     : 'NonError';

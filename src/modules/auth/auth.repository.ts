@@ -35,6 +35,12 @@ export async function lockSignupEmail(email: string, db: Db) {
 export function createSession(data: { tokenHash: string; userId: string; expiresAt: Date }, db: Db) {
   return db.session.create({ data });
 }
+export async function lockLocalCredentials(userId: string, passwordHash: string, tx: Db): Promise<boolean> {
+  const rows = await tx.$queryRaw<Array<{ passwordHash: string | null; provider: string }>>(Prisma.sql`
+    SELECT "passwordHash", "provider" FROM "users" WHERE "id" = ${userId}::uuid FOR UPDATE
+  `);
+  return rows.length === 1 && rows[0].provider === 'LOCAL' && rows[0].passwordHash === passwordHash;
+}
 export function revokeSession(tokenHash: string, db: Db = getPrisma()) {
   return db.session.updateMany({ where: { tokenHash, revokedAt: null }, data: { revokedAt: new Date() } });
 }

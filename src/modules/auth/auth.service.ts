@@ -4,7 +4,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { hash, verify, argon2id } from 'argon2';
 import { getPrisma } from '../../shared/db/prisma';
 import { isUniqueViolation } from '../../shared/errors/persistence-errors';
-import { readSession, createSession, revokeSession, usersMatchingEmail, createLocalUser, lockSignupEmail } from './auth.repository';
+import { readSession, createSession, revokeSession, usersMatchingEmail, createLocalUser, lockSignupEmail, lockLocalCredentials } from './auth.repository';
 import { AuthFailure, type CurrentUser } from './auth.types';
 import { signupSchema, loginSchema, type SignupInput, type LoginInput } from './auth.validation';
 import { consumeAuthAttempt } from './auth.repository';
@@ -18,7 +18,8 @@ import type { MembershipRole } from '../../generated/prisma/enums';
 
 export const SESSION_COOKIE = 'cashup_session';
 const SESSION_AGE = 7 * 24 * 60 * 60 * 1000;
-const HASH_OPTIONS = { type: argon2id, memoryCost: 19456, timeCost: 2, parallelism: 1 } as const;
+export const HASH_OPTIONS = { type: argon2id, memoryCost: 19456, timeCost: 2, parallelism: 1 } as const;
+export const RESET_COOKIE = 'cashup_password_reset';
 const sessionHash = (token: string) => createHash('sha256').update(token).digest('hex');
 const validToken = (token: string | undefined): token is string => !!token && /^[a-f0-9]{64}$/.test(token);
 
@@ -41,6 +42,13 @@ export async function requireCurrentIdentity(): Promise<CurrentIdentity> {
 
 function cookieOptions(expires: Date) {
   return { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, path: '/', expires };
+}
+
+export async function readResetAuthorization(): Promise<string | undefined> {
+  return (await cookies()).get(RESET_COOKIE)?.value;
+}
+export async function writeResetAuthorization(raw: string, expires: Date): Promise<void> {
+  (await cookies()).set(RESET_COOKIE, raw, { ...cookieOptions(expires), ...(raw ? {} : { maxAge: 0 }) });
 }
 
 async function authTransaction<T>(
@@ -107,6 +115,8 @@ export async function login(values: LoginInput): Promise<void> {
   const raw = randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + SESSION_AGE);
   await authTransaction('login', 'login-session', async tx => {
+    // Serialize with recovery so credentials verified before a reset cannot create a surviving session.
+    if (!await lockLocalCredentials(user.id, user.passwordHash!, tx)) throw new AuthFailure('INVALID_CREDENTIALS');
     if (validToken(previous)) await revokeSession(sessionHash(previous), tx);
     await createSession({ tokenHash: sessionHash(raw), userId: user.id, expiresAt }, tx);
   });

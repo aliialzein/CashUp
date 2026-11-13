@@ -8,7 +8,7 @@ import { cookieJar, useCookieJar } from './cookie-fixture';
 jest.mock('next/headers', () => ({ cookies: jest.fn() }));
 jest.mock('../../../src/modules/auth/auth.repository', () => ({
   findActiveMembership: jest.fn(), lockMembership: jest.fn(), usersMatchingEmail: jest.fn(), createLocalUser: jest.fn(),
-  consumeAuthAttempt: jest.fn(), lockSignupEmail: jest.fn(), createSession: jest.fn(), revokeSession: jest.fn(), readSession: jest.fn(),
+  consumeAuthAttempt: jest.fn(), lockSignupEmail: jest.fn(), createSession: jest.fn(), revokeSession: jest.fn(), readSession: jest.fn(), lockLocalCredentials: jest.fn(),
 }));
 const user = (values: Partial<User> = {}): User => ({ id: 'user', email: 'name@example.test', fullName: 'Name', passwordHash: null, phone: null, provider: 'LOCAL', createdAt: new Date(), updatedAt: new Date(), ...values });
 const tx = {};
@@ -19,6 +19,7 @@ let jar: ReturnType<typeof cookieJar>;
 const run = <T>(work: () => T) => withTestIdentity('fixture-user', db, work);
 beforeEach(() => {
   jar = cookieJar(); useCookieJar(jar);
+  jest.mocked(repository.lockLocalCredentials).mockResolvedValue(true);
   jest.mocked(repository.consumeAuthAttempt).mockResolvedValue(true);
   jest.mocked(repository.usersMatchingEmail).mockResolvedValue([]);
   jest.mocked(repository.createLocalUser).mockResolvedValue(user());
@@ -155,4 +156,12 @@ it('uses one transaction only for verified login session rotation', async () => 
   await run(() => login({ email: input.email, password: input.password }));
   expect(transaction).toHaveBeenCalledTimes(1);
   expect(repository.createSession).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user' }), tx);
+});
+
+it('rejects an old password verified before a concurrent recovery changed the credential hash', async () => {
+  jest.mocked(repository.usersMatchingEmail).mockResolvedValue([user({ passwordHash: await hash(input.password) })]);
+  jest.mocked(repository.lockLocalCredentials).mockResolvedValue(false);
+  await expect(run(() => login({ email: input.email, password: input.password }))).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
+  expect(repository.createSession).not.toHaveBeenCalled();
+  expect(jar.set).not.toHaveBeenCalled();
 });

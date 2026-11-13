@@ -158,6 +158,9 @@ model PasswordResetToken {
   expiresAt DateTime  @db.Timestamptz(3)
   usedAt    DateTime? @db.Timestamptz(3)
   createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  codeHash String? @db.VarChar(64)
+  attempts Int @default(0)
+  verifiedAt DateTime? @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
