@@ -9,3 +9,15 @@ export const signupSchema = loginSchema.extend({
 }).strict();
 export type LoginInput = z.input<typeof loginSchema>;
 export type SignupInput = z.input<typeof signupSchema>;
+
+export const requestResetSchema = z.object({ email: normalizedEmail }).strict();
+export const verifyResetSchema = requestResetSchema.extend({ code: z.string().regex(/^\d{6}$/, 'Enter the six-digit code.') }).strict();
+export const resetPasswordSchema = z.object({
+  password: signupSchema.shape.password,
+  confirmPassword: z.string().max(128),
+}).strict().refine(value => value.password === value.confirmPassword, {
+  path: ['confirmPassword'], message: 'Passwords do not match.',
+});
+export type RequestResetInput = z.input<typeof requestResetSchema>;
+export type VerifyResetInput = z.input<typeof verifyResetSchema>;
+export type ResetPasswordInput = z.input<typeof resetPasswordSchema>;

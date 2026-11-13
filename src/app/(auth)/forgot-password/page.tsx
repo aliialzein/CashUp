@@ -2,11 +2,7 @@
 
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { Logo } from "@/components/ui/Logo";
-
-// Password reset is intentionally unavailable; never report fake success.
-async function handleForgotPassword(): Promise<void> {
-  throw new Error('Password reset is not available yet.');
-}
+import { requestPasswordResetAction, verifyPasswordResetAction, resetPasswordAction } from '../actions';
 
 export default function ForgotPasswordPage() {
   return (
@@ -22,7 +18,6 @@ export default function ForgotPasswordPage() {
       />
 
       <div className="relative w-full max-w-md">
-        <p role="status" className="mb-4 text-center text-sm text-slate-600">Password reset is not available yet. Please contact your business owner.</p>
         <div className="mb-8 flex justify-center">
           <Logo height={52} />
         </div>
@@ -33,13 +28,15 @@ export default function ForgotPasswordPage() {
               Reset password
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              Enter your email and we&apos;ll send you a link to choose a new
+              Enter your email and we&apos;ll send you a code to choose a new
               password.
             </p>
           </div>
 
           <ForgotPasswordForm
-            onSubmit={handleForgotPassword}
+            onSubmit={(email) => requestPasswordResetAction({ email })}
+            onVerify={verifyPasswordResetAction}
+            onReset={resetPasswordAction}
             loginHref="/login"
           />
         </div>
