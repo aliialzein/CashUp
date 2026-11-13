@@ -2,7 +2,8 @@
 
 Recovery uses CashUp's local authentication, Server Actions, PostgreSQL repositories,
 Argon2id options and database sessions. GOOGLE-only and ambiguous case-folded accounts
-are ineligible. No API routes or frontend files were added or changed.
+are ineligible. No API routes are used. The frontend uses the existing auth layout
+and shared Alert, Button and TextField components.
 
 Recovery actions share `src/app/(auth)/actions.ts` and its error handler with
 login/signup. Recovery schemas and input types live in `auth.validation.ts`,
@@ -48,45 +49,28 @@ npm run db:migrate:deploy
 No database reset or `db push` is needed. This migration was prepared without
 connecting to a development database and has not been applied by this task.
 
-## Frontend wiring (left out of this backend change)
+## Frontend flow
 
-The checked-out frontend contains only `ForgotPasswordForm` and a disabled
-`/forgot-password` page. There are no code-verification/reset pages or components
-in this checkout. Its existing `onSubmit(email: string)` callback is the request
-contract. Its text currently describes a link, so it also needs code-based wording.
+The existing login link opens `/forgot-password`. Its existing form now contains
+three steps, connected to actions in `src/app/(auth)/actions.ts`:
 
-Import the three Server Actions from the existing `src/app/(auth)/actions.ts`:
+1. Email calls `requestPasswordResetAction({ email })`. Success retains normalized
+   email in component state and displays the action's generic message with code entry.
+2. Verification calls `verifyPasswordResetAction({ email, code })`. The single text
+   field accepts a pasted six-digit code and preserves leading zeros. Only a successful
+   action advances to password entry.
+3. Password entry calls `resetPasswordAction({ password, confirmPassword })`, using
+   the shared signup policy (8–128 characters, no normalization). Success clears
+   sensitive form state and redirects to `/login?passwordReset=success`, where the
+   existing Alert component displays a confirmation. The query marker carries only
+   feedback, never authorization or password data.
 
-```tsx
-import {
-  requestPasswordResetAction,
-  verifyPasswordResetAction,
-  resetPasswordAction,
-} from '@/app/(auth)/actions';
-
-// Replace the disabled page handler, using the existing form callback signature.
-async function handleForgotPassword(email: string) {
-  const result = await requestPasswordResetAction({ email });
-  if (!result.ok) throw new Error(result.message);
-  // Display result.message; retain email in component state for verification.
-  // Advance to the code-entry step when that UI is available.
-}
-
-// Code step: six-digit string, including any leading zeros.
-const verification = await verifyPasswordResetAction({ email, code });
-if (verification.ok) { /* Show password entry. */ }
-
-// Password step: signup policy, 8–128 characters, no normalization.
-const reset = await resetPasswordAction({ password, confirmPassword });
-if (reset.ok) router.replace('/login');
-```
-
-Remove the disabled availability banner and update link-related text/loading text
-to describe a reset code. The existing form's error handler maps plain `Error`
-to its default message; to show action validation details, set its existing
-`errorMessage` prop from the result or map the result to the form's error contract.
-Show the exact generic request message returned by the action:
-“If an account exists with this email, we’ve sent a reset code.”
+Each mutation disables controls and blocks duplicate submissions while pending.
+Field errors and action messages are displayed through the shared UI components.
+Resend calls the request action, clears the entered code and starts a visible
+60-second cooldown on success. Backend limits remain authoritative. Start over
+returns to email entry and clears code/password fields while retaining the cooldown.
+This also provides recovery from expired codes and expired reset authorization.
 
 All actions return `{ ok: true, message?: string }` or
 `{ ok: false, message: string, fields?: Record<string, string> }`.
@@ -94,6 +78,24 @@ Verification and reset successes contain no secret. Verification sets an HttpOnl
 SameSite=Lax, production-Secure cookie valid for ten minutes. No reset authorization
 is accepted from client input, a URL, localStorage, email or a client verification flag.
 Server Actions retain Next.js's origin/CSRF protections.
+
+### Manual complete-flow check
+
+Run `npm run dev` with the configured development database and Resend sender, then:
+
+1. Sign out and open `/login`; select **Forgot password?**.
+2. Enter an existing local development account's email and select **Send reset code**.
+   Confirm the generic message, code input and 60-second resend countdown appear.
+3. Check inbox/spam and the Resend Emails dashboard. Paste the latest six-digit code
+   (including any leading zeros) and select **Verify code**.
+4. Enter matching new passwords of 8–128 characters and select **Reset password**.
+   Confirm login opens with the success Alert; sign in with the new password.
+
+Also check a wrong code stays on verification, mismatched passwords show an error,
+and resend after 60 seconds clears code entry and invalidates the previous code.
+For expiry checks, wait over ten minutes before verifying or submitting a verified
+reset; confirm the error provides a working Start over path. Reloading intentionally
+returns to email entry because recovery form state is held only in memory.
 
 ## Behavior and operations
 
