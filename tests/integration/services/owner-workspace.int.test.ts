@@ -4,6 +4,7 @@ import { withTestMember } from '../../support/service-context';
 import { prisma, resetDatabase, seedBusinesses, services, ownerActor, managerActor, staffActor } from './service-test-support';
 import * as CashUps from '../../../src/modules/cash-ups/cash-ups.service';
 import * as Sales from '../../../src/modules/sales/sales.service';
+import { summarizeOwnerHome, matchesFilter } from '../../../src/lib/owner/cashUpOverview';
 
 const revalidatePath = jest.fn();
 jest.unstable_mockModule('next/cache', () => ({ revalidatePath }));
@@ -52,19 +53,30 @@ it('isolates lists and details and rejects cross-business, inactive and unauthor
   await expect(run(owner, CashUps.listOwnerCashUps)).rejects.toMatchObject({ code: 'ACTOR_NOT_ACTIVE' });
   expect((await prisma.request.findUniqueOrThrow({ where: { id: request.request.id } })).status).toBe('AWAITING_OWNER');
 });
-it.each(['approve', 'return'] as const)('connects cash-up %s and preserves reconciliation and edit history in the real detail', async operation => {
+it.each((['STAFF', 'MANAGER'] as const).flatMap(role => (['approve', 'return'] as const).map(operation => [role, operation] as const)))('connects %s cash-up %s and preserves reconciliation and edit history in the real detail', async (role, operation) => {
   const { businessA, businessB } = await seedBusinesses();
-  const manager = await managerActor(businessA), owner = await ownerActor(businessA), foreign = await ownerActor(businessB);
+  const manager = role === 'STAFF' ? await staffActor(businessA) : await managerActor(businessA);
+  const owner = await ownerActor(businessA), foreign = await ownerActor(businessB);
   const cashUp = await services.lifecycle.open(manager, { floatUsd: '20' });
   const sale = await services.sales.create(manager, cashUp.id, pending, randomUUID());
   await services.sales.edit(manager, cashUp.id, sale.saleId, { note: 'Call on arrival' });
   await services.sales.confirmDelivery(manager, cashUp.id, sale.saleId, payment);
   await services.counts.replace(manager, cashUp.id, { lines: [{ currency: 'USD', denomination: '1.00', quantity: 33 }] });
   const submitted = await services.lifecycle.submit(manager, cashUp.id);
+  const waiting = await run(owner, CashUps.listOwnerCashUps);
+  expect(summarizeOwnerHome(waiting).toReview.map(row => row.id)).toEqual([cashUp.id]);
+  expect(waiting.filter(row => matchesFilter(row, 'TO_REVIEW')).map(row => row.id)).toEqual([cashUp.id]);
+  expect((await services.queries.listSubmitted(owner)).map(row => row.id)).toEqual([cashUp.id]);
+  await expect(services.counts.replace(manager, cashUp.id, { lines: [] })).rejects.toMatchObject({ code: 'CASHUP_NOT_OPEN' });
+  await expect(services.lifecycle.approve(manager, cashUp.id)).rejects.toMatchObject({ code: role === 'STAFF' ? 'FORBIDDEN' : 'REVIEW_NOT_ALLOWED' });
+  await expect(services.lifecycle.returnToOpen(manager, cashUp.id, 'Please recount')).rejects.toMatchObject({ code: role === 'STAFF' ? 'FORBIDDEN' : 'REVIEW_NOT_ALLOWED' });
   const view = await run(owner, () => CashUps.getOwnerCashUpDetail(cashUp.id));
   expect(view.review).toMatchObject({ expectedUsd: submitted.expectedUsd, countedUsd: '33.00', gapUsd: '0.00' });
+  expect(view.canReview).toBe(true);
   expect(view.edits).toEqual([expect.objectContaining({ field: 'note', newValue: 'Call on arrival', editedByName: expect.any(String) })]);
   expect(await run(foreign, () => actions.approveCashUpAction(cashUp.id))).toMatchObject({ ok: false, code: 'ENTITY_NOT_FOUND' });
+  expect(await run(foreign, () => actions.returnCashUpAction(cashUp.id, 'Please recount'))).toMatchObject({ ok: false, code: 'ENTITY_NOT_FOUND' });
+  await expect(run(foreign, () => CashUps.getOwnerCashUpDetail(cashUp.id))).rejects.toMatchObject({ code: 'ENTITY_NOT_FOUND' });
   if (operation === 'return') {
     const otherOpen = await services.lifecycle.open(manager, {});
     expect(await run(owner, () => actions.returnCashUpAction(cashUp.id, 'Please recount'))).toMatchObject({ ok: false, code: 'CASHUP_ALREADY_OPEN' });
@@ -74,6 +86,10 @@ it.each(['approve', 'return'] as const)('connects cash-up %s and preserves recon
   const result = await run(owner, () => operation === 'approve' ? actions.approveCashUpAction(cashUp.id) : actions.returnCashUpAction(cashUp.id, '  Please recount  '));
   expect(result).toEqual({ ok: true });
   expect((await run(owner, () => CashUps.getOwnerCashUpDetail(cashUp.id))).status).toBe(operation === 'approve' ? 'APPROVED' : 'OPEN');
+  const after = await run(owner, CashUps.listOwnerCashUps);
+  expect(summarizeOwnerHome(after).toReview).toEqual([]);
+  expect(after.filter(row => matchesFilter(row, 'TO_REVIEW'))).toEqual([]);
+  expect(await services.queries.listSubmitted(owner)).toEqual([]);
   expect(await run(owner, () => actions.approveCashUpAction(cashUp.id))).toMatchObject({ ok: false });
 });
 it('allows solo-owner self-review reads and approval under the existing policy', async () => {

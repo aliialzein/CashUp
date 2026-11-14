@@ -530,10 +530,10 @@ describe('CashUpLifecycleService review transitions', () => {
         const awaitingDeletion = setup({ deletionAwaiting: 1 });
         await expect(awaitingDeletion.lifecycle.submit(awaitingDeletion.actor, cashUpId)).rejects.toBeInstanceOf(BusinessRuleError);
     });
-    it('approves a submitted staff cash-up by its Manager', async () => {
+    it.each(['MANAGER', 'OWNER'] as const)('approves a submitted staff cash-up by its %s', async role => {
         const app = setup({
             status: 'SUBMITTED',
-            role: 'MANAGER',
+            role,
             actorId: 'c5b51876-8e33-4b48-bdeb-ec803f41b202',
             ownerId: membershipId,
         });
@@ -557,10 +557,10 @@ describe('CashUpLifecycleService review transitions', () => {
         const staff = setup({ status: 'SUBMITTED' });
         await expect(staff.lifecycle.approve(staff.actor, cashUpId)).rejects.toBeInstanceOf(ForbiddenError);
     });
-    it('returns a submitted cash-up to OPEN with the review reason', async () => {
+    it.each(['MANAGER', 'OWNER'] as const)('returns a submitted staff cash-up to OPEN by its %s with the review reason', async role => {
         const app = setup({
             status: 'SUBMITTED',
-            role: 'MANAGER',
+            role,
             actorId: 'c5b51876-8e33-4b48-bdeb-ec803f41b202',
             ownerId: membershipId,
         });

@@ -213,6 +213,7 @@ export function requireMemberDeactivationPermission(member: CurrentMember, targe
   }
 }
 
+/** Primary reviewer role; owners may also review staff work under canReview. */
 export function selectReviewerRole(ownerRole: MembershipRole, isSolo: boolean): MembershipRole | null {
   if (ownerRole === 'STAFF') return 'MANAGER';
   if (ownerRole === 'MANAGER') return 'OWNER';
@@ -220,7 +221,8 @@ export function selectReviewerRole(ownerRole: MembershipRole, isSolo: boolean): 
 }
 export function canReview(input: ReviewParticipants): ReviewDecision {
   const expectedRole = selectReviewerRole(input.cashUpOwner, input.isSolo);
-  if (expectedRole === null || input.reviewer !== expectedRole) {
+  const ownerReviewingStaff = input.reviewer === 'OWNER' && input.cashUpOwner === 'STAFF';
+  if (!ownerReviewingStaff && (expectedRole === null || input.reviewer !== expectedRole)) {
     return { allowed: false, reason: 'WRONG_REVIEWER_ROLE' };
   }
   const isSelf = input.reviewerMembershipId === input.ownerMembershipId;

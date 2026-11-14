@@ -11,12 +11,17 @@ describe('cash-up approval policy', () => {
             ownerMembershipId: 'owner-id',
             isSolo,
         });
-        if (expectedRole === reviewer) {
+        if (expectedRole === reviewer || (reviewer === 'OWNER' && cashUpOwner === 'STAFF')) {
             expect(decision).toEqual({ allowed: true, selfApproved: false });
         }
         else {
             expect(decision).toEqual({ allowed: false, reason: 'WRONG_REVIEWER_ROLE' });
         }
+    });
+    it('allows an owner to review staff without requiring a manager or solo business', () => {
+        expect(canReview({ reviewer: 'OWNER', reviewerMembershipId: 'owner-membership',
+            cashUpOwner: 'STAFF', ownerMembershipId: 'staff-membership', isSolo: false,
+        })).toEqual({ allowed: true, selfApproved: false });
     });
     it('allows only solo Owner self-approval', () => {
         expect(canReview({
@@ -33,5 +38,11 @@ describe('cash-up approval policy', () => {
             ownerMembershipId: 'same-id',
             isSolo: false,
         })).toEqual({ allowed: false, reason: 'SELF_REVIEW_FORBIDDEN' });
+        expect(canReview({ reviewer: 'OWNER', reviewerMembershipId: 'same-id',
+            cashUpOwner: 'STAFF', ownerMembershipId: 'same-id', isSolo: false,
+        })).toEqual({ allowed: false, reason: 'SELF_REVIEW_FORBIDDEN' });
+        expect(canReview({ reviewer: 'STAFF', reviewerMembershipId: 'same-id',
+            cashUpOwner: 'STAFF', ownerMembershipId: 'same-id', isSolo: false,
+        })).toEqual({ allowed: false, reason: 'WRONG_REVIEWER_ROLE' });
     });
 });
