@@ -4,6 +4,10 @@ import type { Db } from '../../shared/db/types';
 import { Prisma, type User } from '../../generated/prisma/client';
 import type { CurrentMember } from './auth.types';
 import { NotInTransactionError } from '../../shared/errors/persistence-errors';
+import { invalidateRecovery } from './password-recovery.repository';
+
+/** The operations that share the fixed-window attempt budget in auth_attempts. */
+export type AuthAttemptOperation = 'login' | 'signup' | 'password-change';
 
 export function findActiveMembership(userId: string, businessId: string, db: Db = getPrisma()) {
   return db.membership.findFirst({
@@ -44,6 +48,22 @@ export async function lockLocalCredentials(userId: string, passwordHash: string,
 export function revokeSession(tokenHash: string, db: Db = getPrisma()) {
   return db.session.updateMany({ where: { tokenHash, revokedAt: null }, data: { revokedAt: new Date() } });
 }
+/** What a password change must check before it may replace the password. */
+export function readLocalCredentials(userId: string, db: Db = getPrisma()) {
+  return db.user.findUnique({ where: { id: userId }, select: { passwordHash: true, provider: true } });
+}
+/**
+ * Inside the caller's transaction: saves the new password, signs out every other device of the user and ends any
+ * unused recovery code. The session that asked for the change (keepTokenHash) stays signed in.
+ */
+export async function replacePasswordKeepingSession(userId: string, passwordHash: string, keepTokenHash: string, tx: Db) {
+  await tx.user.update({ where: { id: userId }, data: { passwordHash } });
+  await tx.session.updateMany({
+    where: { userId, revokedAt: null, NOT: { tokenHash: keepTokenHash } },
+    data: { revokedAt: new Date() },
+  });
+  await invalidateRecovery(userId, tx);
+}
 export function readSession(tokenHash: string) {
   return getPrisma().session.findFirst({
     where: { tokenHash, revokedAt: null, expiresAt: { gt: new Date() } },
@@ -52,9 +72,9 @@ export function readSession(tokenHash: string) {
 }
 
 /** One statement owns its implicit transaction, including the operation-wide lock. */
-export async function consumeAuthAttempt(operation: 'login' | 'signup', emailHash: string, db: Db = getPrisma()): Promise<boolean> {
+export async function consumeAuthAttempt(operation: AuthAttemptOperation, subjectHash: string, db: Db = getPrisma()): Promise<boolean> {
   const globalKey = `${operation}:global`;
-  const accountKey = `${operation}:${emailHash}`;
+  const accountKey = `${operation}:${subjectHash}`;
   // Pruning excludes the upsert keys: one statement must not delete and update the same row.
   const rows = await db.$queryRaw<Array<{ allowed: boolean }>>(Prisma.sql`
     WITH budget_lock AS MATERIALIZED (

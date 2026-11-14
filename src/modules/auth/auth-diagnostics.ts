@@ -31,7 +31,7 @@ export function sanitizedAuthError(error: unknown) {
   return { name, message, code, command, responseCode };
 }
 
-export function reportUnexpectedAuthFailure(operation: 'signup' | 'login' | 'logout' | 'reset-request' | 'reset-verify' | 'reset-password' | 'reset-email', error: unknown): void {
+export function reportUnexpectedAuthFailure(operation: 'signup' | 'login' | 'logout' | 'reset-request' | 'reset-verify' | 'reset-password' | 'reset-email' | 'password-change', error: unknown): void {
   const errorType = error instanceof Error
     ? PRISMA_ERROR_NAMES.has(error.name) ? error.name : error.name === 'ZodError' ? 'ZodError' : 'Error'
     : 'NonError';

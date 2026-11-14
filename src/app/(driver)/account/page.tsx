@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { AccountNotice } from "@/components/account/AccountNotice";
 import { AccountRow } from "@/components/account/AccountRow";
 import { AccountSection } from "@/components/account/AccountSection";
 import { ProfileCard } from "@/components/account/ProfileCard";
@@ -44,7 +45,6 @@ async function AccountContent() {
                     title="Change password"
                     description="Update your sign-in password"
                     href={routes.driver.password}
-                    badge={COMING_SOON}
                 />
             </AccountSection>
         </>
@@ -63,12 +63,18 @@ function AccountFallback() {
     );
 }
 
-export default function AccountPage() {
+type AccountPageProps = {
+    /** `?done=password-changed` after Change password (see accountNotice.ts). */
+    searchParams: Promise<{ done?: string | string[] }>;
+};
+
+export default function AccountPage({ searchParams }: AccountPageProps) {
     return (
         <div className="space-y-5">
             <PageHeader title="Account" />
 
             <div className="mx-auto w-full max-w-140 space-y-5">
+                <AccountNotice searchParams={searchParams} />
                 <Suspense fallback={<AccountFallback />}>
                     <AccountContent />
                 </Suspense>

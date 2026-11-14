@@ -4,9 +4,9 @@ import { createHash, randomBytes } from 'node:crypto';
 import { hash, verify, argon2id } from 'argon2';
 import { getPrisma } from '../../shared/db/prisma';
 import { isUniqueViolation } from '../../shared/errors/persistence-errors';
-import { readSession, createSession, revokeSession, usersMatchingEmail, createLocalUser, lockSignupEmail, lockLocalCredentials } from './auth.repository';
+import { readSession, createSession, revokeSession, usersMatchingEmail, createLocalUser, lockSignupEmail, lockLocalCredentials, readLocalCredentials, replacePasswordKeepingSession, type AuthAttemptOperation } from './auth.repository';
 import { AuthFailure, type CurrentUser } from './auth.types';
-import { signupSchema, loginSchema, type SignupInput, type LoginInput } from './auth.validation';
+import { signupSchema, loginSchema, changePasswordSchema, type SignupInput, type LoginInput, type ChangePasswordInput } from './auth.validation';
 import { consumeAuthAttempt } from './auth.repository';
 import { reportAuthTransactionFailure } from './auth-diagnostics';
 import 'server-only';
@@ -71,9 +71,10 @@ async function authTransaction<T>(
   }
 }
 // Fixed windows are persisted atomically; rejected attempts never create account keys.
-async function limitAuthAttempt(operation: 'login' | 'signup', email: string): Promise<void> {
-  const emailHash = createHash('sha256').update(email).digest('hex');
-  const allowed = await consumeAuthAttempt(operation, emailHash);
+// The subject is the email for login and signup, the user id for a password change; only its hash is stored.
+async function limitAuthAttempt(operation: AuthAttemptOperation, subject: string): Promise<void> {
+  const subjectHash = createHash('sha256').update(subject).digest('hex');
+  const allowed = await consumeAuthAttempt(operation, subjectHash);
   if (!allowed) throw new AuthFailure('TOO_MANY_ATTEMPTS');
 }
 
@@ -121,6 +122,36 @@ export async function login(values: LoginInput): Promise<void> {
     await createSession({ tokenHash: sessionHash(raw), userId: user.id, expiresAt }, tx);
   });
   jar.set(SESSION_COOKIE, raw, cookieOptions(expiresAt));
+}
+
+/**
+ * A signed-in member changes their own password. This device stays signed in (its cookie is not touched); every
+ * other session of the member is signed out and any unused recovery code ends.
+ */
+export async function changePassword(values: ChangePasswordInput): Promise<void> {
+  const input = changePasswordSchema.parse(values);
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!validToken(token)) throw new UnauthenticatedError();
+  const keepTokenHash = sessionHash(token);
+  const session = await readSession(keepTokenHash);
+  if (!session) throw new UnauthenticatedError();
+  const userId = session.user.id;
+  // Limited per member, never from anything the request sends.
+  await limitAuthAttempt('password-change', userId);
+  const credentials = await readLocalCredentials(userId);
+  const currentHash = credentials?.provider === 'LOCAL' ? credentials.passwordHash : null;
+  let correct = false;
+  // Without a usable hash the input is still hashed, so a wrong answer takes the same time either way.
+  if (currentHash) {
+    try { correct = await verify(currentHash, input.currentPassword); } catch { await hash(input.currentPassword, HASH_OPTIONS); }
+  } else { await hash(input.currentPassword, HASH_OPTIONS); }
+  if (!correct || !currentHash) throw new AuthFailure('INVALID_CREDENTIALS');
+  const newHash = await hash(input.newPassword, HASH_OPTIONS);
+  await getPrisma().$transaction(async tx => {
+    // A recovery reset between the check above and this lock changed the hash: the current password no longer counts.
+    if (!await lockLocalCredentials(userId, currentHash, tx)) throw new AuthFailure('INVALID_CREDENTIALS');
+    await replacePasswordKeepingSession(userId, newHash, keepTokenHash, tx);
+  });
 }
 
 export async function logout(): Promise<void> {

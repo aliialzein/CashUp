@@ -18,6 +18,14 @@ export const resetPasswordSchema = z.object({
 }).strict().refine(value => value.password === value.confirmPassword, {
   path: ['confirmPassword'], message: 'Passwords do not match.',
 });
+// A signed-in member changes their own password: the current one as login accepts it, the new one as signup requires.
+export const changePasswordSchema = z.object({
+  currentPassword: loginSchema.shape.password,
+  newPassword: signupSchema.shape.password,
+}).strict().refine(value => value.newPassword !== value.currentPassword, {
+  path: ['newPassword'], message: 'Choose a different password.',
+});
+export type ChangePasswordInput = z.input<typeof changePasswordSchema>;
 export type RequestResetInput = z.input<typeof requestResetSchema>;
 export type VerifyResetInput = z.input<typeof verifyResetSchema>;
 export type ResetPasswordInput = z.input<typeof resetPasswordSchema>;
