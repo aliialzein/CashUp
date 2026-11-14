@@ -50,11 +50,27 @@ describe("withSessionRedirect", () => {
         );
     });
 
-    it("passes every other error on unchanged, without redirecting", async () => {
+    it("sends an owner who may not run cash-ups to the owner workspace", async () => {
+        // An owner whose business has drivers ("I work on my own" not ticked) gets a plain ForbiddenError on driver reads.
+        getCurrentUser.mockResolvedValue({ id: "user-1", membership: { status: "ACTIVE", role: "OWNER" } });
+
+        await expect(withSessionRedirect(() => Promise.reject(new ForbiddenError()))).rejects.toThrow(
+            "NEXT_REDIRECT /owner",
+        );
+        expect(redirect).toHaveBeenCalledWith("/owner");
+    });
+
+    it("passes a plain ForbiddenError on unchanged for anyone who is not an owner", async () => {
         const plainForbidden = new ForbiddenError();
-        const conflict = new ConflictError();
+        getCurrentUser.mockResolvedValue({ id: "user-1", membership: { status: "ACTIVE", role: "STAFF" } });
 
         await expect(withSessionRedirect(() => Promise.reject(plainForbidden))).rejects.toBe(plainForbidden);
+        expect(redirect).not.toHaveBeenCalled();
+    });
+
+    it("passes every other error on unchanged, without asking for the user or redirecting", async () => {
+        const conflict = new ConflictError();
+
         await expect(withSessionRedirect(() => Promise.reject(conflict))).rejects.toBe(conflict);
         expect(getCurrentUser).not.toHaveBeenCalled();
         expect(redirect).not.toHaveBeenCalled();
