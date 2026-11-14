@@ -23,8 +23,10 @@ export const mockDriverData: DriverDataSource = {
     async getIdentity() {
         const isDriver = mockSession.role === "DRIVER";
         return {
+            businessId: mockSession.businessId,
             businessName: mockSession.businessName,
             userName: mockSession.userName,
+            email: mockSession.email,
             roleLabel: isDriver ? "Driver" : "Cashier",
             feeRequired: isDriver,
         };

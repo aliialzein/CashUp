@@ -77,10 +77,16 @@ const backendReads: DriverDataSource = {
     },
 
     async getIdentity() {
-        // BACKEND: the signed-in user (name) and the business of their membership (name, their role).
+        // BACKEND: the signed-in user (name, email) and the business of their membership (id, name, their role).
         const [user, business] = await Promise.all([getCurrentUser(), getBusiness()]);
         if (user === null) throw new UnauthenticatedError();
-        return { businessName: business.name, userName: user.fullName, ...roleIdentity(business.role) };
+        return {
+            businessId: business.id,
+            businessName: business.name,
+            userName: user.fullName,
+            email: user.email,
+            ...roleIdentity(business.role),
+        };
     },
 
     async getFloatSuggestion() {

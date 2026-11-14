@@ -1,22 +1,29 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ChoiceCards } from "@/components/ui/ChoiceCards";
 import { FormActions } from "@/components/ui/FormActions";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { useResetOnHide } from "@/lib/hooks/useResetOnHide";
-import type { Business } from "@/types/account";
+
+/** A business the member belongs to, as this form shows it. */
+export type Business = {
+    id: string;
+    name: string;
+    /** Display text, e.g. "Driver". */
+    role: string;
+};
 
 type SwitchBusinessFormProps = {
     businesses: Business[];
     currentBusinessId: string;
-    /** Where Cancel and Switch go: the page the driver came from. */
+    /** Where Cancel goes: the page the driver came from. */
     returnHref: string;
+    /** True while a member can belong to only one business: the list is shown but cannot be used. */
+    disabled?: boolean;
 };
 
-export function SwitchBusinessForm({ businesses, currentBusinessId, returnHref }: SwitchBusinessFormProps) {
-    const router = useRouter();
+export function SwitchBusinessForm({ businesses, currentBusinessId, returnHref, disabled = false }: SwitchBusinessFormProps) {
     const [selectedId, setSelectedId] = useState(currentBusinessId);
     useResetOnHide(() => setSelectedId(currentBusinessId));
 
@@ -28,14 +35,17 @@ export function SwitchBusinessForm({ businesses, currentBusinessId, returnHref }
 
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        // TODO: send { businessId: selectedId } to the API.
-        router.push(returnHref);
+        // Nothing is sent until a member can belong to several businesses (today one membership per user).
+        if (disabled) return;
     }
 
     return (
         <form onSubmit={handleSubmit} className="mx-auto w-full max-w-140">
             {/* Phone: no outer box, each business is its own card. Desktop: everything sits in one white card. */}
-            <div className="space-y-4 md:space-y-5 md:rounded-xl md:border md:border-line md:bg-surface md:p-7">
+            <fieldset
+                disabled={disabled}
+                className="min-w-0 space-y-4 md:space-y-5 md:rounded-xl md:border md:border-line md:bg-surface md:p-7"
+            >
                 <div className="space-y-2">
                     <SectionLabel>Your businesses</SectionLabel>
                     <ChoiceCards label="Your businesses" options={options} value={selectedId} onChange={setSelectedId} />
@@ -48,11 +58,11 @@ export function SwitchBusinessForm({ businesses, currentBusinessId, returnHref }
                 <FormActions
                     cancelHref={returnHref}
                     submitLabel="Switch"
-                    submitDisabled={selectedId === currentBusinessId}
+                    submitDisabled={disabled || selectedId === currentBusinessId}
                     onCancel={() => setSelectedId(currentBusinessId)}
                     cancelOnPhone={false}
                 />
-            </div>
+            </fieldset>
         </form>
     );
 }

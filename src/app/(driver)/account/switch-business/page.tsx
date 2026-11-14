@@ -1,7 +1,8 @@
 import { Suspense } from "react";
+import { ComingSoonNotice } from "@/components/account/ComingSoonNotice";
 import { SwitchBusinessForm } from "@/components/account/SwitchBusinessForm";
 import { PageHeader } from "@/components/driver/layout/PageHeader";
-import { mockAccount } from "@/lib/mock/account";
+import { driverData } from "@/lib/driver/data/driverData";
 import { resolveOrigin } from "@/lib/navigation/origin";
 import { routes } from "@/lib/routes";
 
@@ -12,17 +13,22 @@ type SwitchBusinessPageProps = {
     searchParams: Promise<{ from?: string | string[] }>;
 };
 
-/** Reads where the driver came from. It lives inside Suspense because search params are runtime data. */
+/** Reads where the driver came from and their business. Both are runtime data, so this lives inside Suspense. */
 async function SwitchBusinessContent({ searchParams }: SwitchBusinessPageProps) {
-    const { from } = await searchParams;
+    const [{ from }, identity] = await Promise.all([searchParams, driverData.getIdentity()]);
     const origin = resolveOrigin(from, "account");
     return (
         <>
             <PageHeader title={TITLE} subtitle={SUBTITLE} phoneBack={origin} />
+            <ComingSoonNotice>
+                Your account belongs to one business. Working with several businesses is coming later.
+            </ComingSoonNotice>
+            {/* Disabled while a member can belong to only one business (one membership per user). */}
             <SwitchBusinessForm
-                businesses={mockAccount.businesses}
-                currentBusinessId={mockAccount.currentBusinessId}
+                businesses={[{ id: identity.businessId, name: identity.businessName, role: identity.roleLabel }]}
+                currentBusinessId={identity.businessId}
                 returnHref={origin.href}
+                disabled
             />
         </>
     );

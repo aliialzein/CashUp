@@ -53,13 +53,15 @@ describe("realDriverData without a session", () => {
 });
 
 describe("realDriverData.getIdentity", () => {
-    it("gives the business name, the user's full name and the role's label and fee rule", async () => {
-        getCurrentUser.mockResolvedValue({ fullName: "Mohamad Harajly" });
+    it("gives the business, the user's full name and email, and the role's label and fee rule", async () => {
+        getCurrentUser.mockResolvedValue({ fullName: "Mohamad Harajly", email: "mohamad@cashup.test" });
         getBusiness.mockResolvedValue({ id: "b1", name: "Beirut Bites", isSolo: false, role: "STAFF" });
 
         await expect(realDriverData.getIdentity()).resolves.toEqual({
+            businessId: "b1",
             businessName: "Beirut Bites",
             userName: "Mohamad Harajly",
+            email: "mohamad@cashup.test",
             roleLabel: "Driver",
             feeRequired: true,
         });

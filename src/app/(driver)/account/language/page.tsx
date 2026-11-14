@@ -1,6 +1,7 @@
+import { ComingSoonNotice } from "@/components/account/ComingSoonNotice";
 import { LanguageForm } from "@/components/account/LanguageForm";
 import { PageHeader } from "@/components/driver/layout/PageHeader";
-import { mockAccount } from "@/lib/mock/account";
+import { DEFAULT_LANGUAGE } from "@/lib/account/languages";
 import { routes } from "@/lib/routes";
 
 export default function LanguagePage() {
@@ -11,7 +12,9 @@ export default function LanguagePage() {
                 subtitle="App language"
                 phoneBack={{ href: routes.driver.account, label: "Account" }}
             />
-            <LanguageForm current={mockAccount.language} />
+            <ComingSoonNotice>CashUp is in English for now. Arabic and French are coming.</ComingSoonNotice>
+            {/* Disabled until the app has translations and the backend stores a language. */}
+            <LanguageForm current={DEFAULT_LANGUAGE} disabled />
         </div>
     );
 }

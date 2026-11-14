@@ -1,9 +1,11 @@
 import type { CashUp, CashUpDetail, CashUpSummary, FloatSuggestion } from "@/types/driver/cash-up";
 
-/** Who is signed in, as the driver header and Complete delivery need it. */
+/** Who is signed in, as the driver header, Complete delivery and Account need it. */
 export type DriverIdentity = {
+    businessId: string;
     businessName: string;
     userName: string;
+    email: string;
     /** E.g. "Driver" in "Driver · Mohamad". */
     roleLabel: string;
     /** Complete delivery: whether the delivery fee must be entered. */

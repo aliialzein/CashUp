@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { FieldError } from "@/components/ui/FieldError";
 import { FormActions } from "@/components/ui/FormActions";
@@ -12,8 +11,12 @@ import { PasswordStrengthHint } from "./PasswordStrengthHint";
 
 const EMPTY: PasswordChange = { current: "", next: "", repeat: "" };
 
-export function PasswordForm() {
-    const router = useRouter();
+type PasswordFormProps = {
+    /** True while the backend has no password change: the form is shown but cannot be used. */
+    disabled?: boolean;
+};
+
+export function PasswordForm({ disabled = false }: PasswordFormProps) {
     const [values, setValues] = useState<PasswordChange>(EMPTY);
     // The server is the only one that can say the current password is wrong.
     const [currentError, setCurrentError] = useState<string>();
@@ -38,17 +41,19 @@ export function PasswordForm() {
 
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        if (!canSubmit) return;
-        // TODO: send { current, next } to the API, which repeats every rule above.
-        // If it answers that the current password is wrong: setCurrentError("Current password is wrong."); return;
-        reset();
-        router.push(routes.driver.account);
+        // Nothing is sent until the backend can change a password. When it can, the server repeats every
+        // rule above and answers "Current password is wrong." through setCurrentError.
+        if (disabled || !canSubmit) return;
     }
 
     return (
         <form onSubmit={handleSubmit} className="mx-auto w-full max-w-140">
             {/* Phone: the fields sit on the page. Desktop: they sit in one white card. */}
-            <div key={formKey} className="space-y-4 md:space-y-5 md:rounded-xl md:border md:border-line md:bg-surface md:p-7">
+            <fieldset
+                key={formKey}
+                disabled={disabled}
+                className="min-w-0 space-y-4 md:space-y-5 md:rounded-xl md:border md:border-line md:bg-surface md:p-7"
+            >
                 <div>
                     <PasswordField
                         label="Current password"
@@ -84,11 +89,11 @@ export function PasswordForm() {
                 <FormActions
                     cancelHref={routes.driver.account}
                     submitLabel="Update password"
-                    submitDisabled={!canSubmit}
+                    submitDisabled={disabled || !canSubmit}
                     onCancel={reset}
                     cancelOnPhone={false}
                 />
-            </div>
+            </fieldset>
         </form>
     );
 }

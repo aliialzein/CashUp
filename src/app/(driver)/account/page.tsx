@@ -1,51 +1,79 @@
+import { Suspense } from "react";
 import { AccountRow } from "@/components/account/AccountRow";
 import { AccountSection } from "@/components/account/AccountSection";
 import { ProfileCard } from "@/components/account/ProfileCard";
-import { SignOutLink } from "@/components/account/SignOutLink";
+import { SignOutButton } from "@/components/account/SignOutButton";
 import { PageHeader } from "@/components/driver/layout/PageHeader";
-import { getCurrentBusiness } from "@/lib/account/currentBusiness";
-import { languageName } from "@/lib/account/languages";
-import { mockAccount } from "@/lib/mock/account";
+import { DEFAULT_LANGUAGE, languageName } from "@/lib/account/languages";
+import { driverData } from "@/lib/driver/data/driverData";
 import { routes } from "@/lib/routes";
 
-export default function AccountPage() {
-    const account = mockAccount;
-    const business = getCurrentBusiness(account);
+/** Shown on rows whose page exists but whose feature is not available yet. */
+const COMING_SOON = "Coming soon";
 
+/** The signed-in member and their business are runtime data (session and database), so they load inside Suspense. */
+async function AccountContent() {
+    const identity = await driverData.getIdentity();
+
+    return (
+        <>
+            <ProfileCard fullName={identity.userName} email={identity.email} role={identity.roleLabel} />
+
+            <AccountSection label="Business">
+                <AccountRow icon="business" title={identity.businessName} description={`Your role: ${identity.roleLabel}`} />
+                <AccountRow
+                    icon="swap"
+                    title="Switch business"
+                    description="Move to another business you belong to"
+                    href={routes.driver.switchBusiness}
+                    badge={COMING_SOON}
+                />
+            </AccountSection>
+
+            <AccountSection label="Preferences and security">
+                <AccountRow
+                    icon="globe"
+                    title="Language"
+                    description="App language"
+                    value={languageName(DEFAULT_LANGUAGE)}
+                    href={routes.driver.language}
+                    badge={COMING_SOON}
+                />
+                <AccountRow
+                    icon="lock"
+                    title="Change password"
+                    description="Update your sign-in password"
+                    href={routes.driver.password}
+                    badge={COMING_SOON}
+                />
+            </AccountSection>
+        </>
+    );
+}
+
+function AccountFallback() {
+    return (
+        <>
+            <div aria-hidden className="h-56 animate-pulse rounded-xl bg-subtle" />
+            <div aria-hidden className="h-40 animate-pulse rounded-xl bg-subtle" />
+            <p role="status" className="sr-only">
+                Loading your account…
+            </p>
+        </>
+    );
+}
+
+export default function AccountPage() {
     return (
         <div className="space-y-5">
             <PageHeader title="Account" />
 
             <div className="mx-auto w-full max-w-140 space-y-5">
-                <ProfileCard fullName={account.fullName} email={account.email} role={business.role} />
+                <Suspense fallback={<AccountFallback />}>
+                    <AccountContent />
+                </Suspense>
 
-                <AccountSection label="Business">
-                    <AccountRow icon="business" title={business.name} description={`Your role: ${business.role}`} />
-                    <AccountRow
-                        icon="swap"
-                        title="Switch business"
-                        description="Move to another business you belong to"
-                        href={routes.driver.switchBusiness}
-                    />
-                </AccountSection>
-
-                <AccountSection label="Preferences and security">
-                    <AccountRow
-                        icon="globe"
-                        title="Language"
-                        description="App language"
-                        value={languageName(account.language)}
-                        href={routes.driver.language}
-                    />
-                    <AccountRow
-                        icon="lock"
-                        title="Change password"
-                        description="Update your sign-in password"
-                        href={routes.driver.password}
-                    />
-                </AccountSection>
-
-                <SignOutLink />
+                <SignOutButton />
             </div>
         </div>
     );
