@@ -255,7 +255,7 @@ model CashUp {
   voidedAt       DateTime? @db.Timestamptz(3)
   updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
 
-  // STAFF cash-ups: approved by MANAGER.
+  // STAFF cash-ups: approved by MANAGER or OWNER.
   // MANAGER cash-ups: approved by OWNER.
   // Solo businesses: self-approved.
   approvedById   String? @db.Uuid
