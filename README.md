@@ -55,12 +55,16 @@ Built by a team of three for **Ready for Business: The SE² Product Challenge (S
 ```
 src/
 ├── app/          routes: (auth), (driver), (owner)
-├── components/   UI: driver/, owner/, ui/ (shared building blocks)
+├── components/   UI: account/, auth/, driver/, owner/, ui/ (shared building blocks)
 ├── modules/      backend features: auth, business, cash-ups, sales, cash-outs, audit
 │                 (one service + one repository per feature; services own transactions)
 ├── domain/money/ pure money calculations (no database, fully unit-tested)
-├── lib/driver/   driver data layer: gateways (mock + real), mappers, server actions
-└── shared/       database client, errors, reusable validation
+├── lib/          frontend helpers per area:
+│                 account/, auth/, driver/ (gateways mock + real, mappers, server actions),
+│                 owner/, money/, format/, hooks/, navigation/, mock/
+├── data/mock/    mock data for the UI when running without a backend
+├── shared/       database client (db/), errors/, reusable validation/
+└── types/        shared TypeScript types (driver/)
 ```
 
 - **Reads**: Server Components call feature services.
