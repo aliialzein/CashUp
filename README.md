@@ -1,41 +1,108 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CashUp
 
-## Getting Started
+**Cash reconciliation for delivery businesses that handle USD and LBP.**
 
-First, run the development server:
+Drivers record every sale and every cash-out during their shift, count the cash in hand at the end,
+and submit a *cash-up*. The owner reviews each cash-up, sees any gap between counted and expected
+cash per currency, and approves it. Every change is audit-logged.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Built by a team of three for **Ready for Business: The SE² Product Challenge (SE NEXT 2026)**.
+
+---
+
+## Features
+
+### Driver app (phone-first, desktop-ready)
+- **Today**: start a cash-up for the shift and follow its running totals
+- **Sales**: add, edit and complete deliveries (payment method, delivery fee, tip, cash collected and change given); request deletion of a delivered sale with a reason
+- **Cash-outs**: record money taken out of the till, with reasons; cancel or delete with confirmation
+- **Count cash**: count notes and coins per currency, then compare **Counted vs Expected** and see the **Gap** before submitting
+- **History**: past cash-ups grouped by month (Beirut time)
+
+### Owner workspace
+- **Dashboard** with each driver's current cash-up
+- **Cash-up review**: inspect sales and cash-outs, then approve or act on deletion requests
+- **Team**: invite drivers with **join codes** and manage memberships
+
+### Accounts and security
+- Sign-up, login and business **onboarding** (create a business or join one with a code)
+- Passwords hashed with **argon2id**; sessions stored as token hashes in **HttpOnly** cookies
+- **Password recovery** by emailed code, with rate limiting
+
+### Money rules
+- Decimal arithmetic everywhere (`decimal.js`), never floating point and never rounded
+- **USD and LBP are never added together**; every amount keeps its currency
+- Changes are recorded in an **audit log**, and closed records are corrected through owner-reviewed **amendments**
+
+---
+
+## Tech stack
+
+| Area | Tools |
+|---|---|
+| Framework | Next.js (App Router, Server Components, Server Actions), React, TypeScript |
+| Styling | Tailwind CSS, shared design tokens and UI components |
+| Data | PostgreSQL 16, Prisma 7 (`@prisma/adapter-pg`), Zod validation |
+| Security | argon2, session tokens, rate-limited auth attempts |
+| Email & logs | Nodemailer (SMTP), Winston |
+| Quality | Jest (unit + PostgreSQL integration tests), ESLint, TypeScript strict checks |
+| CI | GitHub Actions: typecheck → lint → unit tests → integration tests (PostgreSQL 16) → build |
+
+---
+
+## Architecture at a glance
+
+```
+src/
+├── app/          routes: (auth), (driver), (owner)
+├── components/   UI: driver/, owner/, ui/ (shared building blocks)
+├── modules/      backend features: auth, business, cash-ups, sales, cash-outs, audit
+│                 (one service + one repository per feature; services own transactions)
+├── domain/money/ pure money calculations (no database, fully unit-tested)
+├── lib/driver/   driver data layer: gateways (mock + real), mappers, server actions
+└── shared/       database client, errors, reusable validation
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Reads**: Server Components call feature services.
+- **Writes**: thin Server Actions validate input and call services; services enforce permissions and lifecycle rules.
+- **Concurrency**: every cash-up write runs in a Prisma transaction that locks the cash-up row first.
 
-You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Getting started
 
-## Learn More
+```bash
+cp .env.example .env          # fill in DATABASE_URL, DIRECT_URL and SMTP settings
+npm install                   # also generates the Prisma client
+npm run db:migrate:deploy     # apply migrations
+npm run dev                   # http://localhost:3000
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Tests
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm test -- --runInBand       # fast unit tests
+npm run test:integration      # PostgreSQL integration tests (starts Docker if needed)
+npm run typecheck && npm run lint
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Team
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Member | Main areas |
+|---|---|
+| **Ali Alzein** ([@aliialzein](https://github.com/aliialzein)) | Backend modules and services, Prisma schema and migrations, money domain, authentication and password recovery, integration tests, CI |
+| **Mohamad Harajly** ([@Mhmd724](https://github.com/Mhmd724)) | Driver app end to end (screens, data layer with mock and real gateways, server actions), shared UI components and design tokens, owner real-data integration, unit tests |
+| **Mohamad Ghanem** | Owner workspace pages (dashboard, account and team views), auth page UI |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
 
-## Persistence
+## Developer notes
+
+The sections below document the backend conventions in detail.
+
+### Persistence
 
 Set `DATABASE_URL` to the pooled PostgreSQL connection for the application and `DIRECT_URL`
 to the direct connection on port 5432 for Prisma migrations. Copy `.env.example` to `.env`
@@ -46,7 +113,7 @@ to apply committed migrations. Integration tests require `TEST_DATABASE_URL` to 
 the configured disposable local `cashup_test` database on port 55432. If it is unset, the integration test setup
 starts the PostgreSQL 16 service in `docker-compose.test.yml`.
 
-## Concurrency rules
+### Concurrency rules
 
 Every cash-up write runs inside a service-owned Prisma transaction and locks that cash-up row before other row locks.
 The submit flow must be `prisma.$transaction` -> `cashUps.lockForUpdate(id)` -> read aggregates
@@ -54,7 +121,7 @@ The submit flow must be `prisma.$transaction` -> `cashUps.lockForUpdate(id)` -> 
 and `counts.countedTotals`) -> `cashUps.submit(id, snapshot)`. This keeps the snapshot and
 the submitted cash-up consistent with concurrent sale, cash-out, and count writes.
 
-## Services
+### Services
 
 Business features live under `src/modules`: business (including membership and join codes),
 cash-ups (including counts and review), sales, cash-outs, and audit. Each feature keeps its
@@ -73,7 +140,7 @@ Each line distinguishes money already collected from a delivery amount still exp
 door. Reviewers cannot use the detail query to inspect an OPEN cash-up; open summaries omit
 amounts and sale details.
 
-## Validation and money rules
+### Validation and money rules
 
 Pure money calculations live in `src/domain/money`; reusable strict request schemas and
 sanitized validation errors live in `src/shared/validation`; feature schemas live next to their services. Money is parsed and calculated with
@@ -82,7 +149,7 @@ never added together. Request schemas reject unknown keys and return normalized 
 money strings. To change currency, denomination, or amount limits, edit
 `src/domain/money/config.ts`.
 
-## Seeding a dev business
+### Seeding a dev business
 
 For a repeatable STAFF **login** fixture with a dedicated development business,
 use `npm run db:seed:staff` after configuring the verified local target and
@@ -92,7 +159,7 @@ records the available frontend branch and the remaining integration blocker.
 
 Run the SQL in `scripts/dev-seed.sql` in the Supabase SQL editor for the dev project only. It creates one multi-user dev business with a fixed Owner, Manager, and two Staff members and is safe to apply repeatedly because every insert uses `ON CONFLICT DO NOTHING`. Seeded users are not login credentials. Use the real signup flow; no development identity override remains.
 
-## Application calls
+### Application calls
 
 Server Components call feature services for reads. Thin Server Actions validate commands and call feature services for writes. Services resolve the current session/member internally, enforce permissions and lifecycle rules, and call concrete repositories. Repositories own Prisma queries; financial calculations remain in the pure money domain.
 
